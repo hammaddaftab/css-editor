@@ -35,6 +35,22 @@ _ALLOWED: dict[str, str] = {
 _MAX_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
+@router.get("/images", summary="List all uploaded images")
+async def list_images() -> JSONResponse:
+    images = []
+    if IMAGES_DIR.exists():
+        for path in sorted(IMAGES_DIR.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
+            if path.is_file() and path.suffix.lower() in {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"}:
+                stat = path.stat()
+                images.append({
+                    "filename": path.name,
+                    "url": f"/static/images/{path.name}",
+                    "size": stat.st_size,
+                    "mtime": stat.st_mtime,
+                })
+    return JSONResponse(images)
+
+
 @router.post("/images", summary="Upload an image for use in markdown")
 async def upload_image(file: UploadFile) -> JSONResponse:
     # Validate MIME type

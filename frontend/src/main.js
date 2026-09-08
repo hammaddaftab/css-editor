@@ -17,30 +17,39 @@
 
 import { createMarkdownEditor, createCssEditor } from './editor.js';
 import { connectSSE }                            from './sse-client.js';
-import { initPreview, updatePreview }            from './preview.js';
+import { initPreview, updatePreview, setPreviewDocumentTheme } from './preview.js';
+import { initImageLibrary }                      from './image-library.js';
 
 // ---------------------------------------------------------------------------
 // DOM refs
 // ---------------------------------------------------------------------------
-const $mdEditor       = document.getElementById('md-editor');
-const $cssEditor      = document.getElementById('css-editor');
-const $frame          = document.getElementById('preview-frame');
-const $status         = document.getElementById('sse-status');
-const $pageCount      = document.getElementById('page-count');
-const $exportBtn      = document.getElementById('export-btn');
-const $uploadImgBtn   = document.getElementById('upload-img-btn');
-const $imageInput     = document.getElementById('image-input');
-const $toggleCss      = document.getElementById('toggle-css');
-const $toggleCssInner = document.getElementById('toggle-css-inner');
-const $leftPane       = document.getElementById('left-pane');
-const $divider        = document.getElementById('pane-divider');
-const $panes          = document.querySelector('.panes');
+const $mdEditor         = document.getElementById('md-editor');
+const $cssEditor        = document.getElementById('css-editor');
+const $frame            = document.getElementById('preview-frame');
+const $status           = document.getElementById('sse-status');
+const $pageCount        = document.getElementById('page-count');
+const $exportBtn        = document.getElementById('export-btn');
+const $toggleLibrary    = document.getElementById('toggle-library');
+const $imageLibrary     = document.getElementById('image-library');
+const $imageList        = document.getElementById('image-list');
+const $libraryDropzone  = document.getElementById('library-dropzone');
+const $uploadLibraryBtn = document.getElementById('upload-library-btn');
+const $imageCount       = document.getElementById('image-count');
+const $imageInput       = document.getElementById('image-input');
+const $toggleCss        = document.getElementById('toggle-css');
+const $toggleCssInner   = document.getElementById('toggle-css-inner');
+const $leftPane         = document.getElementById('left-pane');
+const $divider          = document.getElementById('pane-divider');
+const $panes            = document.querySelector('.panes');
+const $previewScroll    = document.querySelector('.preview-scroll');
+const $previewThemeToggle = document.getElementById('preview-theme-toggle');
 
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 let _markdown = '';
 let _css      = '';
+let _previewTheme = localStorage.getItem('css_editor_preview_theme') || 'light';
 
 // ---------------------------------------------------------------------------
 // Status helper
@@ -94,11 +103,42 @@ async function doExport() {
 }
 
 // ---------------------------------------------------------------------------
-// Editors
+// Image Library & Editors
 // ---------------------------------------------------------------------------
-const mdView = createMarkdownEditor($mdEditor, (text) => {
-  _markdown = text;
-  postRender(_markdown, _css);
+
+let imageLibrary;
+
+const mdView = createMarkdownEditor(
+  $mdEditor,
+  (text) => {
+    _markdown = text;
+    postRender(_markdown, _css);
+  },
+  {
+    onImageVicinity: (url) => {
+      if (imageLibrary) imageLibrary.focusImage(url);
+    },
+    onDropImage: (imgData) => {
+      if (imageLibrary) imageLibrary.focusImage(imgData.url);
+    },
+  }
+);
+
+imageLibrary = initImageLibrary({
+  container:     $imageLibrary,
+  listEl:        $imageList,
+  dropzoneEl:    $libraryDropzone,
+  fileInputEl:   $imageInput,
+  countEl:       $imageCount,
+  uploadBtnEl:   $uploadLibraryBtn,
+  onInsert: (snippet) => {
+    const pos = mdView.state.selection.main.head;
+    mdView.dispatch({
+      changes:   { from: pos, insert: snippet },
+      selection: { anchor: pos + snippet.length },
+    });
+    mdView.focus();
+  },
 });
 
 const cssView = createCssEditor($cssEditor, (text) => {
@@ -121,7 +161,7 @@ window.addEventListener('sse:connected', () => {
 
 window.addEventListener('sse:render', (ev) => {
   const { html, css } = ev.detail;
-  updatePreview($frame, html, css || _css);
+  updatePreview($frame, html, css || _css, _previewTheme);
   setStatus('connected', 'Live');
 
   setTimeout(() => {
@@ -138,60 +178,33 @@ window.addEventListener('sse:offline', ()   => setStatus('idle', 'Reconnecting�
 // ---------------------------------------------------------------------------
 // Preview init
 // ---------------------------------------------------------------------------
-initPreview($frame);
+initPreview($frame, _previewTheme);
 
 // ---------------------------------------------------------------------------
 // Toolbar
 // ---------------------------------------------------------------------------
 $exportBtn.addEventListener('click', doExport);
 
-// ---------------------------------------------------------------------------
-// Image upload
-// Flow: button → file picker → POST /api/images → insert markdown at cursor
-// Also handles drag-and-drop onto the left pane.
-// ---------------------------------------------------------------------------
-
-async function uploadImages(files) {
-  for (const file of files) {
-    const form = new FormData();
-    form.append('file', file);
-    $uploadImgBtn.disabled    = true;
-    $uploadImgBtn.textContent = '⏳ Uploading…';
-    try {
-      const res  = await fetch('/api/images', { method: 'POST', body: form });
-      const data = await res.json();
-      if (!res.ok) { alert(`Upload failed: ${data.detail ?? res.status}`); continue; }
-
-      // Insert the returned markdown snippet at the editor cursor
-      const snippet = `\n${data.markdown}\n`;
-      const pos     = mdView.state.selection.main.head;
-      mdView.dispatch({
-        changes:   { from: pos, insert: snippet },
-        selection: { anchor: pos + snippet.length },
-      });
-    } catch (err) {
-      alert(`Upload error: ${err.message}`);
-    } finally {
-      $uploadImgBtn.disabled    = false;
-      $uploadImgBtn.textContent = '🖼 Image';
-    }
-  }
+function toggleLibrary() {
+  const collapsed = $leftPane.classList.toggle('library-collapsed');
+  $toggleLibrary.classList.toggle('active', !collapsed);
+  $toggleLibrary.title = collapsed ? 'Show Image Library' : 'Hide Image Library';
 }
+$toggleLibrary.addEventListener('click', toggleLibrary);
 
-$uploadImgBtn.addEventListener('click', () => $imageInput.click());
-$imageInput.addEventListener('change', (e) => {
-  uploadImages([...e.target.files]);
-  e.target.value = '';  // reset so same file can be re-selected
+// OS file drag-and-drop onto the left pane imports into image library
+$leftPane.addEventListener('dragover', (e) => {
+  if (e.dataTransfer.types.includes('application/x-editor-image')) return;
+  e.preventDefault();
+  $leftPane.classList.add('drag-over');
 });
-
-// Drag-and-drop images onto the editor panel
-$leftPane.addEventListener('dragover',  (e) => { e.preventDefault(); $leftPane.classList.add('drag-over'); });
-$leftPane.addEventListener('dragleave', ()  => $leftPane.classList.remove('drag-over'));
+$leftPane.addEventListener('dragleave', () => $leftPane.classList.remove('drag-over'));
 $leftPane.addEventListener('drop', (e) => {
+  if (e.dataTransfer.types.includes('application/x-editor-image')) return;
   e.preventDefault();
   $leftPane.classList.remove('drag-over');
-  const imgs = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
-  if (imgs.length) uploadImages(imgs);
+  const imgs = [...(e.dataTransfer.files || [])].filter((f) => f.type.startsWith('image/'));
+  if (imgs.length && imageLibrary) imageLibrary.uploadFiles(imgs);
 });
 
 function toggleCssPanel() {
@@ -202,6 +215,35 @@ function toggleCssPanel() {
 }
 $toggleCss.addEventListener('click', toggleCssPanel);
 $toggleCssInner.addEventListener('click', toggleCssPanel);
+
+// ---------------------------------------------------------------------------
+// Preview background theme (Light / Dark desk variants)
+// ---------------------------------------------------------------------------
+function setPreviewTheme(theme) {
+  _previewTheme = theme === 'dark' ? 'dark' : 'light';
+  const isDark = _previewTheme === 'dark';
+  $previewScroll?.classList.toggle('preview-theme--dark', isDark);
+  $previewScroll?.classList.toggle('preview-theme--light', !isDark);
+
+  $previewThemeToggle?.querySelectorAll('.preview-theme-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.theme === _previewTheme);
+  });
+
+  setPreviewDocumentTheme($frame, _previewTheme);
+
+  try {
+    localStorage.setItem('css_editor_preview_theme', _previewTheme);
+  } catch {}
+}
+
+setPreviewTheme(_previewTheme);
+
+$previewThemeToggle?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.preview-theme-btn');
+  if (btn && btn.dataset.theme) {
+    setPreviewTheme(btn.dataset.theme);
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Resizable divider

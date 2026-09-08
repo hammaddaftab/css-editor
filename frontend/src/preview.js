@@ -14,25 +14,38 @@ const PRINT_CSS_URL = `${location.origin}/static/css/print.css`;
 const PAGED_JS_URL  = 'https://unpkg.com/pagedjs/dist/paged.polyfill.js';
 
 let _currentBlobUrl = null;
+let _currentTheme   = 'light';
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
-export function initPreview(iframe) {
-  _render(iframe, '', '');
+export function setPreviewDocumentTheme(iframe, theme) {
+  _currentTheme = theme;
+  try {
+    const doc = iframe.contentDocument;
+    if (doc?.documentElement) {
+      doc.documentElement.setAttribute('data-theme', theme);
+    }
+  } catch { /* cross-origin guard */ }
 }
 
-export function updatePreview(iframe, htmlBody, userCss) {
-  _render(iframe, htmlBody, userCss);
+export function initPreview(iframe, theme = 'light') {
+  _currentTheme = theme;
+  _render(iframe, '', '', _currentTheme);
+}
+
+export function updatePreview(iframe, htmlBody, userCss, theme = _currentTheme) {
+  if (theme) _currentTheme = theme;
+  _render(iframe, htmlBody, userCss, _currentTheme);
 }
 
 // ---------------------------------------------------------------------------
 // Internal
 // ---------------------------------------------------------------------------
 
-function _render(iframe, htmlBody, userCss) {
-  const html = _buildDocument(htmlBody, userCss);
+function _render(iframe, htmlBody, userCss, theme = _currentTheme) {
+  const html = _buildDocument(htmlBody, userCss, theme);
   const blob = new Blob([html], { type: 'text/html' });
 
   if (_currentBlobUrl) URL.revokeObjectURL(_currentBlobUrl);
@@ -60,30 +73,150 @@ function _resizeIframe(iframe) {
   }, 650);
 }
 
-function _buildDocument(htmlBody, userCss) {
+function _buildDocument(htmlBody, userCss, theme = 'light') {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="${theme}">
 <head>
   <meta charset="UTF-8">
 
-  <!--
-    <base href> is the key fix for image rendering inside the iframe.
-
-    The iframe loads from a blob: URL (e.g. blob:http://localhost:8000/uuid).
-    Without a base, any image path is resolved relative to that blob URL —
-    which means relative paths (./img.png) and root-relative paths
-    (/static/images/img.png) silently fail.
-
-    Setting base href to the server origin means:
-      ![alt](https://example.com/img.png)  → unchanged  ✓
-      ![alt](/static/images/img.png)       → http://localhost:8000/static/images/img.png  ✓
-      ![alt](img.png)                      → http://localhost:8000/img.png  ✓
-      data:image/...                       → unchanged  ✓
-  -->
   <base href="${location.origin}/">
 
   <link rel="stylesheet" href="${PRINT_CSS_URL}">
-  <style>${userCss}</style>
+  <style>
+    html, body {
+      background: transparent !important;
+    }
+    .pagedjs_pages {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      padding: 16px 0;
+    }
+
+    /* ── Light Page Theme (Default) ── */
+    .pagedjs_page {
+      background: #ffffff !important;
+      color: var(--color-text, #1a1a1a);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+      transition: background 150ms ease, color 150ms ease;
+    }
+
+    /* ── Dark Page Theme ── */
+    html[data-theme="dark"] {
+      --color-text:              #e5e7eb;
+      --color-heading:           #ffffff;
+      --color-link:              #60a5fa;
+      --color-border:            #374151;
+      --color-muted:             #9ca3af;
+      --color-code-bg:           #26262b;
+      --color-blockquote-border: #4b5563;
+      color: #e5e7eb;
+    }
+
+    html[data-theme="dark"] body {
+      color: #e5e7eb !important;
+    }
+
+    html[data-theme="dark"] .pagedjs_page {
+      background: #1c1c1f !important;
+      color: #e5e7eb !important;
+      box-shadow: 0 4px 22px rgba(0, 0, 0, 0.65), 0 0 0 1px #2e2e34 !important;
+    }
+
+    html[data-theme="dark"] h1,
+    html[data-theme="dark"] h2,
+    html[data-theme="dark"] h3,
+    html[data-theme="dark"] h4,
+    html[data-theme="dark"] h5,
+    html[data-theme="dark"] h6 {
+      color: #ffffff !important;
+    }
+
+    html[data-theme="dark"] h1 {
+      border-bottom-color: #ffffff !important;
+    }
+
+    html[data-theme="dark"] h2 {
+      border-bottom-color: #374151 !important;
+    }
+
+    html[data-theme="dark"] a {
+      color: #60a5fa !important;
+    }
+
+    html[data-theme="dark"] hr {
+      border-top-color: #374151 !important;
+    }
+
+    html[data-theme="dark"] table thead tr {
+      background: #27272c !important;
+    }
+
+    html[data-theme="dark"] table tr:nth-child(even) td {
+      background: #212126 !important;
+    }
+
+    html[data-theme="dark"] table th,
+    html[data-theme="dark"] table td {
+      border-color: #374151 !important;
+      color: #e5e7eb !important;
+    }
+
+    html[data-theme="dark"] pre,
+    html[data-theme="dark"] pre.code-block {
+      background: #25252a !important;
+      border-color: #374151 !important;
+      border-left-color: var(--accent, #2563eb) !important;
+      color: #f3f4f6 !important;
+    }
+
+    html[data-theme="dark"] code {
+      background: #27272c !important;
+      color: #f3f4f6 !important;
+    }
+
+    html[data-theme="dark"] blockquote {
+      border-left-color: #4b5563 !important;
+      color: #9ca3af !important;
+    }
+
+    html[data-theme="dark"] .callout {
+      background: #212126 !important;
+      border-color: #374151 !important;
+      border-left-color: var(--accent, #2563eb) !important;
+    }
+
+    html[data-theme="dark"] .warning {
+      background: #361414 !important;
+      border-left-color: #ef4444 !important;
+      color: #fca5a5 !important;
+    }
+
+    html[data-theme="dark"] .info,
+    html[data-theme="dark"] .note {
+      background: #14223d !important;
+      border-left-color: #3b82f6 !important;
+      color: #93c5fd !important;
+    }
+
+    html[data-theme="dark"] .badge {
+      background: #374151 !important;
+      color: #f3f4f6 !important;
+    }
+
+    html[data-theme="dark"] .badge-info {
+      background: #1e3a8a !important;
+      color: #bfdbfe !important;
+    }
+
+    html[data-theme="dark"] .badge-warning {
+      background: #7f1d1d !important;
+      color: #fecaca !important;
+    }
+
+    ${userCss}
+  </style>
   <script src="${PAGED_JS_URL}"><\/script>
 </head>
 <body>

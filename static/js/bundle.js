@@ -30275,7 +30275,145 @@ function debounce(fn, ms) {
   };
 }
 const DEBOUNCE_MS = 400;
-function makeEditor({ container, doc: doc2, lang, onChange }) {
+const setDropTargetLine = StateEffect.define();
+const clearDropTargetLine = StateEffect.define();
+const dropTargetField = StateField.define({
+  create() {
+    return Decoration.none;
+  },
+  update(decorations2, tr) {
+    decorations2 = decorations2.map(tr.changes);
+    for (const effect of tr.effects) {
+      if (effect.is(setDropTargetLine)) {
+        const lineNum = effect.value;
+        if (lineNum >= 1 && lineNum <= tr.state.doc.lines) {
+          const line = tr.state.doc.line(lineNum);
+          decorations2 = Decoration.set([
+            Decoration.line({ class: "cm-drop-target-line" }).range(line.from)
+          ]);
+        }
+      } else if (effect.is(clearDropTargetLine)) {
+        decorations2 = Decoration.none;
+      }
+    }
+    return decorations2;
+  },
+  provide: (f) => EditorView.decorations.from(f)
+});
+function makeImageDragDropExtension(onDropImage) {
+  return EditorView.domEventHandlers({
+    dragover(event, view) {
+      const isImageCard = event.dataTransfer.types.includes("application/x-editor-image");
+      if (!isImageCard) return false;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+      if (pos !== null) {
+        const line = view.state.doc.lineAt(pos);
+        view.dispatch({
+          effects: setDropTargetLine.of(line.number)
+        });
+      }
+      return true;
+    },
+    dragleave(event, view) {
+      if (!view.dom.contains(event.relatedTarget)) {
+        view.dispatch({ effects: clearDropTargetLine.of(null) });
+      }
+      return true;
+    },
+    drop(event, view) {
+      view.dispatch({ effects: clearDropTargetLine.of(null) });
+      const rawData = event.dataTransfer.getData("application/x-editor-image");
+      if (!rawData) return false;
+      event.preventDefault();
+      let imgData;
+      try {
+        imgData = JSON.parse(rawData);
+      } catch {
+        return false;
+      }
+      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+      const insertPos = pos !== null ? pos : view.state.selection.main.head;
+      const line = view.state.doc.lineAt(insertPos);
+      const altText = imgData.alt || "image";
+      const snippet2 = `![${altText}](${imgData.url})`;
+      if (line.text.trim().length === 0) {
+        view.dispatch({
+          changes: { from: line.from, to: line.to, insert: snippet2 },
+          selection: { anchor: line.from + snippet2.length }
+        });
+      } else {
+        const insertFrom = line.to;
+        const textToInsert = `
+
+${snippet2}`;
+        view.dispatch({
+          changes: { from: insertFrom, insert: textToInsert },
+          selection: { anchor: insertFrom + textToInsert.length }
+        });
+      }
+      view.focus();
+      if (onDropImage) onDropImage(imgData);
+      return true;
+    }
+  });
+}
+const IMG_MARKDOWN_REGEX = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
+function findImageNearOffset(lineText, offset, threshold = 15) {
+  IMG_MARKDOWN_REGEX.lastIndex = 0;
+  let match;
+  while ((match = IMG_MARKDOWN_REGEX.exec(lineText)) !== null) {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (offset >= start - threshold && offset <= end + threshold) {
+      return match[2];
+    }
+  }
+  return null;
+}
+function makeImageVicinityExtension(onFocusImage) {
+  let lastFocusedUrl = null;
+  function notifyFocus(url) {
+    if (url !== lastFocusedUrl) {
+      lastFocusedUrl = url;
+      onFocusImage(url);
+    }
+  }
+  const selectionListener = EditorView.updateListener.of((update) => {
+    if (!update.selectionSet && !update.docChanged) return;
+    const head = update.state.selection.main.head;
+    const doc2 = update.state.doc;
+    const line = doc2.lineAt(head);
+    const offset = head - line.from;
+    let matchedUrl = findImageNearOffset(line.text, offset, 15);
+    if (!matchedUrl && line.text.trim() === "") {
+      if (line.number > 1) {
+        const prev = doc2.line(line.number - 1);
+        matchedUrl = findImageNearOffset(prev.text, prev.text.length, 5);
+      }
+      if (!matchedUrl && line.number < doc2.lines) {
+        const next = doc2.line(line.number + 1);
+        matchedUrl = findImageNearOffset(next.text, 0, 5);
+      }
+    }
+    notifyFocus(matchedUrl);
+  });
+  const mouseHandler = EditorView.domEventHandlers({
+    mousemove(event, view) {
+      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+      if (pos === null) return;
+      const line = view.state.doc.lineAt(pos);
+      const offset = pos - line.from;
+      const url = findImageNearOffset(line.text, offset, 5);
+      if (url) {
+        notifyFocus(url);
+      }
+    }
+  });
+  return [selectionListener, mouseHandler];
+}
+function makeEditor({ container, doc: doc2, lang, onChange, extraExtensions = [] }) {
   const onChangeFn = debounce(onChange, DEBOUNCE_MS);
   const view = new EditorView({
     state: EditorState.create({
@@ -30293,15 +30431,29 @@ function makeEditor({ container, doc: doc2, lang, onChange }) {
           if (update.docChanged) {
             onChangeFn(update.state.doc.toString());
           }
-        })
+        }),
+        ...extraExtensions
       ]
     }),
     parent: container
   });
   return view;
 }
-function createMarkdownEditor(container, onChange) {
-  return makeEditor({ container, doc: DEFAULT_MARKDOWN, lang: markdown(), onChange });
+function createMarkdownEditor(container, onChange, { onImageVicinity, onDropImage } = {}) {
+  const extraExtensions = [
+    dropTargetField,
+    makeImageDragDropExtension(onDropImage)
+  ];
+  if (onImageVicinity) {
+    extraExtensions.push(...makeImageVicinityExtension(onImageVicinity));
+  }
+  return makeEditor({
+    container,
+    doc: DEFAULT_MARKDOWN,
+    lang: markdown(),
+    onChange,
+    extraExtensions
+  });
 }
 function createCssEditor(container, onChange) {
   return makeEditor({ container, doc: DEFAULT_CSS, lang: css(), onChange });
@@ -30423,14 +30575,27 @@ function connectSSE(target = window) {
 const PRINT_CSS_URL = `${location.origin}/static/css/print.css`;
 const PAGED_JS_URL = "https://unpkg.com/pagedjs/dist/paged.polyfill.js";
 let _currentBlobUrl = null;
-function initPreview(iframe) {
-  _render(iframe, "", "");
+let _currentTheme = "light";
+function setPreviewDocumentTheme(iframe, theme2) {
+  _currentTheme = theme2;
+  try {
+    const doc2 = iframe.contentDocument;
+    if (doc2 == null ? void 0 : doc2.documentElement) {
+      doc2.documentElement.setAttribute("data-theme", theme2);
+    }
+  } catch {
+  }
 }
-function updatePreview(iframe, htmlBody, userCss) {
-  _render(iframe, htmlBody, userCss);
+function initPreview(iframe, theme2 = "light") {
+  _currentTheme = theme2;
+  _render(iframe, "", "", _currentTheme);
 }
-function _render(iframe, htmlBody, userCss) {
-  const html2 = _buildDocument(htmlBody, userCss);
+function updatePreview(iframe, htmlBody, userCss, theme2 = _currentTheme) {
+  if (theme2) _currentTheme = theme2;
+  _render(iframe, htmlBody, userCss, _currentTheme);
+}
+function _render(iframe, htmlBody, userCss, theme2 = _currentTheme) {
+  const html2 = _buildDocument(htmlBody, userCss, theme2);
   const blob = new Blob([html2], { type: "text/html" });
   if (_currentBlobUrl) URL.revokeObjectURL(_currentBlobUrl);
   _currentBlobUrl = URL.createObjectURL(blob);
@@ -30456,30 +30621,150 @@ function _resizeIframe(iframe) {
     }
   }, 650);
 }
-function _buildDocument(htmlBody, userCss) {
+function _buildDocument(htmlBody, userCss, theme2 = "light") {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="${theme2}">
 <head>
   <meta charset="UTF-8">
 
-  <!--
-    <base href> is the key fix for image rendering inside the iframe.
-
-    The iframe loads from a blob: URL (e.g. blob:http://localhost:8000/uuid).
-    Without a base, any image path is resolved relative to that blob URL —
-    which means relative paths (./img.png) and root-relative paths
-    (/static/images/img.png) silently fail.
-
-    Setting base href to the server origin means:
-      ![alt](https://example.com/img.png)  → unchanged  ✓
-      ![alt](/static/images/img.png)       → http://localhost:8000/static/images/img.png  ✓
-      ![alt](img.png)                      → http://localhost:8000/img.png  ✓
-      data:image/...                       → unchanged  ✓
-  -->
   <base href="${location.origin}/">
 
   <link rel="stylesheet" href="${PRINT_CSS_URL}">
-  <style>${userCss}</style>
+  <style>
+    html, body {
+      background: transparent !important;
+    }
+    .pagedjs_pages {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      padding: 16px 0;
+    }
+
+    /* ── Light Page Theme (Default) ── */
+    .pagedjs_page {
+      background: #ffffff !important;
+      color: var(--color-text, #1a1a1a);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+      transition: background 150ms ease, color 150ms ease;
+    }
+
+    /* ── Dark Page Theme ── */
+    html[data-theme="dark"] {
+      --color-text:              #e5e7eb;
+      --color-heading:           #ffffff;
+      --color-link:              #60a5fa;
+      --color-border:            #374151;
+      --color-muted:             #9ca3af;
+      --color-code-bg:           #26262b;
+      --color-blockquote-border: #4b5563;
+      color: #e5e7eb;
+    }
+
+    html[data-theme="dark"] body {
+      color: #e5e7eb !important;
+    }
+
+    html[data-theme="dark"] .pagedjs_page {
+      background: #1c1c1f !important;
+      color: #e5e7eb !important;
+      box-shadow: 0 4px 22px rgba(0, 0, 0, 0.65), 0 0 0 1px #2e2e34 !important;
+    }
+
+    html[data-theme="dark"] h1,
+    html[data-theme="dark"] h2,
+    html[data-theme="dark"] h3,
+    html[data-theme="dark"] h4,
+    html[data-theme="dark"] h5,
+    html[data-theme="dark"] h6 {
+      color: #ffffff !important;
+    }
+
+    html[data-theme="dark"] h1 {
+      border-bottom-color: #ffffff !important;
+    }
+
+    html[data-theme="dark"] h2 {
+      border-bottom-color: #374151 !important;
+    }
+
+    html[data-theme="dark"] a {
+      color: #60a5fa !important;
+    }
+
+    html[data-theme="dark"] hr {
+      border-top-color: #374151 !important;
+    }
+
+    html[data-theme="dark"] table thead tr {
+      background: #27272c !important;
+    }
+
+    html[data-theme="dark"] table tr:nth-child(even) td {
+      background: #212126 !important;
+    }
+
+    html[data-theme="dark"] table th,
+    html[data-theme="dark"] table td {
+      border-color: #374151 !important;
+      color: #e5e7eb !important;
+    }
+
+    html[data-theme="dark"] pre,
+    html[data-theme="dark"] pre.code-block {
+      background: #25252a !important;
+      border-color: #374151 !important;
+      border-left-color: var(--accent, #2563eb) !important;
+      color: #f3f4f6 !important;
+    }
+
+    html[data-theme="dark"] code {
+      background: #27272c !important;
+      color: #f3f4f6 !important;
+    }
+
+    html[data-theme="dark"] blockquote {
+      border-left-color: #4b5563 !important;
+      color: #9ca3af !important;
+    }
+
+    html[data-theme="dark"] .callout {
+      background: #212126 !important;
+      border-color: #374151 !important;
+      border-left-color: var(--accent, #2563eb) !important;
+    }
+
+    html[data-theme="dark"] .warning {
+      background: #361414 !important;
+      border-left-color: #ef4444 !important;
+      color: #fca5a5 !important;
+    }
+
+    html[data-theme="dark"] .info,
+    html[data-theme="dark"] .note {
+      background: #14223d !important;
+      border-left-color: #3b82f6 !important;
+      color: #93c5fd !important;
+    }
+
+    html[data-theme="dark"] .badge {
+      background: #374151 !important;
+      color: #f3f4f6 !important;
+    }
+
+    html[data-theme="dark"] .badge-info {
+      background: #1e3a8a !important;
+      color: #bfdbfe !important;
+    }
+
+    html[data-theme="dark"] .badge-warning {
+      background: #7f1d1d !important;
+      color: #fecaca !important;
+    }
+
+    ${userCss}
+  </style>
   <script src="${PAGED_JS_URL}"><\/script>
 </head>
 <body>
@@ -30487,21 +30772,252 @@ ${htmlBody}
 </body>
 </html>`;
 }
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+function initImageLibrary({
+  container,
+  listEl,
+  dropzoneEl,
+  fileInputEl,
+  countEl,
+  uploadBtnEl,
+  onInsert
+}) {
+  let _images = [];
+  let _focusedUrl = null;
+  async function fetchImages() {
+    try {
+      const res = await fetch("/api/images");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      _images = await res.json();
+      renderList();
+    } catch (err) {
+      console.error("Failed to fetch images:", err);
+    }
+  }
+  async function uploadFiles(files) {
+    if (!files || !files.length) return;
+    if (dropzoneEl) {
+      dropzoneEl.classList.add("is-uploading");
+      const textSpan = dropzoneEl.querySelector(".dropzone-text");
+      if (textSpan) textSpan.textContent = `Uploading ${files.length} image(s)…`;
+    }
+    const uploaded = [];
+    for (const file of files) {
+      const form = new FormData();
+      form.append("file", file);
+      try {
+        const res = await fetch("/api/images", { method: "POST", body: form });
+        if (res.ok) {
+          const data2 = await res.json();
+          uploaded.push(data2);
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.error(`Upload error for ${file.name}:`, errData.detail || res.statusText);
+        }
+      } catch (err) {
+        console.error(`Upload network error for ${file.name}:`, err);
+      }
+    }
+    if (dropzoneEl) {
+      dropzoneEl.classList.remove("is-uploading");
+      const textSpan = dropzoneEl.querySelector(".dropzone-text");
+      if (textSpan) textSpan.textContent = "📥 Drop images here to upload";
+    }
+    await fetchImages();
+    if (uploaded.length > 0) {
+      focusImage(uploaded[0].url);
+    }
+  }
+  async function deleteImage(filename) {
+    if (!confirm(`Delete image "${filename}"?`)) return;
+    try {
+      const res = await fetch(`/api/images/${encodeURIComponent(filename)}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        await fetchImages();
+      } else {
+        alert("Failed to delete image");
+      }
+    } catch (err) {
+      alert(`Delete error: ${err.message}`);
+    }
+  }
+  function renderList() {
+    if (countEl) countEl.textContent = _images.length;
+    listEl.innerHTML = "";
+    if (_images.length === 0) {
+      const emptyMsg = document.createElement("div");
+      emptyMsg.className = "image-library__empty";
+      emptyMsg.innerHTML = '<p>No images yet</p><span class="text-muted">Import or drag images above</span>';
+      listEl.appendChild(emptyMsg);
+      return;
+    }
+    for (const img of _images) {
+      const card = createCardElement(img);
+      listEl.appendChild(card);
+    }
+    if (_focusedUrl) {
+      focusImage(_focusedUrl);
+    }
+  }
+  function createCardElement(img) {
+    const card = document.createElement("div");
+    card.className = "image-card";
+    card.draggable = true;
+    card.setAttribute("data-url", img.url);
+    card.setAttribute("data-filename", img.filename);
+    const displayName = img.filename.length > 22 ? `${img.filename.slice(0, 10)}…${img.filename.slice(-8)}` : img.filename;
+    card.innerHTML = `
+      <div class="image-card__thumb-wrap">
+        <img class="image-card__thumb" src="${img.url}" alt="${img.filename}" loading="lazy" />
+        <div class="image-card__drag-overlay">
+          <span>⠿ Drag onto line</span>
+        </div>
+      </div>
+      <div class="image-card__body">
+        <div class="image-card__meta">
+          <span class="image-card__name" title="${img.filename}">${displayName}</span>
+          <span class="image-card__size">${formatBytes(img.size)}</span>
+        </div>
+        <div class="image-card__actions">
+          <button class="image-card__btn image-card__btn--insert" title="Insert at current cursor">＋ Insert</button>
+          <button class="image-card__btn image-card__btn--copy" title="Copy markdown snippet">📋</button>
+          <button class="image-card__btn image-card__btn--delete" title="Delete image">🗑</button>
+        </div>
+      </div>
+    `;
+    card.addEventListener("dragstart", (e) => {
+      card.classList.add("is-dragging");
+      const payload = {
+        url: img.url,
+        alt: img.filename,
+        filename: img.filename
+      };
+      e.dataTransfer.setData("application/x-editor-image", JSON.stringify(payload));
+      e.dataTransfer.setData("text/plain", `![${img.filename}](${img.url})`);
+      e.dataTransfer.effectAllowed = "copy";
+    });
+    card.addEventListener("dragend", () => {
+      card.classList.remove("is-dragging");
+    });
+    const insertBtn = card.querySelector(".image-card__btn--insert");
+    insertBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (onInsert) onInsert(`
+![${img.filename}](${img.url})
+`);
+    });
+    const copyBtn = card.querySelector(".image-card__btn--copy");
+    copyBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const snippet2 = `![${img.filename}](${img.url})`;
+      try {
+        await navigator.clipboard.writeText(snippet2);
+        copyBtn.textContent = "✓";
+        setTimeout(() => {
+          copyBtn.textContent = "📋";
+        }, 1200);
+      } catch {
+        alert("Copied: " + snippet2);
+      }
+    });
+    const deleteBtn = card.querySelector(".image-card__btn--delete");
+    deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteImage(img.filename);
+    });
+    return card;
+  }
+  function focusImage(url) {
+    _focusedUrl = url;
+    const cards = listEl.querySelectorAll(".image-card");
+    cards.forEach((c) => c.classList.remove("is-focused"));
+    if (!url) return;
+    const targetFilename = url.split("/").pop().split("?")[0];
+    let matchedCard = null;
+    for (const card of cards) {
+      const cardUrl = card.getAttribute("data-url");
+      const cardFilename = card.getAttribute("data-filename");
+      if (cardUrl === url || cardFilename === targetFilename || cardUrl && cardUrl.endsWith(targetFilename)) {
+        matchedCard = card;
+        break;
+      }
+    }
+    if (matchedCard) {
+      matchedCard.classList.add("is-focused");
+      matchedCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+  if (uploadBtnEl && fileInputEl) {
+    uploadBtnEl.addEventListener("click", () => fileInputEl.click());
+  }
+  if (dropzoneEl) {
+    dropzoneEl.addEventListener("click", () => {
+      if (fileInputEl) fileInputEl.click();
+    });
+    dropzoneEl.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzoneEl.classList.add("drag-over");
+    });
+    dropzoneEl.addEventListener("dragleave", () => {
+      dropzoneEl.classList.remove("drag-over");
+    });
+    dropzoneEl.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzoneEl.classList.remove("drag-over");
+      const files = [...e.dataTransfer.files || []].filter((f) => f.type.startsWith("image/"));
+      if (files.length) uploadFiles(files);
+    });
+  }
+  if (fileInputEl) {
+    fileInputEl.addEventListener("change", (e) => {
+      const files = [...e.target.files];
+      if (files.length) uploadFiles(files);
+      e.target.value = "";
+    });
+  }
+  fetchImages();
+  return {
+    fetchImages,
+    uploadFiles,
+    focusImage,
+    toggle(show) {
+      if (container) {
+        container.classList.toggle("is-collapsed", typeof show === "boolean" ? !show : void 0);
+      }
+    }
+  };
+}
 const $mdEditor = document.getElementById("md-editor");
 const $cssEditor = document.getElementById("css-editor");
 const $frame = document.getElementById("preview-frame");
 const $status = document.getElementById("sse-status");
 const $pageCount = document.getElementById("page-count");
 const $exportBtn = document.getElementById("export-btn");
-const $uploadImgBtn = document.getElementById("upload-img-btn");
+const $toggleLibrary = document.getElementById("toggle-library");
+const $imageLibrary = document.getElementById("image-library");
+const $imageList = document.getElementById("image-list");
+const $libraryDropzone = document.getElementById("library-dropzone");
+const $uploadLibraryBtn = document.getElementById("upload-library-btn");
+const $imageCount = document.getElementById("image-count");
 const $imageInput = document.getElementById("image-input");
 const $toggleCss = document.getElementById("toggle-css");
 const $toggleCssInner = document.getElementById("toggle-css-inner");
 const $leftPane = document.getElementById("left-pane");
 const $divider = document.getElementById("pane-divider");
 const $panes = document.querySelector(".panes");
+const $previewScroll = document.querySelector(".preview-scroll");
+const $previewThemeToggle = document.getElementById("preview-theme-toggle");
 let _markdown = "";
 let _css = "";
+let _previewTheme = localStorage.getItem("css_editor_preview_theme") || "light";
 function setStatus(state, label = "") {
   $status.className = `status status--${state}`;
   $status.title = label || state;
@@ -30542,9 +31058,37 @@ async function doExport() {
     $exportBtn.textContent = "⬇ Export PDF";
   }
 }
-const mdView = createMarkdownEditor($mdEditor, (text) => {
-  _markdown = text;
-  postRender(_markdown, _css);
+let imageLibrary;
+const mdView = createMarkdownEditor(
+  $mdEditor,
+  (text) => {
+    _markdown = text;
+    postRender(_markdown, _css);
+  },
+  {
+    onImageVicinity: (url) => {
+      if (imageLibrary) imageLibrary.focusImage(url);
+    },
+    onDropImage: (imgData) => {
+      if (imageLibrary) imageLibrary.focusImage(imgData.url);
+    }
+  }
+);
+imageLibrary = initImageLibrary({
+  container: $imageLibrary,
+  listEl: $imageList,
+  dropzoneEl: $libraryDropzone,
+  fileInputEl: $imageInput,
+  countEl: $imageCount,
+  uploadBtnEl: $uploadLibraryBtn,
+  onInsert: (snippet2) => {
+    const pos = mdView.state.selection.main.head;
+    mdView.dispatch({
+      changes: { from: pos, insert: snippet2 },
+      selection: { anchor: pos + snippet2.length }
+    });
+    mdView.focus();
+  }
 });
 const cssView = createCssEditor($cssEditor, (text) => {
   _css = text;
@@ -30559,7 +31103,7 @@ window.addEventListener("sse:connected", () => {
 });
 window.addEventListener("sse:render", (ev) => {
   const { html: html2, css: css2 } = ev.detail;
-  updatePreview($frame, html2, css2 || _css);
+  updatePreview($frame, html2, css2 || _css, _previewTheme);
   setStatus("connected", "Live");
   setTimeout(() => {
     var _a2, _b;
@@ -30572,52 +31116,26 @@ window.addEventListener("sse:render", (ev) => {
 });
 window.addEventListener("sse:error", (ev) => setStatus("error", ev.detail.message));
 window.addEventListener("sse:offline", () => setStatus("idle", "Reconnecting…"));
-initPreview($frame);
+initPreview($frame, _previewTheme);
 $exportBtn.addEventListener("click", doExport);
-async function uploadImages(files) {
-  for (const file of files) {
-    const form = new FormData();
-    form.append("file", file);
-    $uploadImgBtn.disabled = true;
-    $uploadImgBtn.textContent = "⏳ Uploading…";
-    try {
-      const res = await fetch("/api/images", { method: "POST", body: form });
-      const data2 = await res.json();
-      if (!res.ok) {
-        alert(`Upload failed: ${data2.detail ?? res.status}`);
-        continue;
-      }
-      const snippet2 = `
-${data2.markdown}
-`;
-      const pos = mdView.state.selection.main.head;
-      mdView.dispatch({
-        changes: { from: pos, insert: snippet2 },
-        selection: { anchor: pos + snippet2.length }
-      });
-    } catch (err) {
-      alert(`Upload error: ${err.message}`);
-    } finally {
-      $uploadImgBtn.disabled = false;
-      $uploadImgBtn.textContent = "🖼 Image";
-    }
-  }
+function toggleLibrary() {
+  const collapsed = $leftPane.classList.toggle("library-collapsed");
+  $toggleLibrary.classList.toggle("active", !collapsed);
+  $toggleLibrary.title = collapsed ? "Show Image Library" : "Hide Image Library";
 }
-$uploadImgBtn.addEventListener("click", () => $imageInput.click());
-$imageInput.addEventListener("change", (e) => {
-  uploadImages([...e.target.files]);
-  e.target.value = "";
-});
+$toggleLibrary.addEventListener("click", toggleLibrary);
 $leftPane.addEventListener("dragover", (e) => {
+  if (e.dataTransfer.types.includes("application/x-editor-image")) return;
   e.preventDefault();
   $leftPane.classList.add("drag-over");
 });
 $leftPane.addEventListener("dragleave", () => $leftPane.classList.remove("drag-over"));
 $leftPane.addEventListener("drop", (e) => {
+  if (e.dataTransfer.types.includes("application/x-editor-image")) return;
   e.preventDefault();
   $leftPane.classList.remove("drag-over");
-  const imgs = [...e.dataTransfer.files].filter((f) => f.type.startsWith("image/"));
-  if (imgs.length) uploadImages(imgs);
+  const imgs = [...e.dataTransfer.files || []].filter((f) => f.type.startsWith("image/"));
+  if (imgs.length && imageLibrary) imageLibrary.uploadFiles(imgs);
 });
 function toggleCssPanel() {
   const collapsed = $leftPane.classList.toggle("css-collapsed");
@@ -30627,6 +31145,27 @@ function toggleCssPanel() {
 }
 $toggleCss.addEventListener("click", toggleCssPanel);
 $toggleCssInner.addEventListener("click", toggleCssPanel);
+function setPreviewTheme(theme2) {
+  _previewTheme = theme2 === "dark" ? "dark" : "light";
+  const isDark = _previewTheme === "dark";
+  $previewScroll == null ? void 0 : $previewScroll.classList.toggle("preview-theme--dark", isDark);
+  $previewScroll == null ? void 0 : $previewScroll.classList.toggle("preview-theme--light", !isDark);
+  $previewThemeToggle == null ? void 0 : $previewThemeToggle.querySelectorAll(".preview-theme-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.theme === _previewTheme);
+  });
+  setPreviewDocumentTheme($frame, _previewTheme);
+  try {
+    localStorage.setItem("css_editor_preview_theme", _previewTheme);
+  } catch {
+  }
+}
+setPreviewTheme(_previewTheme);
+$previewThemeToggle == null ? void 0 : $previewThemeToggle.addEventListener("click", (e) => {
+  const btn = e.target.closest(".preview-theme-btn");
+  if (btn && btn.dataset.theme) {
+    setPreviewTheme(btn.dataset.theme);
+  }
+});
 let _dragging = false;
 let _startX = 0;
 let _startColStr = "";

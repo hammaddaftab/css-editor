@@ -24,12 +24,17 @@
         aria-label="SSE status"
       ></span>
 
+      <!-- Toggle Image Library sidebar -->
+      <button id="toggle-library" class="btn btn--ghost active" title="Toggle Image Library">
+        🖼 Library
+      </button>
+
       <!-- Toggle CSS editor panel -->
       <button id="toggle-css" class="btn btn--ghost" title="Toggle CSS panel">
         🎨 CSS
       </button>
 
-      <!-- Image upload — hidden file input triggered by the button -->
+      <!-- Hidden multi-image file input -->
       <input
         type="file"
         id="image-input"
@@ -37,9 +42,6 @@
         style="display:none"
         multiple
       >
-      <button id="upload-img-btn" class="btn btn--ghost" title="Upload image and insert markdown snippet">
-        🖼 Image
-      </button>
 
       <!-- PDF export -->
       <button id="export-btn" class="btn btn--primary">
@@ -51,29 +53,54 @@
   <!-- ===== Split pane layout =========================================== -->
   <div class="panes">
 
-    <!-- ── Left pane: Markdown + CSS editors ─────────────────────────── -->
+    <!-- ── Left pane: Image Library + Editors ─────────────────────────── -->
     <div class="left-pane" id="left-pane">
 
-      <!-- Markdown editor -->
-      <div class="editor-section">
-        <div class="section-header">
-          <span>Markdown</span>
+      <!-- Image Library Sidebar -->
+      <aside class="image-library" id="image-library">
+        <div class="image-library__header">
+          <div class="image-library__title">
+            <span class="image-library__icon">🖼</span>
+            <span>Library</span>
+            <span class="image-library__count" id="image-count">0</span>
+          </div>
+          <button id="upload-library-btn" class="btn btn--ghost btn--xs" title="Upload images">
+            ＋ Upload
+          </button>
         </div>
-        <div class="cm-host" id="md-editor"></div>
-      </div>
 
-      <!-- CSS editor (collapsible) -->
-      <div class="editor-section" id="css-section">
-        <div class="section-header">
-          <span>Custom CSS</span>
-          <button
-            id="toggle-css-inner"
-            class="section-header__toggle"
-            title="Collapse CSS panel"
-            aria-expanded="true"
-          >▼</button>
+        <div class="image-library__dropzone" id="library-dropzone">
+          <span class="dropzone-text">📥 Drop images here</span>
         </div>
-        <div class="cm-host" id="css-editor"></div>
+
+        <div class="image-library__list" id="image-list">
+          <!-- Populated by JS -->
+        </div>
+      </aside>
+
+      <!-- Editors column (Markdown + CSS) -->
+      <div class="editors-col" id="editors-col">
+        <!-- Markdown editor -->
+        <div class="editor-section" id="md-section">
+          <div class="section-header">
+            <span>Markdown</span>
+          </div>
+          <div class="cm-host" id="md-editor"></div>
+        </div>
+
+        <!-- CSS editor (collapsible) -->
+        <div class="editor-section" id="css-section">
+          <div class="section-header">
+            <span>Custom CSS</span>
+            <button
+              id="toggle-css-inner"
+              class="section-header__toggle"
+              title="Collapse CSS panel"
+              aria-expanded="true"
+            >▼</button>
+          </div>
+          <div class="cm-host" id="css-editor"></div>
+        </div>
       </div>
 
     </div><!-- /left-pane -->
@@ -85,8 +112,20 @@
     <div class="right-pane">
 
       <div class="preview-toolbar">
-        <span>A4 Preview · paged.js</span>
-        <span class="preview-toolbar__meta" id="page-count"></span>
+        <div class="preview-toolbar__left">
+          <span>A4 Preview · paged.js</span>
+          <span class="preview-toolbar__meta" id="page-count"></span>
+        </div>
+        <div class="preview-toolbar__right">
+          <div class="preview-theme-toggle" id="preview-theme-toggle" role="group" aria-label="Preview background theme">
+            <button type="button" class="preview-theme-btn active" data-theme="light" title="Light desk background">
+              ☀️ Light
+            </button>
+            <button type="button" class="preview-theme-btn" data-theme="dark" title="Dark desk background">
+              🌙 Dark
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="preview-scroll">
