@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSS Markdown Editor</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="app">
+
+  <!-- ===== Toolbar ===================================================== -->
+  <header class="toolbar">
+    <div class="toolbar__brand">
+      <span class="toolbar__brand-icon">📄</span>
+      CSS Markdown Editor
+    </div>
+
+    <div class="toolbar__actions">
+      <!-- SSE connection indicator -->
+      <span
+        id="sse-status"
+        class="status status--idle"
+        title="Connecting…"
+        aria-label="SSE status"
+      ></span>
+
+      <!-- Toggle CSS editor panel -->
+      <button id="toggle-css" class="btn btn--ghost" title="Toggle CSS panel">
+        🎨 CSS
+      </button>
+
+      <!-- Image upload — hidden file input triggered by the button -->
+      <input
+        type="file"
+        id="image-input"
+        accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+        style="display:none"
+        multiple
+      >
+      <button id="upload-img-btn" class="btn btn--ghost" title="Upload image and insert markdown snippet">
+        🖼 Image
+      </button>
+
+      <!-- PDF export -->
+      <button id="export-btn" class="btn btn--primary">
+        ⬇ Export PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== Split pane layout =========================================== -->
+  <div class="panes">
+
+    <!-- ── Left pane: Markdown + CSS editors ─────────────────────────── -->
+    <div class="left-pane" id="left-pane">
+
+      <!-- Markdown editor -->
+      <div class="editor-section">
+        <div class="section-header">
+          <span>Markdown</span>
+        </div>
+        <div class="cm-host" id="md-editor"></div>
+      </div>
+
+      <!-- CSS editor (collapsible) -->
+      <div class="editor-section" id="css-section">
+        <div class="section-header">
+          <span>Custom CSS</span>
+          <button
+            id="toggle-css-inner"
+            class="section-header__toggle"
+            title="Collapse CSS panel"
+            aria-expanded="true"
+          >▼</button>
+        </div>
+        <div class="cm-host" id="css-editor"></div>
+      </div>
+
+    </div><!-- /left-pane -->
+
+    <!-- ── Drag handle ───────────────────────────────────────────────── -->
+    <div class="pane-divider" id="pane-divider" role="separator" aria-label="Resize panes"></div>
+
+    <!-- ── Right pane: A4 preview ────────────────────────────────────── -->
+    <div class="right-pane">
+
+      <div class="preview-toolbar">
+        <span>A4 Preview · paged.js</span>
+        <span class="preview-toolbar__meta" id="page-count"></span>
+      </div>
+
+      <div class="preview-scroll">
+        <!--
+          The iframe is the paged.js sandbox. Each render swaps its src to a
+          new Blob URL containing the full HTML document. paged.js polyfill
+          runs inside the iframe and splits the content into A4 page boxes.
+        -->
+        <iframe
+          id="preview-frame"
+          class="preview-frame"
+          sandbox="allow-scripts allow-same-origin"
+          title="Document preview"
+        ></iframe>
+      </div>
+
+    </div><!-- /right-pane -->
+
+  </div><!-- /panes -->
+
+  <!--
+    Built by Vite from frontend/src/main.js
+    Run:  cd frontend && npm run build      (one-shot)
+          cd frontend && npm run dev        (watch mode, rebuilds on save)
+  -->
+  <script type="module" src="/static/js/bundle.js"></script>
+
+</body>
+</html>

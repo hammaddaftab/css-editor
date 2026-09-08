@@ -1,0 +1,326 @@
+/* ==========================================================================
+   Editor application UI styles
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Reset & tokens
+   -------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-app:          #1a1b1e;
+  --bg-toolbar:      #111214;
+  --bg-left:         #1e1f23;
+  --bg-right:        #2a2b30;
+  --bg-section-hdr:  #16171a;
+  --bg-preview:      #3a3b42;
+
+  --border:          #2e2f35;
+  --border-accent:   #3b82f6;
+
+  --text-primary:    #e8e9f0;
+  --text-secondary:  #9ca3af;
+  --text-muted:      #6b7280;
+
+  --accent:          #3b82f6;
+  --accent-hover:    #2563eb;
+  --danger:          #ef4444;
+  --success:         #22c55e;
+  --warning:         #f59e0b;
+
+  --toolbar-h:       48px;
+  --section-hdr-h:   32px;
+  --preview-toolbar-h: 32px;
+  --divider-w:       4px;
+  --css-pane-h:      220px;
+
+  --radius:          6px;
+  --font-ui:         system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:       "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  --transition:      150ms ease;
+}
+
+/* --------------------------------------------------------------------------
+   App shell
+   -------------------------------------------------------------------------- */
+html, body {
+  height:      100%;
+  overflow:    hidden;
+  font-family: var(--font-ui);
+  font-size:   14px;
+  color:       var(--text-primary);
+  background:  var(--bg-app);
+}
+
+.app {
+  display:               grid;
+  grid-template-rows:    var(--toolbar-h) 1fr;
+  height:                100vh;
+  overflow:              hidden;
+}
+
+/* --------------------------------------------------------------------------
+   Toolbar
+   -------------------------------------------------------------------------- */
+.toolbar {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         0 16px;
+  background:      var(--bg-toolbar);
+  border-bottom:   1px solid var(--border);
+  height:          var(--toolbar-h);
+  flex-shrink:     0;
+  z-index:         10;
+}
+
+.toolbar__brand {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  font-weight: 600;
+  font-size:   15px;
+  color:       var(--text-primary);
+  user-select: none;
+}
+
+.toolbar__brand-icon {
+  font-size: 18px;
+}
+
+.toolbar__actions {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+.btn {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           6px;
+  padding:       6px 14px;
+  border-radius: var(--radius);
+  border:        1px solid transparent;
+  font-family:   var(--font-ui);
+  font-size:     13px;
+  font-weight:   500;
+  cursor:        pointer;
+  transition:    background var(--transition), border-color var(--transition),
+                 opacity var(--transition);
+  white-space:   nowrap;
+}
+
+.btn:disabled  { opacity: 0.5; cursor: not-allowed; }
+
+.btn--ghost {
+  background:   transparent;
+  border-color: var(--border);
+  color:        var(--text-secondary);
+}
+.btn--ghost:hover:not(:disabled) {
+  background:   #ffffff12;
+  border-color: #ffffff30;
+  color:        var(--text-primary);
+}
+
+.btn--primary {
+  background: var(--accent);
+  color:      #fff;
+}
+.btn--primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+/* --------------------------------------------------------------------------
+   Status indicator
+   -------------------------------------------------------------------------- */
+.status {
+  width:         10px;
+  height:        10px;
+  border-radius: 50%;
+  display:       inline-block;
+  flex-shrink:   0;
+  transition:    background var(--transition);
+}
+.status--idle        { background: var(--text-muted); }
+.status--connected   { background: var(--success); }
+.status--rendering   { background: var(--warning); animation: pulse 1s infinite; }
+.status--error       { background: var(--danger); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* --------------------------------------------------------------------------
+   Main panes layout
+   -------------------------------------------------------------------------- */
+.panes {
+  display:        grid;
+  grid-template-columns: 1fr var(--divider-w) 1fr;
+  overflow:       hidden;
+  height:         100%;
+}
+
+/* --------------------------------------------------------------------------
+   Left pane (Markdown editor + CSS editor)
+   -------------------------------------------------------------------------- */
+.left-pane {
+  display:        grid;
+  grid-template-rows: 1fr var(--css-pane-h);
+  overflow:       hidden;
+  background:     var(--bg-left);
+  transition:     grid-template-rows var(--transition);
+}
+
+.left-pane.css-collapsed {
+  grid-template-rows: 1fr var(--section-hdr-h);
+}
+
+/* --------------------------------------------------------------------------
+   Section header (label bar above each editor)
+   -------------------------------------------------------------------------- */
+.section-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         0 12px;
+  height:          var(--section-hdr-h);
+  background:      var(--bg-section-hdr);
+  border-bottom:   1px solid var(--border);
+  font-size:       11px;
+  font-weight:     600;
+  text-transform:  uppercase;
+  letter-spacing:  0.06em;
+  color:           var(--text-muted);
+  user-select:     none;
+  flex-shrink:     0;
+}
+
+.section-header__toggle {
+  background:   none;
+  border:       none;
+  color:        var(--text-muted);
+  cursor:       pointer;
+  padding:      2px 4px;
+  font-size:    13px;
+  line-height:  1;
+  transition:   color var(--transition), transform var(--transition);
+  border-radius: 3px;
+}
+.section-header__toggle:hover { color: var(--text-primary); background: #ffffff12; }
+.left-pane.css-collapsed .section-header__toggle { transform: rotate(180deg); }
+
+/* --------------------------------------------------------------------------
+   Editor sections
+   -------------------------------------------------------------------------- */
+.editor-section {
+  display:        grid;
+  grid-template-rows: var(--section-hdr-h) 1fr;
+  overflow:       hidden;
+  border-bottom:  1px solid var(--border);
+}
+
+.editor-section:last-child { border-bottom: none; }
+
+/* CodeMirror host */
+.cm-host {
+  overflow: hidden;
+  height:   100%;
+}
+
+/* CodeMirror 6 — classes injected by the bundled CM6 */
+.cm-host .cm-editor {
+  height:      100%;
+  font-family: var(--font-mono);
+  font-size:   13px;
+}
+
+.cm-host .cm-scroller        { overflow: auto; }
+.cm-host .cm-focused         { outline: none; }
+.cm-host .cm-gutters         { background: #21222c; border-right: 1px solid var(--border); }
+.cm-host .cm-lineNumbers     { color: var(--text-muted); }
+
+/* --------------------------------------------------------------------------
+   Pane divider (resize handle)
+   -------------------------------------------------------------------------- */
+.pane-divider {
+  background:  var(--border);
+  cursor:      col-resize;
+  transition:  background var(--transition);
+  position:    relative;
+  z-index:     5;
+}
+.pane-divider:hover,
+.pane-divider.dragging { background: var(--border-accent); }
+
+/* --------------------------------------------------------------------------
+   Right pane (preview)
+   -------------------------------------------------------------------------- */
+.right-pane {
+  display:        grid;
+  grid-template-rows: var(--preview-toolbar-h) 1fr;
+  overflow:       hidden;
+  background:     var(--bg-right);
+}
+
+.preview-toolbar {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         0 14px;
+  height:          var(--preview-toolbar-h);
+  background:      var(--bg-section-hdr);
+  border-bottom:   1px solid var(--border);
+  font-size:       11px;
+  font-weight:     600;
+  text-transform:  uppercase;
+  letter-spacing:  0.06em;
+  color:           var(--text-muted);
+  user-select:     none;
+}
+
+.preview-toolbar__meta {
+  font-size:     11px;
+  color:         var(--text-muted);
+  font-weight:   400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.preview-scroll {
+  overflow:   auto;
+  height:     100%;
+  padding:    24px;
+  background: var(--bg-preview);
+}
+
+/* --------------------------------------------------------------------------
+   Preview iframe
+   -------------------------------------------------------------------------- */
+.preview-frame {
+  width:        100%;
+  height:       100%;
+  border:       none;
+  display:      block;
+  /* sizing is controlled by JS after paged.js runs */
+  min-height:   297mm; /* at least one A4 page tall */
+}
+
+/* --------------------------------------------------------------------------
+   Scrollbar styling
+   -------------------------------------------------------------------------- */
+::-webkit-scrollbar             { width: 6px; height: 6px; }
+::-webkit-scrollbar-track       { background: transparent; }
+::-webkit-scrollbar-thumb       { background: #3a3b42; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #4a4b55; }
+
+/* --------------------------------------------------------------------------
+   Drag-and-drop highlight (images dragged onto the editor panel)
+   -------------------------------------------------------------------------- */
+.left-pane.drag-over {
+  outline:        2px dashed var(--border-accent);
+  outline-offset: -4px;
+  background:     #1e2a3a;
+}
