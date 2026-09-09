@@ -352,7 +352,33 @@ imageLibrary = initImageLibrary({
     });
     mdView.focus();
   },
+  onNameChange: (img, newName) => {
+    updateImageAltInMarkdown(img.url, newName);
+  },
 });
+
+function updateImageAltInMarkdown(url, newName) {
+  if (!mdView) return;
+  const doc = mdView.state.doc;
+  const docText = doc.toString();
+  const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`!\\[([^\\]]*)\\]\\(${escapedUrl}\\)`, 'g');
+
+  let match;
+  const changes = [];
+  while ((match = regex.exec(docText)) !== null) {
+    const oldAlt = match[1];
+    if (oldAlt !== newName) {
+      const altStart = match.index + 2; // right after '!['
+      const altEnd = altStart + oldAlt.length;
+      changes.push({ from: altStart, to: altEnd, insert: newName });
+    }
+  }
+
+  if (changes.length > 0) {
+    mdView.dispatch({ changes });
+  }
+}
 
 const cssView = createCssEditor(
   $cssEditor,

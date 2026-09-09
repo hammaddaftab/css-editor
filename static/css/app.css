@@ -520,15 +520,22 @@ html, body {
 /* Image Card */
 .image-card {
   background:    var(--bg-surface);
-  border:        1.5px solid var(--border);
+  border:        2px solid var(--border);
   border-radius: var(--radius);
   overflow:      hidden;
-  cursor:        grab;
-  transition:    border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+  cursor:        pointer;
+  transition:    border-color var(--transition), background-color var(--transition);
   user-select:   none;
+  position:      relative;
+  box-sizing:    border-box;
+  outline:       none;
 }
 .image-card:hover {
   border-color: var(--border-hover);
+}
+.image-card.is-selected {
+  border-color: var(--accent);
+  background:   rgba(37, 99, 235, 0.08);
 }
 .image-card:active,
 .image-card.is-dragging {
@@ -539,8 +546,6 @@ html, body {
 .image-card.is-focused {
   border-color: var(--accent) !important;
   background:   var(--accent-subtle) !important;
-  box-shadow:   0 0 0 2px var(--accent), 0 4px 14px var(--accent-glow) !important;
-  transform:    scale(1.02);
 }
 
 .image-card__thumb-wrap {
@@ -574,61 +579,97 @@ html, body {
 }
 
 .image-card__body {
-  padding: 8px 10px;
+  padding: 6px 8px;
 }
 .image-card__meta {
   display:         flex;
   justify-content: space-between;
-  align-items:     baseline;
+  align-items:     center;
   gap:             6px;
-  margin-bottom:   6px;
 }
-.image-card__name {
+.image-card__name-input {
+  flex:          1;
+  min-width:     0;
+  background:    transparent;
+  border:        1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding:       2px 4px;
+  font-family:   var(--font-ui);
   font-size:     12px;
   font-weight:   500;
   color:         var(--text-primary);
-  overflow:      hidden;
+  outline:       none;
+  cursor:        text;
+  transition:    border-color var(--transition), background-color var(--transition);
   text-overflow: ellipsis;
-  white-space:   nowrap;
+  box-sizing:    border-box;
+}
+.image-card__name-input:hover {
+  border-color: var(--border);
+  background:   rgba(255, 255, 255, 0.04);
+}
+.image-card__name-input:focus {
+  border-color: var(--accent);
+  background:   var(--bg-toolbar);
 }
 .image-card__size {
   font-size:   10px;
   color:       var(--text-muted);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.image-card__actions {
-  display: flex;
-  gap:     6px;
+/* Toast feedback inside image library drawer */
+.image-library {
+  position: relative;
 }
-.image-card__btn {
-  background:    var(--bg-surface-hover);
-  border:        1px solid transparent;
-  color:         var(--text-secondary);
-  font-size:     11px;
-  padding:       3px 8px;
-  border-radius: var(--radius-sm);
-  cursor:        pointer;
-  transition:    all var(--transition);
+.image-library__toast {
+  position:       absolute;
+  bottom:         14px;
+  left:           50%;
+  transform:      translateX(-50%) translateY(8px);
+  background:     #18181b;
+  color:          var(--text-primary);
+  border:         1px solid var(--border-hover);
+  border-radius:  var(--radius);
+  padding:        6px 12px;
+  font-size:      12px;
+  box-shadow:     0 6px 20px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  opacity:        0;
+  transition:     opacity 0.2s ease, transform 0.2s ease;
+  z-index:        50;
+  white-space:    nowrap;
+  max-width:      90%;
+  overflow:       hidden;
+  text-overflow:  ellipsis;
 }
-.image-card__btn:hover {
-  background: var(--border-hover);
-  color:      var(--text-primary);
+.image-library__toast.is-visible {
+  opacity:   1;
+  transform: translateX(-50%) translateY(0);
 }
-.image-card__btn--insert {
-  flex:         1;
-  color:        var(--accent);
-  font-weight:  500;
-  background:   var(--accent-subtle);
-  border-color: rgba(37, 99, 235, 0.25);
+
+/* Floating badge on card */
+.image-card__badge-feedback {
+  position:       absolute;
+  top:            8px;
+  right:          8px;
+  background:     var(--accent);
+  color:          #fff;
+  font-size:      11px;
+  font-weight:    600;
+  padding:        2px 8px;
+  border-radius:  var(--radius-sm);
+  box-shadow:     0 2px 8px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  animation:      badge-pop 1.2s ease forwards;
+  z-index:        10;
 }
-.image-card__btn--insert:hover {
-  background: var(--accent);
-  color:      #fff;
-}
-.image-card__btn--delete:hover {
-  color:      var(--danger);
-  background: var(--danger-subtle);
+@keyframes badge-pop {
+  0%   { opacity: 0; transform: scale(0.85); }
+  15%  { opacity: 1; transform: scale(1); }
+  80%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: translateY(-4px); }
 }
 
 /* --------------------------------------------------------------------------
