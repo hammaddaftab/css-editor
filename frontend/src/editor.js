@@ -12,7 +12,7 @@ import { markdown }               from '@codemirror/lang-markdown';
 import { css }                    from '@codemirror/lang-css';
 import { oneDark }                from '@codemirror/theme-one-dark';
 import { EditorState, StateEffect, StateField } from '@codemirror/state';
-import { Decoration }             from '@codemirror/view';
+import { Decoration, keymap }     from '@codemirror/view';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -129,6 +129,80 @@ export function makeImageDragDropExtension(onDropImage) {
 }
 
 // ---------------------------------------------------------------------------
+// Image Paste Extension (upload pasted images from clipboard)
+// ---------------------------------------------------------------------------
+
+export function makeImagePasteExtension(onPasteImage) {
+  return EditorView.domEventHandlers({
+    paste(event, view) {
+      const items = event.clipboardData && event.clipboardData.items;
+      if (!items) return false;
+
+      const imageFiles = [];
+      for (const item of items) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+
+      if (imageFiles.length === 0) return false;
+
+      event.preventDefault();
+
+      // Insert a placeholder at the cursor while uploading
+      const head = view.state.selection.main.head;
+      const line = view.state.doc.lineAt(head);
+      const onBlankLine = line.text.trim().length === 0;
+      const placeholder = '![Uploading image…]()';
+      const insertText = onBlankLine ? placeholder : `\n\n${placeholder}`;
+
+      view.dispatch({
+        changes: { from: head, insert: insertText },
+        selection: { anchor: head + insertText.length },
+      });
+
+      // Upload each image file and replace placeholder with actual markdown
+      (async () => {
+        for (const file of imageFiles) {
+          const form = new FormData();
+          form.append('file', file);
+          try {
+            const res = await fetch('/api/images', { method: 'POST', body: form });
+            if (!res.ok) {
+              console.error('Image paste upload failed:', res.statusText);
+              continue;
+            }
+            const data = await res.json();
+            const altText = file.name || 'image';
+            const snippet = `![${altText}](${data.url})`;
+
+            // Find and replace the placeholder in the current doc
+            const docText = view.state.doc.toString();
+            const placeholderIdx = docText.indexOf(placeholder);
+            if (placeholderIdx !== -1) {
+              view.dispatch({
+                changes: {
+                  from: placeholderIdx,
+                  to: placeholderIdx + placeholder.length,
+                  insert: snippet,
+                },
+              });
+            }
+
+            if (onPasteImage) onPasteImage(data);
+          } catch (err) {
+            console.error('Image paste upload error:', err);
+          }
+        }
+      })();
+
+      return true;
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Image Vicinity Extension (Focus in library when cursor/hover is near link)
 // ---------------------------------------------------------------------------
 
@@ -202,29 +276,45 @@ export function makeImageVicinityExtension(onFocusImage) {
 // Editor factory
 // ---------------------------------------------------------------------------
 
-function makeEditor({ container, doc, lang, onChange, extraExtensions = [] }) {
+function makeEditor({ container, doc, lang, onChange, onSave, extraExtensions = [] }) {
   const onChangeFn = debounce(onChange, DEBOUNCE_MS);
+
+  const extensions = [
+    basicSetup,
+    lang,
+    oneDark,
+    EditorView.theme({
+      '&':            { height: '100%' },
+      '.cm-scroller': { overflow: 'auto', fontFamily: 'var(--font-mono, monospace)' },
+    }),
+    EditorView.lineWrapping,
+    EditorView.updateListener.of((update) => {
+      if (update.docChanged) {
+        // update.state.doc is always current — no stale closure issue
+        onChangeFn(update.state.doc.toString());
+      }
+    }),
+    ...extraExtensions,
+  ];
+
+  if (onSave) {
+    extensions.push(
+      keymap.of([
+        {
+          key: 'Mod-s',
+          run() {
+            onSave();
+            return true;
+          },
+        },
+      ])
+    );
+  }
 
   const view = new EditorView({
     state: EditorState.create({
       doc,
-      extensions: [
-        basicSetup,
-        lang,
-        oneDark,
-        EditorView.theme({
-          '&':            { height: '100%' },
-          '.cm-scroller': { overflow: 'auto', fontFamily: 'var(--font-mono, monospace)' },
-        }),
-        EditorView.lineWrapping,
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            // update.state.doc is always current — no stale closure issue
-            onChangeFn(update.state.doc.toString());
-          }
-        }),
-        ...extraExtensions,
-      ],
+      extensions,
     }),
     parent: container,
   });
@@ -236,10 +326,18 @@ function makeEditor({ container, doc, lang, onChange, extraExtensions = [] }) {
 // Public API
 // ---------------------------------------------------------------------------
 
-export function createMarkdownEditor(container, onChange, { onImageVicinity, onDropImage } = {}) {
+export function setEditorContent(view, text) {
+  if (!view) return;
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: text },
+  });
+}
+
+export function createMarkdownEditor(container, onChange, { doc = DEFAULT_MARKDOWN, onImageVicinity, onDropImage, onPasteImage, onSave } = {}) {
   const extraExtensions = [
     dropTargetField,
     makeImageDragDropExtension(onDropImage),
+    makeImagePasteExtension(onPasteImage),
   ];
 
   if (onImageVicinity) {
@@ -248,15 +346,16 @@ export function createMarkdownEditor(container, onChange, { onImageVicinity, onD
 
   return makeEditor({
     container,
-    doc: DEFAULT_MARKDOWN,
+    doc,
     lang: markdown(),
     onChange,
+    onSave,
     extraExtensions,
   });
 }
 
-export function createCssEditor(container, onChange) {
-  return makeEditor({ container, doc: DEFAULT_CSS, lang: css(), onChange });
+export function createCssEditor(container, onChange, { doc = DEFAULT_CSS, onSave } = {}) {
+  return makeEditor({ container, doc, lang: css(), onChange, onSave });
 }
 
 // ---------------------------------------------------------------------------

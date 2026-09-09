@@ -30359,6 +30359,65 @@ ${snippet2}`;
     }
   });
 }
+function makeImagePasteExtension(onPasteImage) {
+  return EditorView.domEventHandlers({
+    paste(event, view) {
+      const items = event.clipboardData && event.clipboardData.items;
+      if (!items) return false;
+      const imageFiles = [];
+      for (const item of items) {
+        if (item.kind === "file" && item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+      if (imageFiles.length === 0) return false;
+      event.preventDefault();
+      const head = view.state.selection.main.head;
+      const line = view.state.doc.lineAt(head);
+      const onBlankLine = line.text.trim().length === 0;
+      const placeholder = "![Uploading image…]()";
+      const insertText = onBlankLine ? placeholder : `
+
+${placeholder}`;
+      view.dispatch({
+        changes: { from: head, insert: insertText },
+        selection: { anchor: head + insertText.length }
+      });
+      (async () => {
+        for (const file of imageFiles) {
+          const form = new FormData();
+          form.append("file", file);
+          try {
+            const res = await fetch("/api/images", { method: "POST", body: form });
+            if (!res.ok) {
+              console.error("Image paste upload failed:", res.statusText);
+              continue;
+            }
+            const data2 = await res.json();
+            const altText = file.name || "image";
+            const snippet2 = `![${altText}](${data2.url})`;
+            const docText = view.state.doc.toString();
+            const placeholderIdx = docText.indexOf(placeholder);
+            if (placeholderIdx !== -1) {
+              view.dispatch({
+                changes: {
+                  from: placeholderIdx,
+                  to: placeholderIdx + placeholder.length,
+                  insert: snippet2
+                }
+              });
+            }
+            if (onPasteImage) onPasteImage(data2);
+          } catch (err) {
+            console.error("Image paste upload error:", err);
+          }
+        }
+      })();
+      return true;
+    }
+  });
+}
 const IMG_MARKDOWN_REGEX = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
 function findImageNearOffset(lineText, offset, threshold = 15) {
   IMG_MARKDOWN_REGEX.lastIndex = 0;
@@ -30413,50 +30472,72 @@ function makeImageVicinityExtension(onFocusImage) {
   });
   return [selectionListener, mouseHandler];
 }
-function makeEditor({ container, doc: doc2, lang, onChange, extraExtensions = [] }) {
+function makeEditor({ container, doc: doc2, lang, onChange, onSave, extraExtensions = [] }) {
   const onChangeFn = debounce(onChange, DEBOUNCE_MS);
+  const extensions = [
+    basicSetup,
+    lang,
+    oneDark,
+    EditorView.theme({
+      "&": { height: "100%" },
+      ".cm-scroller": { overflow: "auto", fontFamily: "var(--font-mono, monospace)" }
+    }),
+    EditorView.lineWrapping,
+    EditorView.updateListener.of((update) => {
+      if (update.docChanged) {
+        onChangeFn(update.state.doc.toString());
+      }
+    }),
+    ...extraExtensions
+  ];
+  if (onSave) {
+    extensions.push(
+      keymap.of([
+        {
+          key: "Mod-s",
+          run() {
+            onSave();
+            return true;
+          }
+        }
+      ])
+    );
+  }
   const view = new EditorView({
     state: EditorState.create({
       doc: doc2,
-      extensions: [
-        basicSetup,
-        lang,
-        oneDark,
-        EditorView.theme({
-          "&": { height: "100%" },
-          ".cm-scroller": { overflow: "auto", fontFamily: "var(--font-mono, monospace)" }
-        }),
-        EditorView.lineWrapping,
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            onChangeFn(update.state.doc.toString());
-          }
-        }),
-        ...extraExtensions
-      ]
+      extensions
     }),
     parent: container
   });
   return view;
 }
-function createMarkdownEditor(container, onChange, { onImageVicinity, onDropImage } = {}) {
+function setEditorContent(view, text) {
+  if (!view) return;
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: text }
+  });
+}
+function createMarkdownEditor(container, onChange, { doc: doc2 = DEFAULT_MARKDOWN, onImageVicinity, onDropImage, onPasteImage, onSave } = {}) {
   const extraExtensions = [
     dropTargetField,
-    makeImageDragDropExtension(onDropImage)
+    makeImageDragDropExtension(onDropImage),
+    makeImagePasteExtension(onPasteImage)
   ];
   if (onImageVicinity) {
     extraExtensions.push(...makeImageVicinityExtension(onImageVicinity));
   }
   return makeEditor({
     container,
-    doc: DEFAULT_MARKDOWN,
+    doc: doc2,
     lang: markdown(),
     onChange,
+    onSave,
     extraExtensions
   });
 }
-function createCssEditor(container, onChange) {
-  return makeEditor({ container, doc: DEFAULT_CSS, lang: css(), onChange });
+function createCssEditor(container, onChange, { doc: doc2 = DEFAULT_CSS, onSave } = {}) {
+  return makeEditor({ container, doc: doc2, lang: css(), onChange, onSave });
 }
 const DEFAULT_MARKDOWN = `# Welcome to CSS Markdown Editor
 
@@ -30549,7 +30630,19 @@ function connectSSE(target = window) {
     });
     es.addEventListener("render", (ev) => {
       const data2 = JSON.parse(ev.data);
-      dispatch("sse:render", { html: data2.html ?? "", css: data2.css ?? "" });
+      dispatch("sse:render", {
+        html: data2.html ?? "",
+        css: data2.css ?? "",
+        filename: data2.filename
+      });
+    });
+    es.addEventListener("file:change", (ev) => {
+      const data2 = JSON.parse(ev.data ?? "{}");
+      dispatch("sse:file:change", data2);
+    });
+    es.addEventListener("file:list", (ev) => {
+      const data2 = JSON.parse(ev.data ?? "{}");
+      dispatch("sse:file:list", data2);
     });
     es.addEventListener("error", (ev) => {
       const data2 = JSON.parse(ev.data ?? "{}");
@@ -31015,9 +31108,19 @@ const $divider = document.getElementById("pane-divider");
 const $panes = document.querySelector(".panes");
 const $previewScroll = document.querySelector(".preview-scroll");
 const $previewThemeToggle = document.getElementById("preview-theme-toggle");
+const $docSelect = document.getElementById("doc-select");
+const $docDirty = document.getElementById("doc-dirty");
+const $saveBtn = document.getElementById("save-btn");
+const $saveStatus = document.getElementById("save-status");
+const $settingsBtn = document.getElementById("settings-btn");
+const $settingsDropdown = document.getElementById("settings-dropdown");
+const $toggleNocrop = document.getElementById("toggle-nocrop");
+const $toggleNowhitespace = document.getElementById("toggle-nowhitespace");
 let _markdown = "";
 let _css = "";
 let _previewTheme = localStorage.getItem("css_editor_preview_theme") || "light";
+let _currentFilename = localStorage.getItem("css_editor_active_file") || "document.md";
+let _isDirty = false;
 function setStatus(state, label = "") {
   $status.className = `status status--${state}`;
   $status.title = label || state;
@@ -31058,19 +31161,201 @@ async function doExport() {
     $exportBtn.textContent = "⬇ Export PDF";
   }
 }
+let _conflictNoticeEl = null;
+function hideConflictNotice() {
+  if (_conflictNoticeEl) {
+    _conflictNoticeEl.remove();
+    _conflictNoticeEl = null;
+  }
+}
+function showConflictNotice(data2) {
+  var _a2, _b;
+  hideConflictNotice();
+  const banner = document.createElement("div");
+  banner.className = "conflict-banner";
+  banner.innerHTML = `
+    <div class="conflict-banner__text">
+      <strong>⚠️ Disk file changed:</strong> <code>${data2.filename}</code> was modified externally, but you have unsaved edits.
+    </div>
+    <div class="conflict-banner__actions">
+      <button class="btn btn--xs btn--primary" id="conflict-reload-btn">Reload from disk</button>
+      <button class="btn btn--xs btn--ghost" id="conflict-keep-btn">Keep my edits</button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+  _conflictNoticeEl = banner;
+  (_a2 = banner.querySelector("#conflict-reload-btn")) == null ? void 0 : _a2.addEventListener("click", () => {
+    if (data2.markdown !== void 0) {
+      _markdown = data2.markdown;
+      setEditorContent(mdView, _markdown);
+    }
+    if (data2.css !== void 0) {
+      _css = data2.css;
+      setEditorContent(cssView, _css);
+    }
+    if (data2.html) {
+      updatePreview($frame, data2.html, _css, _previewTheme);
+    }
+    markClean("Reloaded from disk");
+    hideConflictNotice();
+  });
+  (_b = banner.querySelector("#conflict-keep-btn")) == null ? void 0 : _b.addEventListener("click", () => {
+    hideConflictNotice();
+  });
+}
+function markDirty() {
+  if (!_isDirty) {
+    _isDirty = true;
+    $docDirty == null ? void 0 : $docDirty.classList.add("is-dirty");
+    if ($saveStatus) {
+      $saveStatus.textContent = "Unsaved";
+      $saveStatus.classList.remove("is-saved");
+    }
+  }
+}
+function markClean(msg = "Saved") {
+  _isDirty = false;
+  hideConflictNotice();
+  $docDirty == null ? void 0 : $docDirty.classList.remove("is-dirty");
+  if ($saveStatus) {
+    $saveStatus.textContent = msg;
+    $saveStatus.classList.add("is-saved");
+    setTimeout(() => {
+      if (!_isDirty && $saveStatus.textContent === msg) {
+        $saveStatus.textContent = "";
+      }
+    }, 3e3);
+  }
+}
+async function saveLocalDocument() {
+  if ($saveBtn) {
+    $saveBtn.disabled = true;
+    $saveBtn.textContent = "💾 Saving…";
+  }
+  try {
+    const res = await fetch("/api/document", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: _currentFilename,
+        markdown: _markdown,
+        css: _css
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    markClean("Saved");
+    await fetchFileList();
+  } catch (err) {
+    alert(`Save failed: ${err.message}`);
+  } finally {
+    if ($saveBtn) {
+      $saveBtn.disabled = false;
+      $saveBtn.textContent = "💾 Save";
+    }
+  }
+}
+async function loadLocalDocument(filename) {
+  var _a2, _b;
+  try {
+    const res = await fetch(`/api/document?filename=${encodeURIComponent(filename)}`);
+    if (!res.ok) {
+      if (res.status === 403 || res.status === 404) {
+        try {
+          localStorage.removeItem("css_editor_active_file");
+        } catch {
+        }
+        const listRes = await fetch("/api/documents");
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          const first = (_b = (_a2 = listData.files) == null ? void 0 : _a2[0]) == null ? void 0 : _b.filename;
+          if (first && first !== filename) {
+            await loadLocalDocument(first);
+            return;
+          }
+        }
+      }
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const data2 = await res.json();
+    if (data2.exists) {
+      _currentFilename = data2.filename;
+      _markdown = data2.markdown;
+      _css = data2.css || "";
+      setEditorContent(mdView, _markdown);
+      setEditorContent(cssView, _css);
+      postRender(_markdown, _css);
+      markClean("Loaded");
+      try {
+        localStorage.setItem("css_editor_active_file", _currentFilename);
+      } catch {
+      }
+      if ($docSelect) $docSelect.value = _currentFilename;
+    }
+  } catch (err) {
+    console.error(`Failed to load ${filename}:`, err);
+  }
+}
+function updateFileList(files) {
+  if (!$docSelect) return;
+  $docSelect.innerHTML = "";
+  const serverFiles = (files || []).map((f) => f.filename);
+  if (serverFiles.length > 0 && !serverFiles.includes(_currentFilename)) {
+    _currentFilename = serverFiles[0];
+    try {
+      localStorage.setItem("css_editor_active_file", _currentFilename);
+    } catch {
+    }
+  }
+  const filenames = new Set(serverFiles);
+  if (_currentFilename && (serverFiles.includes(_currentFilename) || serverFiles.length === 0)) {
+    filenames.add(_currentFilename);
+  }
+  for (const fname of Array.from(filenames).sort()) {
+    const opt = document.createElement("option");
+    opt.value = fname;
+    opt.textContent = fname;
+    if (fname === _currentFilename) opt.selected = true;
+    $docSelect.appendChild(opt);
+  }
+  const newOpt = document.createElement("option");
+  newOpt.value = "__new__";
+  newOpt.textContent = "＋ New file…";
+  $docSelect.appendChild(newOpt);
+}
+async function fetchFileList() {
+  try {
+    const res = await fetch("/api/documents");
+    if (!res.ok) return;
+    const data2 = await res.json();
+    updateFileList(data2.files || []);
+  } catch (err) {
+    console.error("Failed to fetch file list:", err);
+  }
+}
 let imageLibrary;
 const mdView = createMarkdownEditor(
   $mdEditor,
   (text) => {
     _markdown = text;
+    markDirty();
     postRender(_markdown, _css);
   },
   {
+    onSave: saveLocalDocument,
     onImageVicinity: (url) => {
       if (imageLibrary) imageLibrary.focusImage(url);
     },
     onDropImage: (imgData) => {
       if (imageLibrary) imageLibrary.focusImage(imgData.url);
+    },
+    onPasteImage: (imgData) => {
+      if (imageLibrary) {
+        imageLibrary.fetchImages();
+        imageLibrary.focusImage(imgData.url);
+      }
     }
   }
 );
@@ -31090,19 +31375,67 @@ imageLibrary = initImageLibrary({
     mdView.focus();
   }
 });
-const cssView = createCssEditor($cssEditor, (text) => {
-  _css = text;
-  postRender(_markdown, _css);
-});
+const cssView = createCssEditor(
+  $cssEditor,
+  (text) => {
+    _css = text;
+    markDirty();
+    postRender(_markdown, _css);
+  },
+  {
+    onSave: saveLocalDocument
+  }
+);
 _markdown = mdView.state.doc.toString();
 _css = cssView.state.doc.toString();
+$saveBtn == null ? void 0 : $saveBtn.addEventListener("click", saveLocalDocument);
+$docSelect == null ? void 0 : $docSelect.addEventListener("change", async (e) => {
+  const val = e.target.value;
+  if (val === "__new__") {
+    const name2 = prompt("New markdown filename (e.g. notes.md or dsa-1/notes.md):");
+    if (name2 && name2.trim()) {
+      let cleanName = name2.trim();
+      if (!cleanName.endsWith(".md")) cleanName += ".md";
+      _currentFilename = cleanName;
+      _markdown = `# ${cleanName.replace(/\.md$/, "")}
+
+`;
+      _css = "";
+      setEditorContent(mdView, _markdown);
+      setEditorContent(cssView, _css);
+      markDirty();
+      await saveLocalDocument();
+    } else {
+      $docSelect.value = _currentFilename;
+    }
+    return;
+  }
+  if (_isDirty) {
+    if (!confirm(`You have unsaved changes in ${_currentFilename}. Switch anyway?`)) {
+      $docSelect.value = _currentFilename;
+      return;
+    }
+  }
+  await loadLocalDocument(val);
+});
+window.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    saveLocalDocument();
+  }
+});
+(async () => {
+  await fetchFileList();
+  await loadLocalDocument(_currentFilename);
+})();
 connectSSE(window);
 window.addEventListener("sse:connected", () => {
   setStatus("connected", "Live");
   postRender(_markdown, _css);
 });
 window.addEventListener("sse:render", (ev) => {
-  const { html: html2, css: css2 } = ev.detail;
+  const { html: html2, css: css2, filename } = ev.detail;
+  if (filename && filename !== _currentFilename) return;
   updatePreview($frame, html2, css2 || _css, _previewTheme);
   setStatus("connected", "Live");
   setTimeout(() => {
@@ -31113,6 +31446,58 @@ window.addEventListener("sse:render", (ev) => {
     } catch {
     }
   }, 800);
+});
+window.addEventListener("sse:file:change", (ev) => {
+  const data2 = ev.detail;
+  if (!data2 || !data2.filename) return;
+  if (data2.action === "deleted") {
+    if (data2.filename === _currentFilename) {
+      markDirty();
+      if ($saveStatus) {
+        $saveStatus.textContent = "Deleted on disk";
+        $saveStatus.classList.remove("is-saved");
+      }
+    }
+    fetchFileList();
+    return;
+  }
+  if (data2.action === "added") {
+    fetchFileList();
+  }
+  if (data2.filename !== _currentFilename) {
+    return;
+  }
+  const mdChanged = data2.markdown !== void 0 && data2.markdown !== _markdown;
+  const cssChanged = data2.css !== void 0 && data2.css !== _css;
+  if (!mdChanged && !cssChanged) {
+    return;
+  }
+  if (!_isDirty) {
+    if (mdChanged) {
+      _markdown = data2.markdown;
+      setEditorContent(mdView, _markdown);
+    }
+    if (cssChanged) {
+      _css = data2.css;
+      setEditorContent(cssView, _css);
+    }
+    if (data2.html) {
+      updatePreview($frame, data2.html, _css, _previewTheme);
+    }
+    markClean("Synced from disk");
+    hideConflictNotice();
+  } else {
+    showConflictNotice(data2);
+  }
+});
+window.addEventListener("sse:file:list", (ev) => {
+  var _a2;
+  const files = (_a2 = ev.detail) == null ? void 0 : _a2.files;
+  if (Array.isArray(files)) {
+    updateFileList(files);
+  } else {
+    fetchFileList();
+  }
 });
 window.addEventListener("sse:error", (ev) => setStatus("error", ev.detail.message));
 window.addEventListener("sse:offline", () => setStatus("idle", "Reconnecting…"));
@@ -31145,6 +31530,50 @@ function toggleCssPanel() {
 }
 $toggleCss.addEventListener("click", toggleCssPanel);
 $toggleCssInner.addEventListener("click", toggleCssPanel);
+$settingsBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  $settingsDropdown.classList.toggle("is-open");
+  $settingsBtn.classList.toggle("active", $settingsDropdown.classList.contains("is-open"));
+});
+document.addEventListener("click", (e) => {
+  if (!$settingsDropdown.contains(e.target) && e.target !== $settingsBtn) {
+    $settingsDropdown.classList.remove("is-open");
+    $settingsBtn.classList.remove("active");
+  }
+});
+$settingsDropdown.addEventListener("click", (e) => e.stopPropagation());
+const $nocropInput = $toggleNocrop.querySelector(".settings-toggle__input");
+const $nowhitespaceInput = $toggleNowhitespace.querySelector(".settings-toggle__input");
+const _savedNocrop = localStorage.getItem("css_editor_nocrop") === "1";
+const _savedNowhitespace = localStorage.getItem("css_editor_nowhitespace") === "1";
+function applyNocrop(enabled) {
+  $imageLibrary.classList.toggle("nocrop-mode", enabled);
+  $nocropInput.checked = enabled;
+  $toggleNowhitespace.classList.toggle("is-visible", enabled);
+  if (!enabled) {
+    applyNowhitespace(false);
+  }
+  try {
+    localStorage.setItem("css_editor_nocrop", enabled ? "1" : "0");
+  } catch {
+  }
+}
+function applyNowhitespace(enabled) {
+  $imageLibrary.classList.toggle("nowhitespace-mode", enabled);
+  $nowhitespaceInput.checked = enabled;
+  try {
+    localStorage.setItem("css_editor_nowhitespace", enabled ? "1" : "0");
+  } catch {
+  }
+}
+applyNocrop(_savedNocrop);
+if (_savedNocrop) applyNowhitespace(_savedNowhitespace);
+$nocropInput.addEventListener("change", () => {
+  applyNocrop($nocropInput.checked);
+});
+$nowhitespaceInput.addEventListener("change", () => {
+  applyNowhitespace($nowhitespaceInput.checked);
+});
 function setPreviewTheme(theme2) {
   _previewTheme = theme2 === "dark" ? "dark" : "light";
   const isDark = _previewTheme === "dark";

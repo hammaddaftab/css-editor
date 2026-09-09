@@ -1,3 +1,6 @@
 *-local*
 __pycache__
 .venv
+static/images
+.env
+dsa-*

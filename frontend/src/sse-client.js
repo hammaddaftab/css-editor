@@ -37,7 +37,21 @@ export function connectSSE(target = window) {
 
     es.addEventListener('render', (ev) => {
       const data = JSON.parse(ev.data);
-      dispatch('sse:render', { html: data.html ?? '', css: data.css ?? '' });
+      dispatch('sse:render', {
+        html:     data.html ?? '',
+        css:      data.css ?? '',
+        filename: data.filename,
+      });
+    });
+
+    es.addEventListener('file:change', (ev) => {
+      const data = JSON.parse(ev.data ?? '{}');
+      dispatch('sse:file:change', data);
+    });
+
+    es.addEventListener('file:list', (ev) => {
+      const data = JSON.parse(ev.data ?? '{}');
+      dispatch('sse:file:list', data);
     });
 
     es.addEventListener('error', (ev) => {

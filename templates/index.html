@@ -15,6 +15,22 @@
       CSS Markdown Editor
     </div>
 
+    <!-- Local document controls (current directory) -->
+    <div class="toolbar__doc">
+      <div class="doc-pill">
+        <span class="doc-icon">📁</span>
+        <select id="doc-select" class="doc-select" title="Files in current directory">
+          <option value="document.md">document.md</option>
+        </select>
+        <span id="doc-dirty" class="doc-dirty" title="Unsaved changes">●</span>
+      </div>
+
+      <button id="save-btn" class="btn btn--ghost btn--xs" title="Save to current directory (Ctrl+S)">
+        💾 Save
+      </button>
+      <span id="save-status" class="save-status"></span>
+    </div>
+
     <div class="toolbar__actions">
       <!-- SSE connection indicator -->
       <span
@@ -33,6 +49,34 @@
       <button id="toggle-css" class="btn btn--ghost" title="Toggle CSS panel">
         🎨 CSS
       </button>
+
+      <!-- Settings menu -->
+      <div class="settings-wrap" id="settings-wrap">
+        <button id="settings-btn" class="btn btn--ghost" title="Settings">
+          ⚙ Settings
+        </button>
+        <div class="settings-dropdown" id="settings-dropdown">
+          <div class="settings-dropdown__header">Settings</div>
+
+          <div class="settings-section">
+            <div class="settings-section__title">🖼 Image Library</div>
+
+            <label class="settings-toggle" id="toggle-nocrop">
+              <input type="checkbox" class="settings-toggle__input">
+              <span class="settings-toggle__slider"></span>
+              <span class="settings-toggle__label">No-crop mode</span>
+              <span class="settings-toggle__hint">Use contain instead of cover</span>
+            </label>
+
+            <label class="settings-toggle settings-toggle--nested" id="toggle-nowhitespace">
+              <input type="checkbox" class="settings-toggle__input">
+              <span class="settings-toggle__slider"></span>
+              <span class="settings-toggle__label">No white-space</span>
+              <span class="settings-toggle__hint">Remove fixed thumbnail height</span>
+            </label>
+          </div>
+        </div>
+      </div>
 
       <!-- Hidden multi-image file input -->
       <input
