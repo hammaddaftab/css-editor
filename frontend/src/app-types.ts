@@ -11,6 +11,20 @@ export type Conflict = {
   html?: string;
 };
 
+export type UserConfig = {
+  projects_dir: string;
+  default_projects_dir: string;
+  app_projects_dir: string;
+  author_name: string;
+  author_email: string;
+  first_run_completed: boolean;
+  welcome_seeded: boolean;
+  is_first_run: boolean;
+  config_file_path: string;
+  projects_dir_exists: boolean;
+  dialog_supported: boolean;
+};
+
 export type EditorView = any;
 export type ImageLibrary = any;
 

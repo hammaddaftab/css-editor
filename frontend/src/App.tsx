@@ -3,7 +3,9 @@ import { setEditorContent } from './editor.js';
 import { updatePreview } from './preview.js';
 import { ConflictBanner } from './components/ConflictBanner';
 import { Toolbar } from './components/Toolbar';
+import { WelcomeModal } from './components/WelcomeModal';
 import { WorkspacePanes } from './components/WorkspacePanes';
+import { useConfig } from './hooks/useConfig';
 import { useEditors } from './hooks/useEditors';
 import { useLayout } from './hooks/useLayout';
 import { useLiveSync } from './hooks/useLiveSync';
@@ -32,6 +34,30 @@ export default function App() {
   const [exporting, setExporting] = useState(false);
   const preferences = usePreferences(frame);
   const { switchProject, switchFile } = useProjects(workspace);
+
+  const onDirectoryChanged = useCallback(async () => {
+    const available = await workspace.refreshProjects();
+    if (available.length) {
+      const nextProject = available[0].name;
+      workspace.setProject(nextProject);
+      await workspace.refs.imageLibrary.current?.setProject(nextProject);
+      const nextFiles = await workspace.refreshFiles(nextProject);
+      const nextFile = nextFiles[0]?.filename || 'README.md';
+      workspace.setFilename(nextFile);
+      await workspace.loadDocument(nextProject, nextFile);
+    }
+  }, [workspace]);
+
+  const {
+    config,
+    modalOpen,
+    setModalOpen,
+    saveConfig,
+    browseDirectory,
+    saving,
+    browsing,
+    error,
+  } = useConfig(onDirectoryChanged);
 
   const setAppStatus = useCallback((next: AppStatus, title = '') => {
     setStatus(next); setStatusTitle(title || next);
@@ -74,6 +100,7 @@ export default function App() {
     <Toolbar projects={workspace.projects} project={workspace.project} files={workspace.files} filename={workspace.filename}
       dirty={workspace.dirty} saveStatus={workspace.saveStatus} status={status} statusTitle={statusTitle} exporting={exporting}
       settingsOpen={preferences.settingsOpen} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
+      config={config} onOpenConfigModal={() => setModalOpen(true)}
       imageInput={workspace.refs.imageInput} onProject={(event) => void switchProject(event.target.value)} onFile={(event) => void switchFile(event.target.value)}
       onSave={() => void workspace.saveDocument()} onExport={() => void exportPdf()} onLibrary={() => setLibraryVisible((value) => !value)} libraryVisible={libraryVisible}
       onCss={() => setCssVisible((value) => !value)} cssVisible={cssVisible}
@@ -83,5 +110,15 @@ export default function App() {
     <WorkspacePanes refs={workspace.refs} library={library} panes={panes} divider={divider} leftPane={leftPane}
       libraryVisible={libraryVisible} cssVisible={cssVisible} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
       frame={frame} pageCount={pageCount} theme={preferences.theme} onCss={() => setCssVisible((value) => !value)} onTheme={preferences.changeTheme} />
+    <WelcomeModal
+      config={config}
+      isOpen={modalOpen}
+      onClose={() => setModalOpen(false)}
+      onSave={saveConfig}
+      onBrowse={browseDirectory}
+      saving={saving}
+      browsing={browsing}
+      error={error}
+    />
   </div>;
 }

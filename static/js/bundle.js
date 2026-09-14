@@ -45045,6 +45045,7 @@ function ConflictBanner({ conflict, onReload, onKeep }) {
   ] });
 }
 function Toolbar(props) {
+  var _a2, _b, _c, _d;
   const projectOptions = props.projects.length ? props.projects.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item.name, children: item.name }, item.name)) : /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "Loading projects…" });
   const fileOptions = props.files.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item.filename, children: item.filename }, item.filename));
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "toolbar", children: [
@@ -45078,7 +45079,29 @@ function Toolbar(props) {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-wrap", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.settingsOpen ? " active" : ""}`, title: "Settings", onClick: props.onSettings, children: "⚙ Settings" }),
         props.settingsOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-dropdown is-open", onClick: (event) => event.stopPropagation(), children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-dropdown__header", children: "Settings" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-dropdown__header", children: "Settings & Workspace" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-section", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-section__title", children: "📁 Projects Directory" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-path-display", title: (_a2 = props.config) == null ? void 0 : _a2.projects_dir, children: ((_b = props.config) == null ? void 0 : _b.projects_dir) || "Loading…" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                className: "btn btn--secondary btn--xs settings-btn-block",
+                onClick: () => {
+                  props.onOpenConfigModal();
+                },
+                children: "Change Workspace Folder…"
+              }
+            )
+          ] }),
+          ((_c = props.config) == null ? void 0 : _c.author_name) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-section", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-section__title", children: "👤 Author" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-author-display", children: [
+              props.config.author_name,
+              props.config.author_email ? ` (${props.config.author_email})` : ""
+            ] })
+          ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-section", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-section__title", children: "🖼 Image Library" }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "settings-toggle", children: [
@@ -45093,6 +45116,10 @@ function Toolbar(props) {
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__label", children: "No white-space" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__hint", children: "Remove fixed thumbnail height" })
             ] })
+          ] }),
+          ((_d = props.config) == null ? void 0 : _d.config_file_path) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-footer-info", title: props.config.config_file_path, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Config: " }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: props.config.config_file_path })
           ] })
         ] })
       ] }),
@@ -45100,6 +45127,168 @@ function Toolbar(props) {
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--primary", disabled: props.exporting, onClick: props.onExport, children: props.exporting ? "⏳ Exporting…" : "⬇ Export PDF" })
     ] })
   ] });
+}
+function WelcomeModal({
+  config: config2,
+  isOpen,
+  onClose,
+  onSave,
+  onBrowse,
+  saving,
+  browsing,
+  error: initialError
+}) {
+  const [projectsDir, setProjectsDir] = reactExports.useState("");
+  const [authorName, setAuthorName] = reactExports.useState("");
+  const [authorEmail, setAuthorEmail] = reactExports.useState("");
+  const [localError, setLocalError] = reactExports.useState(null);
+  reactExports.useEffect(() => {
+    if (config2) {
+      setProjectsDir(config2.projects_dir || config2.default_projects_dir || "");
+      setAuthorName(config2.author_name || "");
+      setAuthorEmail(config2.author_email || "");
+    }
+  }, [config2, isOpen]);
+  if (!isOpen) return null;
+  const isFirstRun = Boolean(config2 == null ? void 0 : config2.is_first_run);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLocalError(null);
+    const cleanDir = projectsDir.trim();
+    if (!cleanDir) {
+      setLocalError("Please specify a projects directory.");
+      return;
+    }
+    try {
+      await onSave({
+        projects_dir: cleanDir,
+        author_name: authorName.trim(),
+        author_email: authorEmail.trim(),
+        first_run_completed: true
+      });
+      onClose();
+    } catch (err) {
+      setLocalError(err.message);
+    }
+  };
+  const handleBrowse = async () => {
+    setLocalError(null);
+    const chosen = await onBrowse(projectsDir);
+    if (chosen) {
+      setProjectsDir(chosen);
+    }
+  };
+  const error = localError || initialError;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "modal-backdrop", onClick: isFirstRun ? void 0 : onClose, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-dialog", onClick: (e) => e.stopPropagation(), role: "dialog", "aria-modal": "true", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-header", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-title-group", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "modal-icon", children: isFirstRun ? "👋" : "⚙️" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "modal-title", children: isFirstRun ? "Welcome to CSS Markdown Editor" : "Workspace & Storage Settings" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "modal-subtitle", children: isFirstRun ? "Set up where your documents, companion stylesheets, and assets will be stored locally." : "Manage your local projects directory and author information." })
+        ] })
+      ] }),
+      !isFirstRun && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "modal-close", onClick: onClose, "aria-label": "Close modal", children: "✕" })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { onSubmit: handleSubmit, className: "modal-body", children: [
+      error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "modal-alert modal-alert--error", children: error }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-field", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "modal-label", htmlFor: "projects-dir-input", children: "📁 Projects Directory" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-input-group", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "input",
+            {
+              id: "projects-dir-input",
+              type: "text",
+              className: "modal-input",
+              value: projectsDir,
+              onChange: (e) => setProjectsDir(e.target.value),
+              placeholder: "/path/to/projects",
+              required: true
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              className: "btn btn--secondary",
+              onClick: handleBrowse,
+              disabled: browsing || saving,
+              title: "Browse folder via system dialog",
+              children: browsing ? "Browsing…" : "Browse…"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-presets", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "modal-presets__label", children: "Quick options:" }),
+          (config2 == null ? void 0 : config2.default_projects_dir) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              className: "preset-chip",
+              onClick: () => setProjectsDir(config2.default_projects_dir),
+              children: "📁 Documents (Default)"
+            }
+          ),
+          (config2 == null ? void 0 : config2.app_projects_dir) && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              className: "preset-chip",
+              onClick: () => setProjectsDir(config2.app_projects_dir),
+              children: "📦 App Repo Directory"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "modal-hint", children: "All Markdown files, companion CSS, and image uploads will be saved inside this directory. A starter project will be seeded if the directory is new." })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-field-row", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-field", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "modal-label", htmlFor: "author-name-input", children: [
+            "👤 Author Name ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "modal-label-opt", children: "(optional)" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "input",
+            {
+              id: "author-name-input",
+              type: "text",
+              className: "modal-input",
+              value: authorName,
+              onChange: (e) => setAuthorName(e.target.value),
+              placeholder: "e.g. Jane Doe"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "modal-hint", children: "Embedded into PDF metadata when exporting." })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-field", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "modal-label", htmlFor: "author-email-input", children: [
+            "✉️ Author Email ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "modal-label-opt", children: "(optional)" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "input",
+            {
+              id: "author-email-input",
+              type: "email",
+              className: "modal-input",
+              value: authorEmail,
+              onChange: (e) => setAuthorEmail(e.target.value),
+              placeholder: "e.g. jane@example.com"
+            }
+          )
+        ] })
+      ] }),
+      (config2 == null ? void 0 : config2.config_file_path) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-config-path", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "modal-config-path__label", children: "Settings saved to:" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: config2.config_file_path })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-footer", children: [
+        !isFirstRun && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "btn btn--ghost", onClick: onClose, disabled: saving, children: "Cancel" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "submit", className: "btn btn--primary", disabled: saving, children: saving ? "Saving…" : isFirstRun ? "Get Started →" : "Save Changes" })
+      ] })
+    ] })
+  ] }) });
 }
 function WorkspacePanes(props) {
   const leftClass = `left-pane${props.libraryVisible ? "" : " library-collapsed"}${props.cssVisible ? "" : " css-collapsed"}`;
@@ -45147,6 +45336,94 @@ function WorkspacePanes(props) {
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `preview-scroll preview-theme--${props.theme}`, children: /* @__PURE__ */ jsxRuntimeExports.jsx("iframe", { ref: props.frame, className: "preview-frame", sandbox: "allow-scripts allow-same-origin", title: "Document preview" }) })
     ] })
   ] });
+}
+function useConfig(onProjectsDirChanged) {
+  const [config2, setConfig] = reactExports.useState(null);
+  const [modalOpen, setModalOpen] = reactExports.useState(false);
+  const [loading, setLoading] = reactExports.useState(true);
+  const [saving, setSaving] = reactExports.useState(false);
+  const [browsing, setBrowsing] = reactExports.useState(false);
+  const [error, setError] = reactExports.useState(null);
+  const fetchConfig = reactExports.useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/config");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data2 = await res.json();
+      setConfig(data2);
+      if (data2.is_first_run) {
+        setModalOpen(true);
+      }
+      return data2;
+    } catch (err) {
+      console.error("Failed to load user configuration:", err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  reactExports.useEffect(() => {
+    void fetchConfig();
+  }, [fetchConfig]);
+  const saveConfig = reactExports.useCallback(async (updates) => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+      if (!res.ok) {
+        const data2 = await res.json().catch(() => ({}));
+        throw new Error(data2.detail || `HTTP ${res.status}`);
+      }
+      const nextData = await res.json();
+      const dirChanged = config2 && config2.projects_dir !== nextData.projects_dir;
+      setConfig(nextData);
+      setModalOpen(false);
+      if (dirChanged && onProjectsDirChanged) {
+        await onProjectsDirChanged();
+      }
+      return nextData;
+    } catch (err) {
+      const msg = err.message;
+      setError(msg);
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  }, [config2, onProjectsDirChanged]);
+  const browseDirectory = reactExports.useCallback(async (initialDir) => {
+    setBrowsing(true);
+    try {
+      const res = await fetch("/api/system/browse-directory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initial_dir: initialDir || (config2 == null ? void 0 : config2.projects_dir) })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data2 = await res.json();
+      return data2.path;
+    } catch (err) {
+      console.error("Directory browse failed:", err);
+      return null;
+    } finally {
+      setBrowsing(false);
+    }
+  }, [config2 == null ? void 0 : config2.projects_dir]);
+  return {
+    config: config2,
+    loading,
+    saving,
+    browsing,
+    error,
+    modalOpen,
+    setModalOpen,
+    fetchConfig,
+    saveConfig,
+    browseDirectory
+  };
 }
 function formatBytes(bytes) {
   if (!bytes || bytes === 0) return "0 B";
@@ -46244,6 +46521,29 @@ function App() {
   const [exporting, setExporting] = reactExports.useState(false);
   const preferences = usePreferences(frame);
   const { switchProject, switchFile } = useProjects(workspace);
+  const onDirectoryChanged = reactExports.useCallback(async () => {
+    var _a2, _b;
+    const available = await workspace.refreshProjects();
+    if (available.length) {
+      const nextProject = available[0].name;
+      workspace.setProject(nextProject);
+      await ((_a2 = workspace.refs.imageLibrary.current) == null ? void 0 : _a2.setProject(nextProject));
+      const nextFiles = await workspace.refreshFiles(nextProject);
+      const nextFile = ((_b = nextFiles[0]) == null ? void 0 : _b.filename) || "README.md";
+      workspace.setFilename(nextFile);
+      await workspace.loadDocument(nextProject, nextFile);
+    }
+  }, [workspace]);
+  const {
+    config: config2,
+    modalOpen,
+    setModalOpen,
+    saveConfig,
+    browseDirectory,
+    saving,
+    browsing,
+    error
+  } = useConfig(onDirectoryChanged);
   const setAppStatus = reactExports.useCallback((next, title = "") => {
     setStatus(next);
     setStatusTitle(title || next);
@@ -46272,8 +46572,8 @@ function App() {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-    } catch (error) {
-      window.alert(`Export failed: ${error.message}`);
+    } catch (error2) {
+      window.alert(`Export failed: ${error2.message}`);
     } finally {
       setExporting(false);
     }
@@ -46310,6 +46610,8 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme);
         settingsOpen: preferences.settingsOpen,
         noCrop: preferences.noCrop,
         noWhitespace: preferences.noWhitespace,
+        config: config2,
+        onOpenConfigModal: () => setModalOpen(true),
         imageInput: workspace.refs.imageInput,
         onProject: (event) => void switchProject(event.target.value),
         onFile: (event) => void switchFile(event.target.value),
@@ -46345,6 +46647,19 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme);
         theme: preferences.theme,
         onCss: () => setCssVisible((value) => !value),
         onTheme: preferences.changeTheme
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      WelcomeModal,
+      {
+        config: config2,
+        isOpen: modalOpen,
+        onClose: () => setModalOpen(false),
+        onSave: saveConfig,
+        onBrowse: browseDirectory,
+        saving,
+        browsing,
+        error
       }
     )
   ] });

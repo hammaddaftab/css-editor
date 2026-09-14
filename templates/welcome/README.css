@@ -1,0 +1,5 @@
+/* Styles specific to README.md */
+h1 {
+  border-bottom: 2px solid #2563eb;
+  padding-bottom: 6px;
+}

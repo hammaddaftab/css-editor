@@ -28,3 +28,5 @@ uvicorn app.main:app --reload
 |---|---|---|
 | `EDITOR_WATCH_FILE` | unset | Path to a .md file to watch on disk |
 | `EDITOR_DEBUG` | false | Enable FastAPI debug mode |
+| `EDITOR_PROJECTS_DIR` | `~/Documents/CSS-Markdown-Editor/projects` | Directory where user projects are stored |
+| `EDITOR_CONFIG_DIR` | OS user config dir (`~/.config/css-editor`) | Directory where global user `config.json` is stored |

@@ -18,6 +18,7 @@ from fastapi.responses import Response
 
 from app.core.config import settings
 from app.models.schemas import ExportRequest
+from app.services.config_manager import load_user_config
 from app.services.markdown_svc import render_markdown
 from app.services.pdf_svc import render_pdf
 
@@ -32,6 +33,7 @@ _HTML_TEMPLATE = """\
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+{author_meta}
   <style>
 {css}
   </style>
@@ -51,7 +53,13 @@ async def export_pdf(req: ExportRequest, request: Request) -> Response:
     # Keep PDF export aligned with the paged.js preview.  The preview loads
     # print.css first and then applies the user's CSS as overrides.
     combined_css = f"{_PRINT_CSS}\n{req.css}"
-    full_html = _HTML_TEMPLATE.format(css=combined_css, body=html_body)
+    user_config, _ = load_user_config()
+    author_meta = (
+        f'  <meta name="author" content="{user_config.author_name}">'
+        if user_config.author_name
+        else ""
+    )
+    full_html = _HTML_TEMPLATE.format(css=combined_css, body=html_body, author_meta=author_meta)
 
     # Pass the server's base URL so WeasyPrint can resolve image paths like
     # /static/images/photo.jpg → http://localhost:8000/static/images/photo.jpg

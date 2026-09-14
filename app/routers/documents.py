@@ -15,8 +15,12 @@ from app.core.config import settings
 
 router = APIRouter(prefix="/api", tags=["documents"])
 
-PROJECTS_ROOT = settings.projects_path
-PROJECTS_ROOT.mkdir(parents=True, exist_ok=True)
+
+def get_projects_root() -> Path:
+    """Return active projects root directory."""
+    root = settings.projects_path
+    root.mkdir(parents=True, exist_ok=True)
+    return root
 
 
 class SaveDocumentRequest(BaseModel):
@@ -39,8 +43,9 @@ def resolve_project(project: str) -> Path:
     if not clean or clean in {".", ".."} or "/" in clean or "\\" in clean:
         raise HTTPException(status_code=400, detail="Invalid project name.")
 
-    path = (PROJECTS_ROOT / clean).resolve()
-    if not path.is_dir() or not path.is_relative_to(PROJECTS_ROOT) or clean.startswith("."):
+    root = get_projects_root()
+    path = (root / clean).resolve()
+    if not path.is_dir() or not path.is_relative_to(root) or clean.startswith("."):
         raise HTTPException(status_code=404, detail="Project not found.")
     return path
 
@@ -76,11 +81,12 @@ def resolve_project_file(project_path: Path, filename: str) -> Path:
 @router.get("/projects", summary="List filesystem-backed projects")
 async def list_projects() -> JSONResponse:
     projects = []
-    for path in sorted(PROJECTS_ROOT.iterdir(), key=lambda item: item.name.lower()):
+    root = get_projects_root()
+    for path in sorted(root.iterdir(), key=lambda item: item.name.lower()):
         if (
             not path.is_dir()
             or path.name.startswith(".")
-            or not path.resolve().is_relative_to(PROJECTS_ROOT)
+            or not path.resolve().is_relative_to(root)
         ):
             continue
         documents = scan_project_documents(path)
@@ -97,13 +103,14 @@ async def create_project(req: CreateProjectRequest) -> JSONResponse:
     if name in {"app", "frontend", "static", "templates", "tmp_dont_touch"}:
         raise HTTPException(status_code=400, detail="That directory name is reserved.")
 
-    project_path = (PROJECTS_ROOT / name).resolve()
-    if not project_path.is_relative_to(PROJECTS_ROOT):
+    root = get_projects_root()
+    project_path = (root / name).resolve()
+    if not project_path.is_relative_to(root):
         raise HTTPException(status_code=400, detail="Invalid project name.")
     if project_path.exists():
         raise HTTPException(status_code=409, detail="A project with that name already exists.")
     project_path.mkdir(parents=True)
-    (project_path / "images").mkdir()
+    (project_path / "images").mkdir(parents=True, exist_ok=True)
     (project_path / "README.md").write_text(f"# {name}\n\n", encoding="utf-8")
     return JSONResponse({"created": True, "name": name}, status_code=201)
 

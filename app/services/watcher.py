@@ -169,3 +169,44 @@ async def watch_markdown_file(path: Path) -> None:
                 await broadcaster.publish("error", {"message": str(exc)})
     except asyncio.CancelledError:
         raise
+
+
+class ProjectWatcherManager:
+    """Manage dynamic lifecycle of the project directory watcher."""
+
+    def __init__(self) -> None:
+        self._task: asyncio.Task | None = None
+        self._current_path: Path | None = None
+
+    @property
+    def current_path(self) -> Path | None:
+        return self._current_path
+
+    def start(self, projects_root: Path) -> None:
+        if self._task and not self._task.done():
+            self._task.cancel()
+        self._current_path = projects_root.resolve()
+        self._task = asyncio.create_task(
+            watch_directory(self._current_path),
+            name="project-directory-watcher",
+        )
+
+    def switch_directory(self, new_root: Path) -> None:
+        resolved = new_root.resolve()
+        if self._current_path == resolved and self._task and not self._task.done():
+            return
+        logger.info("Switching project watcher to %s", resolved)
+        self.start(resolved)
+
+    async def stop(self) -> None:
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+            self._task = None
+
+
+watcher_manager = ProjectWatcherManager()
+

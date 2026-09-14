@@ -899,3 +899,279 @@ html, body {
   height: auto;
 }
 
+/* --------------------------------------------------------------------------
+   Settings Dropdown Extensions
+   -------------------------------------------------------------------------- */
+.settings-path-display {
+  font-family:    var(--font-mono);
+  font-size:      11px;
+  color:          var(--text-secondary);
+  background:     var(--bg-subtle);
+  border:         1px solid var(--border);
+  border-radius:  var(--radius-sm);
+  padding:        6px 8px;
+  white-space:    nowrap;
+  overflow:       hidden;
+  text-overflow:  ellipsis;
+  margin-bottom:  8px;
+}
+
+.settings-author-display {
+  font-size:      12px;
+  color:          var(--text-primary);
+  background:     var(--bg-subtle);
+  border:         1px solid var(--border);
+  border-radius:  var(--radius-sm);
+  padding:        6px 8px;
+  word-break:     break-word;
+}
+
+.settings-btn-block {
+  width:           100%;
+  justify-content: center;
+  font-size:       12px;
+  padding:         5px 10px;
+}
+
+.settings-footer-info {
+  padding:       8px 14px;
+  font-size:     10px;
+  color:         var(--text-muted);
+  background:    rgba(0, 0, 0, 0.2);
+  border-top:    1px solid var(--border);
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-footer-info code {
+  font-family:   var(--font-mono);
+  color:         var(--text-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Modal Dialogs & Setup Wizard
+   -------------------------------------------------------------------------- */
+.modal-backdrop {
+  position:        fixed;
+  inset:           0;
+  background:      rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  z-index:         1000;
+  padding:         20px;
+  animation:       modal-fade-in 0.15s ease-out;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-dialog {
+  background:      var(--bg-surface);
+  border:          1px solid var(--border-hover);
+  border-radius:   8px;
+  width:           100%;
+  max-width:       560px;
+  box-shadow:      0 20px 50px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  overflow:        hidden;
+  display:         flex;
+  flex-direction:  column;
+  animation:       modal-slide-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-slide-in {
+  from { opacity: 0; transform: scale(0.96) translateY(-10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-header {
+  display:         flex;
+  align-items:     flex-start;
+  justify-content: space-between;
+  padding:         20px 24px 16px;
+  border-bottom:   1px solid var(--border);
+  gap:             16px;
+}
+
+.modal-title-group {
+  display:     flex;
+  align-items: flex-start;
+  gap:         12px;
+}
+
+.modal-icon {
+  font-size:   24px;
+  line-height: 1.2;
+}
+
+.modal-title {
+  font-size:   16px;
+  font-weight: 600;
+  color:       var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size:   12.5px;
+  color:       var(--text-secondary);
+  line-height: 1.45;
+}
+
+.modal-close {
+  background:  transparent;
+  border:      none;
+  color:       var(--text-muted);
+  font-size:   16px;
+  cursor:      pointer;
+  padding:     4px 8px;
+  border-radius: var(--radius-sm);
+  transition:  color var(--transition), background var(--transition);
+}
+
+.modal-close:hover {
+  color:       var(--text-primary);
+  background:  var(--bg-surface-hover);
+}
+
+.modal-body {
+  padding:     20px 24px;
+  display:     flex;
+  flex-direction: column;
+  gap:         18px;
+}
+
+.modal-alert {
+  padding:        10px 14px;
+  border-radius:  var(--radius);
+  font-size:      12.5px;
+  line-height:    1.4;
+}
+
+.modal-alert--error {
+  background:   var(--danger-subtle);
+  border:       1px solid var(--danger);
+  color:        #fca5a5;
+}
+
+.modal-field {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+}
+
+.modal-field-row {
+  display:        grid;
+  grid-template-columns: 1fr 1fr;
+  gap:            16px;
+}
+
+.modal-label {
+  font-size:      12.5px;
+  font-weight:    600;
+  color:          var(--text-primary);
+  display:        flex;
+  align-items:    center;
+  gap:            6px;
+}
+
+.modal-label-opt {
+  font-weight:    400;
+  color:          var(--text-muted);
+  font-size:      11px;
+}
+
+.modal-input-group {
+  display:        flex;
+  gap:            8px;
+}
+
+.modal-input {
+  flex:           1;
+  background:     var(--bg-app);
+  border:         1px solid var(--border);
+  border-radius:  var(--radius);
+  color:          var(--text-primary);
+  font-family:    var(--font-mono);
+  font-size:      12.5px;
+  padding:        8px 12px;
+  outline:        none;
+  transition:     border-color var(--transition), box-shadow var(--transition);
+}
+
+.modal-input:focus {
+  border-color:   var(--accent);
+  box-shadow:     0 0 0 2px var(--accent-glow);
+}
+
+.modal-presets {
+  display:        flex;
+  align-items:    center;
+  gap:            8px;
+  flex-wrap:      wrap;
+  margin-top:     4px;
+}
+
+.modal-presets__label {
+  font-size:      11px;
+  color:          var(--text-muted);
+}
+
+.preset-chip {
+  background:     var(--bg-surface-hover);
+  border:         1px solid var(--border);
+  color:          var(--text-secondary);
+  font-size:      11px;
+  padding:        3px 8px;
+  border-radius:  12px;
+  cursor:         pointer;
+  transition:     color var(--transition), border-color var(--transition), background var(--transition);
+}
+
+.preset-chip:hover {
+  color:          var(--text-primary);
+  border-color:   var(--accent);
+  background:     var(--accent-subtle);
+}
+
+.modal-hint {
+  font-size:      11px;
+  color:          var(--text-muted);
+  line-height:    1.4;
+  margin-top:     2px;
+}
+
+.modal-config-path {
+  background:     rgba(0, 0, 0, 0.25);
+  border:         1px solid var(--border);
+  border-radius:  var(--radius-sm);
+  padding:        8px 12px;
+  font-size:      11px;
+  display:        flex;
+  flex-direction: column;
+  gap:            3px;
+}
+
+.modal-config-path__label {
+  color:          var(--text-muted);
+  font-size:      10.5px;
+}
+
+.modal-config-path code {
+  font-family:    var(--font-mono);
+  color:          var(--text-secondary);
+  word-break:     break-all;
+}
+
+.modal-footer {
+  display:         flex;
+  align-items:     center;
+  justify-content: flex-end;
+  gap:             10px;
+  padding-top:     10px;
+  border-top:      1px solid var(--border);
+}
+

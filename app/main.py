@@ -14,8 +14,8 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.routers import documents, export, images, pages, render, sse
-from app.services.watcher import watch_directory, watch_markdown_file
+from app.routers import documents, export, images, pages, render, settings as settings_router, sse
+from app.services.watcher import watch_markdown_file, watcher_manager
 
 
 @asynccontextmanager
@@ -25,13 +25,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     projects_root = settings.projects_path
     projects_root.mkdir(parents=True, exist_ok=True)
 
-    # Automatically watch local persisted files in the current working directory
-    tasks.append(
-        asyncio.create_task(
-            watch_directory(projects_root),
-            name="project-directory-watcher",
-        )
-    )
+    # Start project directory watcher using manager so it can be dynamically switched
+    watcher_manager.start(projects_root)
 
     # Optional: watch an explicitly configured external Markdown file
     watch_file = settings.watch_file_path
@@ -49,6 +44,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     yield  # application runs here
 
+    await watcher_manager.stop()
     for task in tasks:
         task.cancel()
         try:
@@ -65,5 +61,5 @@ app = FastAPI(
 
 app.mount("/static", StaticFiles(directory=settings.static_path), name="static")
 
-for _router in (pages.router, render.router, export.router, sse.router, images.router, documents.router):
+for _router in (pages.router, render.router, export.router, sse.router, images.router, documents.router, settings_router.router):
     app.include_router(_router)

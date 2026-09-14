@@ -1,5 +1,5 @@
 import type { ChangeEvent, RefObject } from 'react';
-import type { AppStatus, Project, ProjectFile } from '../app-types';
+import type { AppStatus, Project, ProjectFile, UserConfig } from '../app-types';
 
 type Props = {
   projects: Project[];
@@ -14,6 +14,8 @@ type Props = {
   settingsOpen: boolean;
   noCrop: boolean;
   noWhitespace: boolean;
+  config: UserConfig | null;
+  onOpenConfigModal: () => void;
   imageInput: RefObject<HTMLInputElement | null>;
   onProject: (event: ChangeEvent<HTMLSelectElement>) => void;
   onFile: (event: ChangeEvent<HTMLSelectElement>) => void;
@@ -44,10 +46,60 @@ export function Toolbar(props: Props) {
       <button className={`btn btn--ghost${props.cssVisible ? ' active' : ''}`} title="Toggle CSS panel" onClick={props.onCss}>🎨 CSS</button>
       <div className="settings-wrap">
         <button className={`btn btn--ghost${props.settingsOpen ? ' active' : ''}`} title="Settings" onClick={props.onSettings}>⚙ Settings</button>
-        {props.settingsOpen && <div className="settings-dropdown is-open" onClick={(event) => event.stopPropagation()}><div className="settings-dropdown__header">Settings</div><div className="settings-section"><div className="settings-section__title">🖼 Image Library</div>
-          <label className="settings-toggle"><input type="checkbox" className="settings-toggle__input" checked={props.noCrop} onChange={props.onNoCrop} /><span className="settings-toggle__slider" /><span className="settings-toggle__label">No-crop mode</span><span className="settings-toggle__hint">Use contain instead of cover</span></label>
-          <label className={`settings-toggle settings-toggle--nested${props.noCrop ? ' is-visible' : ''}`}><input type="checkbox" className="settings-toggle__input" checked={props.noWhitespace} disabled={!props.noCrop} onChange={props.onNoWhitespace} /><span className="settings-toggle__slider" /><span className="settings-toggle__label">No white-space</span><span className="settings-toggle__hint">Remove fixed thumbnail height</span></label>
-        </div></div>}
+        {props.settingsOpen && (
+          <div className="settings-dropdown is-open" onClick={(event) => event.stopPropagation()}>
+            <div className="settings-dropdown__header">Settings & Workspace</div>
+
+            <div className="settings-section">
+              <div className="settings-section__title">📁 Projects Directory</div>
+              <div className="settings-path-display" title={props.config?.projects_dir}>
+                {props.config?.projects_dir || 'Loading…'}
+              </div>
+              <button
+                type="button"
+                className="btn btn--secondary btn--xs settings-btn-block"
+                onClick={() => {
+                  props.onOpenConfigModal();
+                }}
+              >
+                Change Workspace Folder…
+              </button>
+            </div>
+
+            {props.config?.author_name && (
+              <div className="settings-section">
+                <div className="settings-section__title">👤 Author</div>
+                <div className="settings-author-display">
+                  {props.config.author_name}
+                  {props.config.author_email ? ` (${props.config.author_email})` : ''}
+                </div>
+              </div>
+            )}
+
+            <div className="settings-section">
+              <div className="settings-section__title">🖼 Image Library</div>
+              <label className="settings-toggle">
+                <input type="checkbox" className="settings-toggle__input" checked={props.noCrop} onChange={props.onNoCrop} />
+                <span className="settings-toggle__slider" />
+                <span className="settings-toggle__label">No-crop mode</span>
+                <span className="settings-toggle__hint">Use contain instead of cover</span>
+              </label>
+              <label className={`settings-toggle settings-toggle--nested${props.noCrop ? ' is-visible' : ''}`}>
+                <input type="checkbox" className="settings-toggle__input" checked={props.noWhitespace} disabled={!props.noCrop} onChange={props.onNoWhitespace} />
+                <span className="settings-toggle__slider" />
+                <span className="settings-toggle__label">No white-space</span>
+                <span className="settings-toggle__hint">Remove fixed thumbnail height</span>
+              </label>
+            </div>
+
+            {props.config?.config_file_path && (
+              <div className="settings-footer-info" title={props.config.config_file_path}>
+                <span>Config: </span>
+                <code>{props.config.config_file_path}</code>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <input ref={props.imageInput} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml" style={{ display: 'none' }} multiple />
       <button className="btn btn--primary" disabled={props.exporting} onClick={props.onExport}>{props.exporting ? '⏳ Exporting…' : '⬇ Export PDF'}</button>

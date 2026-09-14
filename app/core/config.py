@@ -19,10 +19,8 @@ class Settings(BaseSettings):
 
     app_name: str = "CSS Markdown Editor"
     debug: bool = False
-    # Installation/repository root. Relative paths are resolved from APP_ROOT,
-    # never from the process's current working directory.
     workspace_root: Path = APP_ROOT
-    projects_dir: Path = Path("projects")
+    projects_dir: Path | None = None
     # Optional: path to a markdown file to watch on disk and live-reload on change
     watch_file: Path | None = None
 
@@ -38,7 +36,8 @@ class Settings(BaseSettings):
 
     @property
     def projects_path(self) -> Path:
-        return self._resolve_path(self.projects_dir, self.workspace_path)
+        from app.services.config_manager import get_projects_root
+        return get_projects_root()
 
     @property
     def static_path(self) -> Path:
