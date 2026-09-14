@@ -1,0 +1,12 @@
+- [ ] author metadata needs research
+- [ ] getting started page provides little value
+- [ ] scaling preview when width is restricted - !important
+- [ ] basic settings to toggle word wrap
+- [ ] word export
+- [ ] git history clean/rebase needed since generated bundle files were comitted previously
+- [ ] applied image markers
+- [ ] ui hierarchy redesign
+- [ ] persist preferences, expanded vs collapsed editors. Why not just create more toggles?
+- [ ] image dimension controls with random ids as css selectors, use titles somewhere for hints
+- [ ] TECHNICAL DEBT, confirm css layers are working nicely with isolation in print vs preview styles - !important
+- [ ] fonts - !important

@@ -1,51 +1,63 @@
 # Welcome to CSS Markdown Editor
 
-A live Markdown editor with **real-time CSS customization**, **multi-page A4 preview**, and **one-click PDF export**.
+A live Markdown editor designed for document crafting with **real-time CSS styling**, **multi-page A4 print preview**, and **one-click PDF export**.
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start Guide
 
-1. **Edit Markdown:** Type in the left panel. Your changes preview instantly on the right.
-2. **Custom CSS:** Toggle the **🎨 CSS** button in the toolbar to customize typography, spacing, colors, and layout.
-3. **Multi-Page Layout:** Page breaks and headers/footers are computed live using CSS Paged Media.
-4. **Export to PDF:** Click **⬇ Export PDF** at any time to generate a print-ready document.
+1. **Write Markdown:** Edit your content in the left panel. The right panel renders a live, paged A4 preview.
+2. **Customize Styles:** Click **🎨 CSS** in the toolbar to open the companion stylesheet editor.
+3. **Insert Images:** Use the **🖼 Library** panel to upload assets, or drag & drop images directly into your document:
+   ```markdown
+   ![Alt description](/api/images/photo.png)
+   ```
+4. **Export Clean PDF:** Click **⬇ Export PDF** to compile your document into a print-ready PDF via WeasyPrint.
 
 ---
 
-## 🎨 Styling Features
+## 🎨 Styling & Configuration
 
-You can style individual elements using standard CSS or classes:
+The editor applies default print styling (`print.css`) out of the box, including typography, code blocks, tables, and callouts.
 
-```css
-/* Example styling */
-h1 {
-  color: #2563eb;
-  border-bottom: 2px solid #2563eb;
-}
+You can customize styles at two levels:
+
+| Scope | File | Description |
+|---|---|---|
+| **Project-Wide** | `project.css` | Shared styles, custom `@page` sizes, margins, and running headers/footers |
+| **Document-Specific** | `README.css` | Unique styles and overrides for the active document |
+
+---
+
+### Page Breaks in A4 Documents
+
+To force a page break between sections in both the preview and exported PDF, use the built-in `.page-break` class:
+
+```html
+<div class="page-break"></div>
 ```
 
-### Multi-Page A4 Break Example
-
-To force content onto the next page in preview and PDF export, use the page break helper:
-
+<!-- Page Break Demonstration -->
 <div class="page-break"></div>
 
-## 📄 Second Page Heading
+## 📄 Second Page Section
 
-This content starts cleanly on the second page because of the `.page-break` rule defined in `project.css`.
+This section begins on page 2 because of the `<div class="page-break"></div>` above.
 
-| Feature | Description |
-|---|---|
-| Live Sync | Real-time SSE updates as you type |
-| Paged Media | Native A4 preview using paged.js |
-| WeasyPrint | Exact PDF rendering from HTML+CSS |
-| Image Library | Drag & drop uploads straight into markdown |
+### Built-in Features
+
+- **Live Synchronization:** Edits in Markdown or CSS trigger instant live-preview updates via Server-Sent Events (`SSE`).
+- **Paged Media Engine:** Powered by `paged.js`, calculating true A4 pagination, margins, and page boxes.
+- **True Print Output:** Uses `WeasyPrint` for pixel-accurate PDF generation.
+- **Local Storage:** All files are saved as standard `.md` and `.css` files in your chosen local workspace.
 
 ---
 
-## 📁 Storage & Configuration
+## ⚙️ Keyboard Shortcuts
 
-- **Your Projects:** Saved locally in your chosen projects directory.
-- **Companion Styles:** Every document has its own companion stylesheet (e.g. `README.css`) plus a shared `project.css` for the whole project.
-- **Settings:** Click **⚙ Settings** in the toolbar to change your projects directory or author details anytime.
+| Action | Shortcut |
+|---|---|
+| **Save Document** | `Ctrl` + `S` / `Cmd` + `S` |
+| **Toggle CSS Editor** | Click **🎨 CSS** in Toolbar |
+| **Toggle Image Library** | Click **🖼 Library** in Toolbar |
+| **Workspace Settings** | Click **⚙ Settings** in Toolbar |

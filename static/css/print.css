@@ -112,13 +112,15 @@ pre, pre.code-block {
   break-inside: avoid;
   font-size:    var(--size-code);
   line-height:  1.5;
+  color:        var(--color-text);
 }
 
-pre code {
+pre code, pre.code-block code {
   background: none;
   padding:    0;
   font-size:  inherit;
   border-radius: 0;
+  color:      inherit;
 }
 
 /* --------------------------------------------------------------------------
