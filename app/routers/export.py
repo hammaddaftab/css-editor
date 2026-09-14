@@ -11,15 +11,20 @@ base_url is passed to WeasyPrint so it can fetch images and other
 resources from the running FastAPI server (e.g. /static/images/*).
 """
 import asyncio
+from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
+from app.core.config import settings
 from app.models.schemas import ExportRequest
 from app.services.markdown_svc import render_markdown
 from app.services.pdf_svc import render_pdf
 
 router = APIRouter(prefix="/api", tags=["export"])
+
+_PRINT_CSS_PATH = settings.static_path / "css" / "print.css"
+_PRINT_CSS = _PRINT_CSS_PATH.read_text(encoding="utf-8")
 
 # Full HTML document template — CSS is embedded so WeasyPrint reads it directly
 _HTML_TEMPLATE = """\
@@ -38,10 +43,15 @@ _HTML_TEMPLATE = """\
 """
 
 
+
+
 @router.post("/export", summary="Export markdown to PDF")
 async def export_pdf(req: ExportRequest, request: Request) -> Response:
     html_body = render_markdown(req.markdown)
-    full_html = _HTML_TEMPLATE.format(css=req.css, body=html_body)
+    # Keep PDF export aligned with the paged.js preview.  The preview loads
+    # print.css first and then applies the user's CSS as overrides.
+    combined_css = f"{_PRINT_CSS}\n{req.css}"
+    full_html = _HTML_TEMPLATE.format(css=combined_css, body=html_body)
 
     # Pass the server's base URL so WeasyPrint can resolve image paths like
     # /static/images/photo.jpg → http://localhost:8000/static/images/photo.jpg

@@ -10,17 +10,19 @@ The /static/ directory is already served by FastAPI's StaticFiles mount,
 so uploaded images are immediately available in both the browser preview
 and WeasyPrint PDF export (via base_url resolution).
 """
-import shutil
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+
+from app.core.config import settings
+from app.routers.documents import resolve_project
 
 router = APIRouter(prefix="/api", tags=["images"])
 
 # Images land here — served by FastAPI's existing /static mount
-IMAGES_DIR = Path("static/images")
+IMAGES_DIR = settings.static_path / "images"
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 
 # Allowed MIME types → file extensions
@@ -35,16 +37,25 @@ _ALLOWED: dict[str, str] = {
 _MAX_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
+def image_directory(project: str | None) -> tuple[Path, str]:
+    if project:
+        directory = resolve_project(project) / "images"
+        directory.mkdir(parents=True, exist_ok=True)
+        return directory, f"?project={project}"
+    return IMAGES_DIR, ""
+
+
 @router.get("/images", summary="List all uploaded images")
-async def list_images() -> JSONResponse:
+async def list_images(project: str | None = None) -> JSONResponse:
     images = []
-    if IMAGES_DIR.exists():
-        for path in sorted(IMAGES_DIR.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
+    directory, query = image_directory(project)
+    if directory.exists():
+        for path in sorted(directory.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
             if path.is_file() and path.suffix.lower() in {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"}:
                 stat = path.stat()
                 images.append({
                     "filename": path.name,
-                    "url": f"/static/images/{path.name}",
+                    "url": f"/api/images/{path.name}{query}",
                     "size": stat.st_size,
                     "mtime": stat.st_mtime,
                 })
@@ -52,7 +63,7 @@ async def list_images() -> JSONResponse:
 
 
 @router.post("/images", summary="Upload an image for use in markdown")
-async def upload_image(file: UploadFile) -> JSONResponse:
+async def upload_image(file: UploadFile, project: str | None = None) -> JSONResponse:
     # Validate MIME type
     content_type = (file.content_type or "").split(";")[0].strip()
     if content_type not in _ALLOWED:
@@ -68,7 +79,8 @@ async def upload_image(file: UploadFile) -> JSONResponse:
     # Sanitise original filename for display; use UUID for the actual path
     original_stem = Path(file.filename or "image").stem[:64]
     unique_name   = f"{uuid.uuid4().hex}{ext}"
-    dest          = IMAGES_DIR / unique_name
+    directory, query = image_directory(project)
+    dest          = directory / unique_name
 
     # Read with size guard
     data = await file.read(_MAX_BYTES + 1)
@@ -77,7 +89,7 @@ async def upload_image(file: UploadFile) -> JSONResponse:
 
     dest.write_bytes(data)
 
-    url  = f"/static/images/{unique_name}"
+    url  = f"/api/images/{unique_name}{query}"
     md   = f"![{original_stem}]({url})"
 
     return JSONResponse({
@@ -87,13 +99,25 @@ async def upload_image(file: UploadFile) -> JSONResponse:
     })
 
 
+@router.get("/images/{filename}", summary="Serve an uploaded image")
+async def serve_image(filename: str, project: str | None = None) -> FileResponse:
+    if "/" in filename or "\\" in filename or filename.startswith("."):
+        raise HTTPException(400, detail="Invalid filename.")
+    directory, _ = image_directory(project)
+    path = directory / filename
+    if not path.is_file():
+        raise HTTPException(404, detail="Image not found.")
+    return FileResponse(path)
+
+
 @router.delete("/images/{filename}", summary="Delete an uploaded image")
-async def delete_image(filename: str) -> JSONResponse:
+async def delete_image(filename: str, project: str | None = None) -> JSONResponse:
     # Prevent path traversal
     if "/" in filename or "\\" in filename or filename.startswith("."):
         raise HTTPException(400, detail="Invalid filename.")
 
-    path = IMAGES_DIR / filename
+    directory, _ = image_directory(project)
+    path = directory / filename
     if not path.exists():
         raise HTTPException(404, detail="Image not found.")
 

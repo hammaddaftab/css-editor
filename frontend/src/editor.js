@@ -11,12 +11,14 @@ import { EditorView, basicSetup } from 'codemirror';
 import { markdown }               from '@codemirror/lang-markdown';
 import { css }                    from '@codemirror/lang-css';
 import { oneDark }                from '@codemirror/theme-one-dark';
-import { EditorState, StateEffect, StateField } from '@codemirror/state';
+import { Annotation, EditorState, StateEffect, StateField } from '@codemirror/state';
 import { Decoration, keymap }     from '@codemirror/view';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+const programmaticContentUpdate = Annotation.define();
 
 function debounce(fn, ms) {
   let timer;
@@ -162,18 +164,14 @@ export function makeImagePasteExtension(onPasteImage) {
         selection: { anchor: head + insertText.length },
       });
 
-      // Upload each image file and replace placeholder with actual markdown
+      // Let the image-library owner upload each file. This keeps pasted images
+      // in the active project's library and uses the same upload pipeline as
+      // drag-and-drop/import.
       (async () => {
         for (const file of imageFiles) {
-          const form = new FormData();
-          form.append('file', file);
           try {
-            const res = await fetch('/api/images', { method: 'POST', body: form });
-            if (!res.ok) {
-              console.error('Image paste upload failed:', res.statusText);
-              continue;
-            }
-            const data = await res.json();
+            const data = await onPasteImage?.(file);
+            if (!data) continue;
             const altText = file.name || 'image';
             const snippet = `![${altText}](${data.url})`;
 
@@ -189,8 +187,6 @@ export function makeImagePasteExtension(onPasteImage) {
                 },
               });
             }
-
-            if (onPasteImage) onPasteImage(data);
           } catch (err) {
             console.error('Image paste upload error:', err);
           }
@@ -289,7 +285,10 @@ function makeEditor({ container, doc, lang, onChange, onSave, extraExtensions = 
     }),
     EditorView.lineWrapping,
     EditorView.updateListener.of((update) => {
-      if (update.docChanged) {
+      const isProgrammatic = update.transactions.some((transaction) =>
+        transaction.annotation(programmaticContentUpdate)
+      );
+      if (update.docChanged && !isProgrammatic) {
         // update.state.doc is always current — no stale closure issue
         onChangeFn(update.state.doc.toString());
       }
@@ -330,6 +329,7 @@ export function setEditorContent(view, text) {
   if (!view) return;
   view.dispatch({
     changes: { from: 0, to: view.state.doc.length, insert: text },
+    annotations: programmaticContentUpdate.of(true),
   });
 }
 

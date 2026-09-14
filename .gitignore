@@ -3,4 +3,4 @@ __pycache__
 .venv
 static/images
 .env
-dsa-*
+projects/

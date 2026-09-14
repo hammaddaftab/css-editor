@@ -11,7 +11,7 @@
  */
 
 const PRINT_CSS_URL = `${location.origin}/static/css/print.css`;
-const PAGED_JS_URL  = 'https://unpkg.com/pagedjs/dist/paged.polyfill.js';
+const PAGED_JS_URL  = `${location.origin}/static/vendor/paged.polyfill.js`;
 
 let _currentBlobUrl = null;
 let _currentTheme   = 'light';

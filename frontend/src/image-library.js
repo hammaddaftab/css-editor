@@ -62,8 +62,10 @@ export function initImageLibrary({
   uploadBtnEl,
   onInsert,
   onNameChange,
+  project = '',
 }) {
   let _images = [];
+  let _project = project;
   let _focusedUrl = null;
   let _selectedImage = null;
   let _selectedCard = null;
@@ -154,7 +156,8 @@ export function initImageLibrary({
     const name = imgToDelete.displayName || imgToDelete.filename;
 
     try {
-      const res = await fetch(`/api/images/${encodeURIComponent(imgToDelete.filename)}`, {
+      const query = _project ? `?project=${encodeURIComponent(_project)}` : '';
+      const res = await fetch(`/api/images/${encodeURIComponent(imgToDelete.filename)}${query}`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -223,9 +226,10 @@ export function initImageLibrary({
   // ---------------------------------------------------------------------------
   // API Calls
   // ---------------------------------------------------------------------------
-  async function fetchImages() {
+  async function fetchImages(projectOverride = _project) {
     try {
-      const res = await fetch('/api/images');
+      const query = projectOverride ? `?project=${encodeURIComponent(projectOverride)}` : '';
+      const res = await fetch(`/api/images${query}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       _images = await res.json();
       renderList();
@@ -234,8 +238,8 @@ export function initImageLibrary({
     }
   }
 
-  async function uploadFiles(files) {
-    if (!files || !files.length) return;
+  async function uploadFiles(files, projectOverride = _project) {
+    if (!files || !files.length) return [];
 
     if (dropzoneEl) {
       dropzoneEl.classList.add('is-uploading');
@@ -248,7 +252,8 @@ export function initImageLibrary({
       const form = new FormData();
       form.append('file', file);
       try {
-        const res = await fetch('/api/images', { method: 'POST', body: form });
+        const query = projectOverride ? `?project=${encodeURIComponent(projectOverride)}` : '';
+        const res = await fetch(`/api/images${query}`, { method: 'POST', body: form });
         if (res.ok) {
           const data = await res.json();
           uploaded.push(data);
@@ -267,12 +272,14 @@ export function initImageLibrary({
       if (textSpan) textSpan.textContent = '📥 Drop images here to upload';
     }
 
-    await fetchImages();
+    await fetchImages(projectOverride);
 
     // If new images were uploaded, focus the first new one
     if (uploaded.length > 0) {
       focusImage(uploaded[0].url);
     }
+
+    return uploaded;
   }
 
   // ---------------------------------------------------------------------------
@@ -517,6 +524,11 @@ export function initImageLibrary({
     focusImage,
     selectCard,
     clearSelection,
+    setProject(nextProject) {
+      _project = nextProject || '';
+      clearSelection();
+      return fetchImages();
+    },
     toggle(show) {
       if (container) {
         container.classList.toggle('is-collapsed', typeof show === 'boolean' ? !show : undefined);

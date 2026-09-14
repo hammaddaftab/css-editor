@@ -8,11 +8,11 @@ export default defineConfig({
     emptyOutDir: false,   // don't nuke print.css / app.css
 
     rollupOptions: {
-      input: resolve(__dirname, 'src/main.js'),
+      input: resolve(__dirname, 'src/main.tsx'),
       output: {
         format: 'es',
 
-        // Single predictable filename — the HTML template can hardcode it
+    // Single predictable filename — the HTML template can hardcode it
         entryFileNames: 'js/bundle.js',
 
         // Inline all dynamic imports so we ship one file, not a chunk graph

@@ -10,8 +10,6 @@ Responsibilities:
 import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from pathlib import Path
-
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -24,23 +22,25 @@ from app.services.watcher import watch_directory, watch_markdown_file
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Start background tasks on startup; cancel them cleanly on shutdown."""
     tasks: list[asyncio.Task] = []
-    cwd = Path.cwd().resolve()
+    projects_root = settings.projects_path
+    projects_root.mkdir(parents=True, exist_ok=True)
 
     # Automatically watch local persisted files in the current working directory
     tasks.append(
         asyncio.create_task(
-            watch_directory(cwd),
-            name="local-directory-watcher",
+            watch_directory(projects_root),
+            name="project-directory-watcher",
         )
     )
 
-    # Optional: watch an external markdown file outside CWD if configured
-    if settings.watch_file and settings.watch_file.exists():
+    # Optional: watch an explicitly configured external Markdown file
+    watch_file = settings.watch_file_path
+    if watch_file and watch_file.exists():
         try:
-            if settings.watch_file.resolve().parent != cwd:
+            if watch_file.parent != settings.workspace_path:
                 tasks.append(
                     asyncio.create_task(
-                        watch_markdown_file(settings.watch_file),
+                        watch_markdown_file(watch_file),
                         name="markdown-file-watcher",
                     )
                 )
@@ -63,7 +63,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=settings.static_path), name="static")
 
 for _router in (pages.router, render.router, export.router, sse.router, images.router, documents.router):
     app.include_router(_router)

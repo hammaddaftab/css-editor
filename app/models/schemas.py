@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field
 class RenderRequest(BaseModel):
     markdown: str = Field(default="", description="Raw markdown text")
     css: str = Field(default="", description="Custom CSS to apply to the document")
+    project: str = Field(default="", description="Active project directory name")
+    filename: str = Field(default="", description="Active Markdown filename within the project")
 
 
 class RenderResponse(BaseModel):

@@ -41,6 +41,8 @@ export function connectSSE(target = window) {
         html:     data.html ?? '',
         css:      data.css ?? '',
         filename: data.filename,
+        project:  data.project,
+        project_css: data.project_css,
       });
     });
 

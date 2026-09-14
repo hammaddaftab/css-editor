@@ -19,6 +19,11 @@ async def render(req: RenderRequest) -> RenderResponse:
     html = render_markdown(req.markdown)
 
     # Broadcast to every connected SSE preview client
-    await broadcaster.publish("render", {"html": html, "css": req.css})
+    await broadcaster.publish("render", {
+        "project": req.project,
+        "filename": req.filename,
+        "html": html,
+        "css": req.css,
+    })
 
     return RenderResponse(html=html)

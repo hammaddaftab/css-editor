@@ -1,148 +1,150 @@
-"""
-File-system watcher service.
+"""Watch project files and publish project-scoped SSE events."""
 
-Uses watchfiles (async-native) to monitor local persisted files (.md and .css)
-in configured include directories within the project's working directory.
-When files change on disk, it re-renders content and broadcasts SSE events
-(both `file:change` and `render`) to all connected clients.
-
-Run this as a background asyncio.Task via the app lifespan.
-"""
 import asyncio
 import logging
 from pathlib import Path
 
 from watchfiles import Change, awatch
 
-from app.core.config import settings
 from app.services.broadcaster import broadcaster
 from app.services.markdown_svc import render_markdown
-from app.services.path_svc import (
-    get_watch_directories,
-    is_watched_file,
-    scan_markdown_files,
-    to_relative_posix,
-)
 
 logger = logging.getLogger(__name__)
 
+_WATCHED_SUFFIXES = {".md", ".css"}
 
-async def broadcast_file_list(root_dir: Path) -> None:
-    """Scan configured include directories for markdown files and broadcast list to subscribers."""
+
+def _project_file(path: Path, projects_root: Path) -> tuple[str, str] | None:
+    """Return ``(project, filename)`` for a safe project Markdown/CSS path."""
     try:
-        files = scan_markdown_files(root_dir, settings.include_paths)
-        await broadcaster.publish("file:list", {"files": files})
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Failed to broadcast file list: %s", exc)
+        relative = path.resolve().relative_to(projects_root.resolve())
+    except (ValueError, RuntimeError):
+        return None
+
+    if len(relative.parts) < 2 or path.suffix.lower() not in _WATCHED_SUFFIXES:
+        return None
+    if any(part.startswith(".") for part in relative.parts):
+        return None
+
+    project = relative.parts[0]
+    project_path = projects_root / project
+    if not project_path.is_dir():
+        return None
+
+    filename = Path(*relative.parts[1:]).as_posix()
+    return project, filename
 
 
-async def watch_directory(root_dir: Path) -> None:
-    """
-    Watch configured include directories for changes to .md and .css files
-    and broadcast SSE events using relative POSIX paths.
-    """
-    root = root_dir.resolve()
-    watch_dirs = get_watch_directories(root, settings.include_paths)
-    logger.info("Starting local file watcher on included directories: %s", [str(d) for d in watch_dirs])
+def _read_project_document(project_path: Path, document_path: Path) -> dict:
+    """Read a document and its two CSS layers for an SSE payload."""
+    page_css_path = document_path.with_suffix(".css")
+    project_css_path = project_path / "project.css"
+    markdown = document_path.read_text(encoding="utf-8")
+    page_css = page_css_path.read_text(encoding="utf-8") if page_css_path.exists() else ""
+    project_css = project_css_path.read_text(encoding="utf-8") if project_css_path.exists() else ""
+    return {
+        "markdown": markdown,
+        "css": page_css,
+        "project_css": project_css,
+        "html": render_markdown(markdown),
+    }
 
-    if not watch_dirs:
-        logger.warning("No valid watch directories found for include_paths: %s", settings.include_paths)
-        return
+
+async def _publish_document_change(
+    *,
+    project: str,
+    filename: str,
+    project_path: Path,
+    document_path: Path,
+    action: str,
+) -> None:
+    data = _read_project_document(project_path, document_path)
+    payload = {
+        "project": project,
+        "filename": filename,
+        "action": action,
+        **data,
+    }
+    await broadcaster.publish("file:change", payload)
+    await broadcaster.publish("render", payload)
+
+
+async def watch_directory(projects_root: Path) -> None:
+    """Watch every project directory recursively."""
+    root = projects_root.resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    logger.info("Starting project watcher on %s", root)
 
     try:
-        async for changes in awatch(*watch_dirs, recursive=False, debounce=300):
-            has_list_changes = False
-
+        async for changes in awatch(root, recursive=True, debounce=300):
             for change_type, path_str in changes:
                 try:
-                    p = Path(path_str)
-                    if not is_watched_file(p, root, settings.include_paths):
+                    path = Path(path_str)
+                    scoped = _project_file(path, root)
+                    if not scoped:
                         continue
+                    project, filename = scoped
+                    project_path = root / project
 
-                    rel_name = to_relative_posix(p, root)
-
-                    # Handle deletions
                     if change_type == Change.deleted:
-                        if p.suffix.lower() == ".md":
-                            has_list_changes = True
+                        if filename == "project.css":
                             await broadcaster.publish("file:change", {
-                                "filename": rel_name,
+                                "project": project,
+                                "filename": filename,
+                                "action": "deleted",
+                                "project_css": "",
+                            })
+                            continue
+                        if path.suffix.lower() == ".md":
+                            await broadcaster.publish("file:change", {
+                                "project": project,
+                                "filename": filename,
                                 "action": "deleted",
                             })
+                        elif path.suffix.lower() == ".css":
+                            document_path = path.with_suffix(".md")
+                            if document_path.exists():
+                                await _publish_document_change(
+                                    project=project,
+                                    filename=document_path.relative_to(project_path).as_posix(),
+                                    project_path=project_path,
+                                    document_path=document_path,
+                                    action="modified",
+                                )
                         continue
 
-                    # Handle additions and modifications
-                    if p.suffix.lower() == ".md":
-                        if change_type == Change.added:
-                            has_list_changes = True
+                    await asyncio.sleep(0.05)
 
-                        # Small pause to allow atomic writes/renames to finish
-                        await asyncio.sleep(0.05)
-                        if not p.exists():
-                            continue
-
-                        markdown = p.read_text(encoding="utf-8")
-                        css_p = p.with_suffix(".css")
-                        css = css_p.read_text(encoding="utf-8") if css_p.exists() else ""
-                        html = render_markdown(markdown)
-
-                        payload = {
-                            "filename": rel_name,
-                            "action": "added" if change_type == Change.added else "modified",
-                            "markdown": markdown,
-                            "css": css,
-                            "html": html,
-                        }
-                        await broadcaster.publish("file:change", payload)
-                        await broadcaster.publish("render", {
-                            "filename": rel_name,
-                            "html": html,
-                            "css": css,
+                    # project.css is a shared stylesheet, not a Markdown page.
+                    if filename == "project.css":
+                        await broadcaster.publish("file:change", {
+                            "project": project,
+                            "filename": filename,
+                            "action": "modified" if change_type == Change.modified else "added",
+                            "project_css": path.read_text(encoding="utf-8") if path.exists() else "",
                         })
+                        continue
 
-                    elif p.suffix.lower() == ".css":
-                        # Companion markdown file
-                        md_p = p.with_suffix(".md")
-                        if md_p.exists():
-                            await asyncio.sleep(0.05)
-                            markdown = md_p.read_text(encoding="utf-8")
-                            css = p.read_text(encoding="utf-8") if p.exists() else ""
-                            html = render_markdown(markdown)
-                            md_rel_name = to_relative_posix(md_p, root)
-
-                            payload = {
-                                "filename": md_rel_name,
-                                "action": "modified",
-                                "markdown": markdown,
-                                "css": css,
-                                "html": html,
-                            }
-                            await broadcaster.publish("file:change", payload)
-                            await broadcaster.publish("render", {
-                                "filename": md_rel_name,
-                                "html": html,
-                                "css": css,
-                            })
-
+                    document_path = path if path.suffix.lower() == ".md" else path.with_suffix(".md")
+                    if document_path.exists():
+                        await _publish_document_change(
+                            project=project,
+                            filename=document_path.relative_to(project_path).as_posix(),
+                            project_path=project_path,
+                            document_path=document_path,
+                            action="modified" if change_type == Change.modified else "added",
+                        )
                 except Exception as exc:  # noqa: BLE001
-                    logger.exception("Error processing watched file change: %s", exc)
-
-            if has_list_changes:
-                await broadcast_file_list(root)
-
+                    logger.exception("Error processing project file event: %s", exc)
     except asyncio.CancelledError:
-        logger.info("Local file watcher cancelled cleanly.")
+        logger.info("Project file watcher cancelled cleanly.")
         raise
     except Exception as exc:  # noqa: BLE001
-        logger.exception("Local file watcher encountered an error: %s", exc)
+        logger.exception("Project file watcher encountered an error: %s", exc)
 
 
 async def watch_markdown_file(path: Path) -> None:
-    """
-    Watch a specific *path* and broadcast changes.
-
-    Designed for explicit single-file watch mode (e.g. EDITOR_WATCH_FILE).
-    """
+    """Watch an explicitly configured external Markdown file."""
     target = path.resolve()
     logger.info("Starting single-file watcher on %s", target)
     try:
@@ -154,18 +156,15 @@ async def watch_markdown_file(path: Path) -> None:
                 css_path = target.with_suffix(".css")
                 css = css_path.read_text(encoding="utf-8") if css_path.exists() else ""
                 html = render_markdown(content)
-                await broadcaster.publish("file:change", {
+                payload = {
                     "filename": target.name,
                     "action": "modified",
                     "markdown": content,
                     "css": css,
                     "html": html,
-                })
-                await broadcaster.publish("render", {
-                    "filename": target.name,
-                    "html": html,
-                    "css": css,
-                })
+                }
+                await broadcaster.publish("file:change", payload)
+                await broadcaster.publish("render", payload)
             except Exception as exc:  # noqa: BLE001
                 await broadcaster.publish("error", {"message": str(exc)})
     except asyncio.CancelledError:
