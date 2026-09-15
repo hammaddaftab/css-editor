@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { posthog } from './analytics';
 import { setEditorContent } from './editor.js';
 import { updatePreview } from './preview.js';
 import { ConflictBanner } from './components/ConflictBanner';
@@ -74,6 +75,7 @@ export default function App() {
   }, [preferences]);
 
   const exportPdf = useCallback(async () => {
+    posthog.trackExport(workspace.project, workspace.filename, workspace.current.current.markdown);
     setExporting(true);
     try {
       const response = await fetch('/api/export', { method: 'POST', headers: { 'Content-Type': 'application/json' },

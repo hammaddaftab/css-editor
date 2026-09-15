@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     app_name: str = "CSS Markdown Editor"
     debug: bool = False
     workspace_root: Path = APP_ROOT
-    projects_dir: Path | None = None
     # Optional: path to a markdown file to watch on disk and live-reload on change
     watch_file: Path | None = None
 

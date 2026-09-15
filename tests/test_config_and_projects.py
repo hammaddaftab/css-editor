@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from starlette.testclient import TestClient
 
 
@@ -13,7 +14,10 @@ class TestConfigAndProjects(unittest.TestCase):
         self.config_dir = self.base_path / "config"
         self.projects_dir = self.base_path / "projects"
         os.environ["EDITOR_CONFIG_DIR"] = str(self.config_dir)
-        os.environ["EDITOR_PROJECTS_DIR"] = str(self.projects_dir)
+
+        patcher = patch("app.services.config_manager.get_default_projects_dir", return_value=self.projects_dir)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
         from app.main import app
         self.client = TestClient(app)
@@ -21,9 +25,10 @@ class TestConfigAndProjects(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
         os.environ.pop("EDITOR_CONFIG_DIR", None)
-        os.environ.pop("EDITOR_PROJECTS_DIR", None)
 
     def test_initial_config_and_modal_seeding_lifecycle(self):
+        from app.services.config_manager import get_default_projects_dir
+
         # 1. Before initial modal click: GET /api/config should not seed anything
         res = self.client.get("/api/config")
         self.assertEqual(res.status_code, 200)
@@ -31,7 +36,7 @@ class TestConfigAndProjects(unittest.TestCase):
         self.assertTrue(data["is_first_run"])
         self.assertFalse(data["first_run_completed"])
         self.assertFalse(data["welcome_seeded"])
-        self.assertEqual(data["projects_dir"], str(self.projects_dir.resolve()))
+        self.assertEqual(data["projects_dir"], str(get_default_projects_dir()))
         self.assertTrue(Path(data["config_file_path"]).parent.exists())
 
         # Projects directory should not have welcome project yet
@@ -41,6 +46,7 @@ class TestConfigAndProjects(unittest.TestCase):
 
         # 2. User completes initial modal setup (clicks "Get Started")
         update_payload = {
+            "projects_dir": str(self.projects_dir),
             "author_name": "Test Author",
             "author_email": "author@example.com",
             "first_run_completed": True,

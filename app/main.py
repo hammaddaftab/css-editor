@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.routers import documents, export, images, pages, render, settings as settings_router, sse
+from app.routers import documents, export, images, pages, render, settings as settings_router, sse, telemetry
 from app.services.watcher import watch_markdown_file, watcher_manager
 
 
@@ -27,6 +27,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Start project directory watcher using manager so it can be dynamically switched
     watcher_manager.start(projects_root)
+
+    # Track app_opened event on application launch
+    try:
+        telemetry.track_backend_event("app_opened", {"app_name": settings.app_name})
+    except Exception:
+        pass
 
     # Optional: watch an explicitly configured external Markdown file
     watch_file = settings.watch_file_path
@@ -61,5 +67,5 @@ app = FastAPI(
 
 app.mount("/static", StaticFiles(directory=settings.static_path), name="static")
 
-for _router in (pages.router, render.router, export.router, sse.router, images.router, documents.router, settings_router.router):
+for _router in (pages.router, render.router, export.router, sse.router, images.router, documents.router, settings_router.router, telemetry.router):
     app.include_router(_router)

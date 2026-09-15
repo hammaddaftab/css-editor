@@ -42,6 +42,7 @@ def serialize_config(config: UserConfig) -> dict:
         "config_file_path": str(get_config_file_path()),
         "projects_dir_exists": projects_path.is_dir(),
         "dialog_supported": is_dialog_supported(),
+        "anonymous_id": config.anonymous_id,
     }
 
 

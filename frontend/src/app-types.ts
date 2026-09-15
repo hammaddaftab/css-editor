@@ -23,6 +23,7 @@ export type UserConfig = {
   config_file_path: string;
   projects_dir_exists: boolean;
   dialog_supported: boolean;
+  anonymous_id?: string;
 };
 
 export type EditorView = any;

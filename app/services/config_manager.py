@@ -7,7 +7,7 @@ in standard OS configuration directories:
   - macOS: ~/Library/Application Support/css-editor/config.json
   - Windows: %APPDATA%/css-editor/config.json
 
-Allows overriding via EDITOR_CONFIG_DIR or EDITOR_PROJECTS_DIR environment variables.
+Allows overriding via EDITOR_CONFIG_DIR environment variable.
 """
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ import logging
 import os
 import shutil
 import sys
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,7 @@ class UserConfig(BaseModel):
     author_email: str = Field(default="", description="Default document author email")
     first_run_completed: bool = Field(default=False, description="Whether first-run setup has been completed")
     welcome_seeded: bool = Field(default=False, description="Whether the starter welcome project was seeded")
+    anonymous_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Anonymous installation UUID")
     created_at: str = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
@@ -80,28 +82,33 @@ def load_user_config() -> tuple[UserConfig, bool]:
     Returns (UserConfig, exists_on_disk).
     """
     config_path = get_config_file_path()
-
-    # If an environment variable is set for projects dir, prioritize it as initial default
-    env_projects_dir = os.environ.get("EDITOR_PROJECTS_DIR")
-    default_dir = (
-        Path(env_projects_dir).expanduser().resolve()
-        if env_projects_dir
-        else get_default_projects_dir()
-    )
+    default_dir = get_default_projects_dir()
 
     if not config_path.exists():
         initial = UserConfig(
             projects_dir=str(default_dir),
             first_run_completed=False,
         )
-        return initial, False
+        try:
+            save_user_config(initial)
+            return initial, True
+        except Exception as exc:
+            logger.warning("Could not persist initial user config to %s (%s).", config_path, exc)
+            return initial, False
 
     try:
         raw = json.loads(config_path.read_text(encoding="utf-8"))
         # Ensure projects_dir is populated
         if not raw.get("projects_dir"):
             raw["projects_dir"] = str(default_dir)
-        return UserConfig(**raw), True
+        needs_save = False
+        if not raw.get("anonymous_id"):
+            raw["anonymous_id"] = str(uuid.uuid4())
+            needs_save = True
+        config = UserConfig(**raw)
+        if needs_save:
+            save_user_config(config)
+        return config, True
     except Exception as exc:
         logger.warning("Could not read user config from %s (%s). Using defaults.", config_path, exc)
         return UserConfig(projects_dir=str(default_dir), first_run_completed=False), False
