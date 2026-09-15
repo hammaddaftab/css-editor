@@ -62,12 +62,14 @@ class TestCliAndBundlePaths(unittest.TestCase):
 
     def test_images_endpoint_requires_project(self):
         import io
+        import uuid
         import tempfile
         import os
         from starlette.testclient import TestClient
 
         temp_dir = tempfile.TemporaryDirectory()
         os.environ["EDITOR_PROJECTS_DIR"] = str(temp_dir.name)
+        proj_name = f"test-img-{uuid.uuid4().hex[:8]}"
         try:
             from app.main import app
             client = TestClient(app)
@@ -77,41 +79,64 @@ class TestCliAndBundlePaths(unittest.TestCase):
             self.assertEqual(res.status_code, 422)
 
             # 2. Create project
-            proj_res = client.post("/api/projects", json={"name": "test-images-proj"})
+            proj_res = client.post("/api/projects", json={"name": proj_name})
             self.assertEqual(proj_res.status_code, 201)
 
             # 3. Upload image to project
             fake_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4"
             upload_res = client.post(
-                "/api/images?project=test-images-proj",
+                f"/api/images?project={proj_name}",
                 files={"file": ("test.png", io.BytesIO(fake_png), "image/png")},
             )
             self.assertEqual(upload_res.status_code, 200)
             data = upload_res.json()
             filename = data["filename"]
-            self.assertIn("?project=test-images-proj", data["url"])
+            self.assertIn(f"?project={proj_name}", data["url"])
 
             # 4. List images in project
-            list_res = client.get("/api/images?project=test-images-proj")
+            list_res = client.get(f"/api/images?project={proj_name}")
             self.assertEqual(list_res.status_code, 200)
             self.assertEqual(len(list_res.json()), 1)
             self.assertEqual(list_res.json()[0]["filename"], filename)
 
             # 5. Serve image
-            serve_res = client.get(f"/api/images/{filename}?project=test-images-proj")
+            serve_res = client.get(f"/api/images/{filename}?project={proj_name}")
             self.assertEqual(serve_res.status_code, 200)
             self.assertEqual(serve_res.content, fake_png)
 
             # 6. Delete image
-            del_res = client.delete(f"/api/images/{filename}?project=test-images-proj")
+            del_res = client.delete(f"/api/images/{filename}?project={proj_name}")
             self.assertEqual(del_res.status_code, 200)
 
             # 7. List again should be empty
-            list_empty = client.get("/api/images?project=test-images-proj")
+            list_empty = client.get(f"/api/images?project={proj_name}")
             self.assertEqual(len(list_empty.json()), 0)
         finally:
             os.environ.pop("EDITOR_PROJECTS_DIR", None)
             temp_dir.cleanup()
+
+    def test_pages_conditional_get_lifecycle(self):
+        from starlette.testclient import TestClient
+        from app.main import app
+
+        client = TestClient(app)
+        # Initial request: 200 OK with Last-Modified, ETag, Content-Length
+        res1 = client.get("/")
+        self.assertEqual(res1.status_code, 200)
+        self.assertIn("last-modified", res1.headers)
+        self.assertIn("etag", res1.headers)
+        self.assertIn("content-length", res1.headers)
+        self.assertGreater(len(res1.content), 0)
+
+        etag = res1.headers["etag"]
+        last_mod = res1.headers["last-modified"]
+
+        # Conditional request with matching ETag and If-Modified-Since: 304 Not Modified
+        res2 = client.get("/", headers={"if-none-match": etag, "if-modified-since": last_mod})
+        self.assertEqual(res2.status_code, 304)
+        self.assertEqual(len(res2.content), 0)
+        self.assertEqual(res2.headers.get("etag"), etag)
+        self.assertEqual(res2.headers.get("last-modified"), last_mod)
 
 
 if __name__ == "__main__":
