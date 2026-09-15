@@ -66,7 +66,7 @@ hiddenimports = [
     'weasyprint.draw',
 
     # Pydantic settings
-    'pydantic_sxxettings',
+    'pydantic_settings',
 ]
 
 a = Analysis(
