@@ -10,3 +10,4 @@
 - [ ] image dimension controls with random ids as css selectors, use titles somewhere for hints
 - [ ] TECHNICAL DEBT, confirm css layers are working nicely with isolation in print vs preview styles - !important
 - [ ] fonts - !important
+- [ ] github actions verification
