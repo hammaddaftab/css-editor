@@ -10,9 +10,9 @@ No cloud dependencies, no account needed, and zero configuration required.
 
 - **Split-View Authoring:** Markdown editor and CSS stylesheet side-by-side with instant live updates.
 - **True Multi-Page A4 Preview:** Powered by Paged.js polyfill inside an isolated iframe, rendering genuine print margins, page counters, and running headers/footers.
-- **Pixel-Perfect PDF Export:** Server-side PDF generation using WeasyPrint with full support for CSS Paged Media module specifications (@page rules, margins, running headers, page numbering).
-- **External File Watching:** Edit in your favorite desktop editor (Neovim, VS Code, Obsidian) and see live hot-reloaded print previews instantly via Server-Sent Events (SSE).
-- **Auto-Detect Port & Browser Launch:** Automatically selects a free port if port 8000 is occupied and opens your default browser.
+- **Pixel-Perfect PDF Export:** Server-side PDF generation using WeasyPrint with full support for CSS Paged Media module specs (`@page`, `@top-right`, `@bottom-center`, etc.).
+- **External File Watching (`--watch`):** Edit in your favorite desktop editor (Neovim, VS Code, Obsidian) and see live hot-reloaded print previews instantly via Server-Sent Events (SSE).
+- **Auto-Detect Port & Browser Launch:** Automatically selects a free port if the default (`8000`) is occupied and opens your default browser.
 - **Standalone Binary:** Zero runtime dependencies required — no Python or Node.js installation necessary.
 
 ---
@@ -40,24 +40,19 @@ Pre-compiled standalone executables are available for every release on the [GitH
    mkdir -p ~/.local/bin && mv css-editor ~/.local/bin/
    ```
 
-> **PDF Engine Requirements:** WeasyPrint requires Cairo & Pango system libraries:
+> **PDF Engine Requirements:** WeasyPrint requires Cairo & Pango libraries:
 > - **Debian / Ubuntu:** `sudo apt update && sudo apt install -y libpango-1.0-0 libcairo2 libgdk-pixbuf-2.0-0 libharfbuzz0b`
 > - **Fedora / RHEL:** `sudo dnf install -y pango cairo gdk-pixbuf2 harfbuzz`
 > - **Arch Linux:** `sudo pacman -S pango cairo gdk-pixbuf2 harfbuzz`
 
 ---
 
-#### 2. macOS (Apple Silicon & Intel)
+#### 2. macOS (Apple Silicon: M1 / M2 / M3 / M4)
 
 1. **Download & Extract:**
-   - **Apple Silicon (M1 / M2 / M3 / M4):**
-     ```bash
-     curl -sL https://github.com/hammaddaftab/css-editor/releases/latest/download/css-editor-macos-arm64.tar.gz | tar -xz && chmod +x css-editor
-     ```
-   - **Intel (x86_64):**
-     ```bash
-     curl -sL https://github.com/hammaddaftab/css-editor/releases/latest/download/css-editor-macos-x86_64.tar.gz | tar -xz && chmod +x css-editor
-     ```
+   ```bash
+   curl -sL https://github.com/hammaddaftab/css-editor/releases/latest/download/css-editor-macos-arm64.tar.gz | tar -xz && chmod +x css-editor
+   ```
 
 2. **Run:**
    ```bash
@@ -86,7 +81,7 @@ Pre-compiled standalone executables are available for every release on the [GitH
    .\css-editor\css-editor.exe
    ```
 
-3. *(Optional)* **Add to PATH:** Move `css-editor.exe` to a permanent directory (e.g. `%LOCALAPPDATA%\Programs\css-editor`) and add it to your Windows PATH.
+3. *(Optional)* **Add to PATH:** Move `css-editor.exe` to a permanent folder (e.g. `%LOCALAPPDATA%\Programs\css-editor`) and add that folder to your Windows `PATH` environment variable.
 
 > **PDF Engine Requirements:** Install GTK3 runtime from [GTK for Windows Runtime](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) or via MSYS2 (`pacman -S mingw-w64-x86_64-pango mingw-w64-x86_64-cairo`).
 
@@ -97,8 +92,8 @@ Pre-compiled standalone executables are available for every release on the [GitH
 If you want to contribute or build from source:
 
 #### Prerequisites
-- Python 3.10+
-- Node.js 18+ and npm
+- **Python 3.10+**
+- **Node.js 18+ & npm**
 - Cairo, Pango, and GDK-Pixbuf system libraries (see OS sections above)
 
 #### 1. Clone Repository & Build Frontend
@@ -150,8 +145,8 @@ usage: css-editor [-h] [--host HOST] [--port PORT] [--no-browser] [--watch WATCH
 | :--- | :--- | :--- |
 | `-p`, `--port PORT` | `8000` | Port to listen on. If port 8000 is occupied, auto-detects the next free port. |
 | `--host HOST` | `127.0.0.1` | Host interface to bind the local server. |
-| `-w`, `--watch FILE` | *None* | Path to a local Markdown file on disk. Live syncs changes directly into the preview. |
-| `--no-browser` | *false* | Disables automatically opening the default web browser on startup. |
+| `-w`, `--watch FILE` | `None` | Path to a local `.md` file on disk. Live syncs changes directly into the preview. |
+| `--no-browser` | `false` | Disables automatically opening the default web browser on startup. |
 | `-v`, `--version` | — | Prints application version and exits. |
 | `-h`, `--help` | — | Displays the command-line help message. |
 
@@ -180,9 +175,9 @@ Optional environment variables:
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
-| `EDITOR_CONFIG_DIR` | OS user config directory | Directory containing global user `config.json`. |
-| `EDITOR_WATCH_FILE` | *unset* | Path to an external Markdown file to monitor on disk. |
-| `EDITOR_DEBUG` | *false* | Enables FastAPI debug mode and verbose logging. |
+| `EDITOR_CONFIG_DIR` | OS configuration directory | Directory containing global user `config.json`. |
+| `EDITOR_WATCH_FILE` | `unset` | Path to an external markdown file to monitor on disk. |
+| `EDITOR_DEBUG` | `false` | Enables FastAPI debug mode and verbose logging. |
 
 ---
 
@@ -209,12 +204,12 @@ python -m PyInstaller --clean css-editor.spec
 
 | Layer | Technology | Role |
 | :--- | :--- | :--- |
-| **CLI & Web Engine** | FastAPI + Uvicorn | High-performance ASGI web server and HTTP routing |
-| **Markdown Parsing** | markdown-it-py + plugins | CommonMark parser with footnotes, tables, and linkify |
+| **CLI & Web Engine** | FastAPI + Uvicorn | High-performance ASGI web server & HTTP routing |
+| **Markdown Parsing** | `markdown-it-py` + plugins | CommonMark parser with footnotes, tables, and linkify |
 | **PDF Generation** | WeasyPrint | W3C-compliant CSS Paged Media rendering engine |
 | **Print Preview** | Paged.js | In-browser A4 pagination polyfill in an isolated iframe |
-| **Code Editor** | CodeMirror 6 | Dual-pane syntax highlighting for Markdown and CSS |
-| **Hot Reload** | watchfiles + SSE | Low-latency file watcher pushing events over Server-Sent Events |
+| **Code Editor** | CodeMirror 6 | Dual-pane syntax highlighting for Markdown & CSS |
+| **Hot Reload** | `watchfiles` + SSE | Low-latency file watcher pushing events over Server-Sent Events |
 | **Packaging** | PyInstaller | Single-file, zero-dependency executable bundling |
 
 ---

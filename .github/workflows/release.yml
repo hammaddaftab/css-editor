@@ -74,12 +74,6 @@ jobs:
             binary_name: css-editor
             is_windows: false
 
-          - os: macos-13
-            target: macos-x86_64
-            artifact_name: css-editor-macos-x86_64.tar.gz
-            binary_name: css-editor
-            is_windows: false
-
           - os: windows-latest
             target: windows-x64
             artifact_name: css-editor-windows-x64.zip
