@@ -1,0 +1,118 @@
+import socket
+import sys
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from app.cli import build_parser, find_available_port
+from app.core.config import get_bundle_dir, settings
+
+
+class TestCliAndBundlePaths(unittest.TestCase):
+    def test_get_bundle_dir_normal_mode(self):
+        # In normal mode, get_bundle_dir() should return the repository root containing 'app'
+        bundle_dir = get_bundle_dir()
+        self.assertTrue((bundle_dir / "app").is_dir())
+        self.assertTrue((bundle_dir / "templates").is_dir())
+        self.assertTrue((bundle_dir / "static").is_dir())
+
+    def test_get_bundle_dir_frozen_mode(self):
+        # In frozen mode (PyInstaller), sys.frozen=True and sys._MEIPASS is set
+        fake_meipass = "/tmp/fake_mei_test_dir"
+        with patch.object(sys, "frozen", True, create=True), patch.object(
+            sys, "_MEIPASS", fake_meipass, create=True
+        ):
+            bundle_dir = get_bundle_dir()
+            self.assertEqual(bundle_dir, Path(fake_meipass).resolve())
+
+    def test_find_available_port_free(self):
+        # Find an open port and check that find_available_port returns it when free
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("127.0.0.1", 0))
+            free_port = s.getsockname()[1]
+
+        chosen = find_available_port(preferred_port=free_port)
+        self.assertEqual(chosen, free_port)
+
+    def test_find_available_port_busy_fallback(self):
+        # Occupy a port, then ensure find_available_port picks a different available port
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as occupier:
+            occupier.bind(("127.0.0.1", 0))
+            busy_port = occupier.getsockname()[1]
+
+            chosen = find_available_port(preferred_port=busy_port)
+            self.assertNotEqual(chosen, busy_port)
+            self.assertGreater(chosen, 0)
+
+    def test_cli_parser_defaults(self):
+        parser = build_parser()
+        args = parser.parse_args([])
+        self.assertEqual(args.host, "127.0.0.1")
+        self.assertEqual(args.port, 8000)
+        self.assertFalse(args.no_browser)
+        self.assertIsNone(args.watch)
+
+    def test_cli_parser_custom_options(self):
+        parser = build_parser()
+        args = parser.parse_args(["--port", "9090", "--host", "0.0.0.0", "--no-browser", "--watch", "test.md"])
+        self.assertEqual(args.host, "0.0.0.0")
+        self.assertEqual(args.port, 9090)
+        self.assertTrue(args.no_browser)
+        self.assertEqual(args.watch, "test.md")
+
+    def test_images_endpoint_requires_project(self):
+        import io
+        import tempfile
+        import os
+        from starlette.testclient import TestClient
+
+        temp_dir = tempfile.TemporaryDirectory()
+        os.environ["EDITOR_PROJECTS_DIR"] = str(temp_dir.name)
+        try:
+            from app.main import app
+            client = TestClient(app)
+
+            # 1. Missing project param -> 422
+            res = client.get("/api/images")
+            self.assertEqual(res.status_code, 422)
+
+            # 2. Create project
+            proj_res = client.post("/api/projects", json={"name": "test-images-proj"})
+            self.assertEqual(proj_res.status_code, 201)
+
+            # 3. Upload image to project
+            fake_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4"
+            upload_res = client.post(
+                "/api/images?project=test-images-proj",
+                files={"file": ("test.png", io.BytesIO(fake_png), "image/png")},
+            )
+            self.assertEqual(upload_res.status_code, 200)
+            data = upload_res.json()
+            filename = data["filename"]
+            self.assertIn("?project=test-images-proj", data["url"])
+
+            # 4. List images in project
+            list_res = client.get("/api/images?project=test-images-proj")
+            self.assertEqual(list_res.status_code, 200)
+            self.assertEqual(len(list_res.json()), 1)
+            self.assertEqual(list_res.json()[0]["filename"], filename)
+
+            # 5. Serve image
+            serve_res = client.get(f"/api/images/{filename}?project=test-images-proj")
+            self.assertEqual(serve_res.status_code, 200)
+            self.assertEqual(serve_res.content, fake_png)
+
+            # 6. Delete image
+            del_res = client.delete(f"/api/images/{filename}?project=test-images-proj")
+            self.assertEqual(del_res.status_code, 200)
+
+            # 7. List again should be empty
+            list_empty = client.get("/api/images?project=test-images-proj")
+            self.assertEqual(len(list_empty.json()), 0)
+        finally:
+            os.environ.pop("EDITOR_PROJECTS_DIR", None)
+            temp_dir.cleanup()
+
+
+if __name__ == "__main__":
+    unittest.main()

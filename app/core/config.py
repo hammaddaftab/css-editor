@@ -3,11 +3,24 @@ Application configuration loaded from environment variables / .env file.
 
 Prefix all env vars with EDITOR_ (e.g. EDITOR_WATCH_FILE=/path/to/file.md).
 """
+import sys
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-APP_ROOT = Path(__file__).resolve().parents[2]
+
+def get_bundle_dir() -> Path:
+    """
+    Return the root directory containing bundled static files and templates.
+    When running as a compiled standalone binary (PyInstaller), returns sys._MEIPASS.
+    In standard development mode, returns the repository root.
+    """
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS).resolve()
+    return Path(__file__).resolve().parents[2]
+
+
+APP_ROOT = get_bundle_dir()
 
 
 class Settings(BaseSettings):

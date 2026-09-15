@@ -23,9 +23,11 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.core.config import get_bundle_dir
+
 logger = logging.getLogger(__name__)
 
-APP_ROOT = Path(__file__).resolve().parents[2]
+APP_ROOT = get_bundle_dir()
 
 
 class UserConfig(BaseModel):
