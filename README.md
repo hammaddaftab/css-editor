@@ -88,7 +88,7 @@ Pre-compiled standalone executables are available for every release on the [GitH
 
 3. *(Optional)* **Add to PATH:** Move `css-editor.exe` to a permanent folder (e.g. `%LOCALAPPDATA%\Programs\css-editor`) and add that folder to your Windows `PATH` environment variable.
 
-> **PDF Engine Requirements:** Install GTK3 runtime via `choco install gtk3-runtime` or download from [GTK for Windows Runtime](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases).
+> **PDF Engine Requirements:** Install GTK3 runtime via `choco install gtk-runtime` or download from [GTK for Windows Runtime](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases).
 
 ---
 
