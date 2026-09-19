@@ -67,6 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Do not open web browser automatically",
     )
     parser.add_argument(
+        "-w",
         "--watch",
         type=str,
         default=None,

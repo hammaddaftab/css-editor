@@ -60,6 +60,10 @@ class TestCliAndBundlePaths(unittest.TestCase):
         self.assertTrue(args.no_browser)
         self.assertEqual(args.watch, "test.md")
 
+        # Test -w short alias
+        args_short = parser.parse_args(["-w", "notes.md"])
+        self.assertEqual(args_short.watch, "notes.md")
+
     def test_images_endpoint_requires_project(self):
         import io
         import uuid
