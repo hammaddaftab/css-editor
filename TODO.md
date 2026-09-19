@@ -1,6 +1,6 @@
 - [ ] author metadata needs research
 - [ ] getting started page provides little value
-- [ ] scaling preview when width is restricted - !important
+- [x] scaling preview when width is restricted - !important
 - [ ] basic settings to toggle word wrap
 - [ ] word export
 - [ ] git history clean/rebase needed since generated bundle files were comitted previously

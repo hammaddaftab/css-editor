@@ -47,13 +47,27 @@ export function useLayout(
         panes.current!.style.gridTemplateColumns = `${left}px 4px ${total - left}px`;
       };
       const up = () => {
-        divider.current?.classList.remove('dragging'); document.body.style.cursor = ''; document.body.style.userSelect = '';
-        document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
+        divider.current?.classList.remove('dragging');
+        panes.current?.classList.remove('dragging');
+        document.body.classList.remove('is-resizing');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', up);
       };
-      divider.current.classList.add('dragging'); document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
-      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+      divider.current.classList.add('dragging');
+      panes.current.classList.add('dragging');
+      document.body.classList.add('is-resizing');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
     };
     divider.current?.addEventListener('mousedown', handleDown);
-    return () => divider.current?.removeEventListener('mousedown', handleDown);
+    return () => {
+      divider.current?.removeEventListener('mousedown', handleDown);
+      document.body.classList.remove('is-resizing');
+      panes.current?.classList.remove('dragging');
+    };
   }, [divider, panes]);
 }

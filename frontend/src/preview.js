@@ -33,6 +33,102 @@ let _onSwapCallback = null;
 let _hasRendered = false;
 let _messageListenerAttached = false;
 
+let _resizeObserver = null;
+let _observedEl = null;
+let _currentPageScale = 1;
+
+function _ensurePagesWrapped(doc) {
+  if (!doc) return;
+  const pages = doc.querySelectorAll('.pagedjs_page, .page');
+  pages.forEach((page) => {
+    if (page.classList.contains('page-wrapper')) return;
+    if (!page.parentNode) return;
+    if (page.parentElement && page.parentElement.classList.contains('page-wrapper')) return;
+    const wrapper = doc.createElement('div');
+    wrapper.className = 'page-wrapper';
+    page.parentNode.insertBefore(wrapper, page);
+    wrapper.appendChild(page);
+  });
+}
+
+function _applyScaleToFrames(scale) {
+  const frames = [];
+  if (_frameA) frames.push(_frameA);
+  if (_frameB) frames.push(_frameB);
+  if (_singleFrame) frames.push(_singleFrame);
+
+  for (const frame of frames) {
+    try {
+      const doc = frame.contentDocument;
+      if (doc && doc.documentElement) {
+        doc.documentElement.style.setProperty('--page-scale', String(scale));
+        _ensurePagesWrapped(doc);
+        const pagesEl = doc.querySelector('.pagedjs_pages');
+        if (pagesEl) {
+          const h = pagesEl.offsetHeight + 48;
+          if (h > 0) {
+            frame.style.height = `${h}px`;
+          }
+        }
+      }
+    } catch { /* cross-origin guard */ }
+  }
+}
+
+function _setupResizeObserver(container) {
+  if (!container || typeof ResizeObserver === 'undefined') return;
+  if (_observedEl === container && _resizeObserver) return;
+
+  if (_resizeObserver) {
+    _resizeObserver.disconnect();
+    _resizeObserver = null;
+  }
+
+  _observedEl = container;
+
+  const computeScale = (inlineSize) => {
+    if (!inlineSize || inlineSize <= 0) return _currentPageScale;
+    const pageWidthPx = 210 * (96 / 25.4); // 210mm in px at 96dpi (~793.7px)
+    return Math.min(1, inlineSize / pageWidthPx);
+  };
+
+  const paddingLeft = parseFloat(getComputedStyle(container).paddingLeft || '0') || 0;
+  const paddingRight = parseFloat(getComputedStyle(container).paddingRight || '0') || 0;
+  const initialWidth = container.clientWidth - paddingLeft - paddingRight;
+  if (initialWidth > 0) {
+    _currentPageScale = computeScale(initialWidth);
+    container.style.setProperty('--page-scale', String(_currentPageScale));
+  }
+
+  _resizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      let inlineSize = 0;
+      if (entry.contentBoxSize) {
+        if (Array.isArray(entry.contentBoxSize)) {
+          inlineSize = entry.contentBoxSize[0]?.inlineSize || 0;
+        } else {
+          inlineSize = entry.contentBoxSize.inlineSize || 0;
+        }
+      }
+      if (!inlineSize && entry.contentRect) {
+        inlineSize = entry.contentRect.width;
+      }
+      if (!inlineSize) {
+        inlineSize = container.clientWidth - paddingLeft - paddingRight;
+      }
+
+      if (inlineSize <= 0) continue;
+
+      const scale = computeScale(inlineSize);
+      _currentPageScale = scale;
+      container.style.setProperty('--page-scale', String(scale));
+      _applyScaleToFrames(scale);
+    }
+  });
+
+  _resizeObserver.observe(container);
+}
+
 function _ensureMessageListener() {
   if (_messageListenerAttached || typeof window === 'undefined') return;
   window.addEventListener('message', (event) => {
@@ -41,7 +137,18 @@ function _ensureMessageListener() {
       if (renderId === _currentRenderId) {
         if (_frameA && _frameB) {
           if (_stagingBlobUrl === null && _activeFrameName === 'A') {
-            if (_frameA && height > 0) _frameA.style.height = `${height}px`;
+            try {
+              const doc = _frameA.contentDocument;
+              if (doc?.documentElement) {
+                doc.documentElement.style.setProperty('--page-scale', String(_currentPageScale));
+                _ensurePagesWrapped(doc);
+              }
+              const pagesEl = doc?.querySelector('.pagedjs_pages');
+              const h = pagesEl ? (pagesEl.offsetHeight + 48) : height;
+              if (_frameA && h > 0) _frameA.style.height = `${h}px`;
+            } catch {
+              if (_frameA && height > 0) _frameA.style.height = `${height}px`;
+            }
             if (_onPageCountCallback) {
               _onPageCountCallback(pageCount ? `${pageCount} page${pageCount > 1 ? 's' : ''}` : '');
             }
@@ -83,6 +190,18 @@ export function setPreviewDocumentTheme(targetOrTheme, theme) {
   }
 }
 
+export function getPageScale() {
+  return _currentPageScale;
+}
+
+export function setPageScale(scale) {
+  _currentPageScale = scale;
+  if (_scrollEl) {
+    _scrollEl.style.setProperty('--page-scale', String(scale));
+  }
+  _applyScaleToFrames(scale);
+}
+
 /**
  * @param {any} target
  * @param {string} [theme]
@@ -98,6 +217,7 @@ export function initPreview(target, theme = 'light', onPageCount = undefined, on
     _frameA = target.frameA;
     _frameB = target.frameB;
     _scrollEl = target.scrollEl || null;
+    if (_scrollEl) _setupResizeObserver(_scrollEl);
     if (target.onSwap) _onSwapCallback = target.onSwap;
     else if (onSwap) _onSwapCallback = onSwap;
     _activeFrameName = 'A';
@@ -107,6 +227,10 @@ export function initPreview(target, theme = 'light', onPageCount = undefined, on
 
   if (target && (target instanceof HTMLIFrameElement || target.tagName === 'IFRAME')) {
     _singleFrame = target;
+    if (target.scrollEl) {
+      _scrollEl = target.scrollEl;
+      _setupResizeObserver(_scrollEl);
+    }
     _renderSingleFrame(_singleFrame, '', '', _currentTheme, _currentDocToken);
   }
 }
@@ -144,10 +268,17 @@ export function updatePreview(targetOrHtml, htmlOrCss, userCss, theme, docToken,
     if (targetOrHtml && targetOrHtml.frameA && targetOrHtml.frameB) {
       _frameA = targetOrHtml.frameA;
       _frameB = targetOrHtml.frameB;
-      if (targetOrHtml.scrollEl) _scrollEl = targetOrHtml.scrollEl;
+      if (targetOrHtml.scrollEl) {
+        _scrollEl = targetOrHtml.scrollEl;
+        _setupResizeObserver(_scrollEl);
+      }
       if (targetOrHtml.onSwap) _onSwapCallback = targetOrHtml.onSwap;
     } else if (targetOrHtml && (targetOrHtml instanceof HTMLIFrameElement || targetOrHtml.tagName === 'IFRAME')) {
       _singleFrame = targetOrHtml;
+      if (targetOrHtml.scrollEl) {
+        _scrollEl = targetOrHtml.scrollEl;
+        _setupResizeObserver(_scrollEl);
+      }
     }
   }
 
@@ -216,16 +347,20 @@ function _performSwap(renderId, pageCount, height) {
   if (!activeFrame || !stagingFrame) return;
 
   let finalHeight = height;
-  if (!finalHeight || finalHeight <= 0) {
-    try {
-      const doc = stagingFrame.contentDocument;
+  try {
+    const doc = stagingFrame.contentDocument;
+    if (doc?.documentElement) {
+      doc.documentElement.style.setProperty('--page-scale', String(_currentPageScale));
+      _ensurePagesWrapped(doc);
+    }
+    if (!finalHeight || finalHeight <= 0) {
       const pagesEl = doc?.querySelector('.pagedjs_pages');
       finalHeight = pagesEl ? (pagesEl.offsetHeight + 48) : Math.max(
         doc?.body?.scrollHeight || 0,
         doc?.documentElement?.scrollHeight || 0,
       );
-    } catch { /* cross-origin guard */ }
-  }
+    }
+  } catch { /* cross-origin guard */ }
 
   if (finalHeight && finalHeight > 0) {
     stagingFrame.style.height = `${finalHeight}px`;
@@ -285,6 +420,10 @@ function _renderFrameDirect(frame, htmlBody, userCss, theme, docToken, key) {
     setTimeout(() => {
       try {
         const doc = frame.contentDocument;
+        if (doc?.documentElement) {
+          doc.documentElement.style.setProperty('--page-scale', String(_currentPageScale));
+          _ensurePagesWrapped(doc);
+        }
         const pagesEl = doc?.querySelector('.pagedjs_pages');
         const height = pagesEl ? (pagesEl.offsetHeight + 48) : Math.max(
           doc?.body?.scrollHeight || 0,
@@ -333,16 +472,20 @@ function _performSingleFrameReady(renderId, pageCount, height) {
   }
 
   let finalHeight = height;
-  if (!finalHeight || finalHeight <= 0) {
-    try {
-      const doc = _singleFrame.contentDocument;
+  try {
+    const doc = _singleFrame.contentDocument;
+    if (doc?.documentElement) {
+      doc.documentElement.style.setProperty('--page-scale', String(_currentPageScale));
+      _ensurePagesWrapped(doc);
+    }
+    if (!finalHeight || finalHeight <= 0) {
       const pagesEl = doc?.querySelector('.pagedjs_pages');
       finalHeight = pagesEl ? (pagesEl.offsetHeight + 48) : Math.max(
         doc?.body?.scrollHeight || 0,
         doc?.documentElement?.scrollHeight || 0,
       );
-    } catch { /* cross-origin guard */ }
-  }
+    }
+  } catch { /* cross-origin guard */ }
 
   if (finalHeight && finalHeight > 0) {
     _singleFrame.style.height = `${finalHeight}px`;
@@ -365,8 +508,9 @@ function _performSingleFrameReady(renderId, pageCount, height) {
 
 function _buildDocument(htmlBody, userCss, theme = 'light', docToken = '', renderId = 0) {
   const baseHref = docToken ? `${location.origin}/api/assets/${docToken}/` : `${location.origin}/`;
+  const initialScale = _currentPageScale || 1;
   return `<!DOCTYPE html>
-<html lang="en" data-theme="${theme}">
+<html lang="en" data-theme="${theme}" style="--page-scale: ${initialScale};">
 <head>
   <meta charset="UTF-8">
 
@@ -377,8 +521,13 @@ ${printCssText}
   </style>
 
   <style id="base-theme-css">
+    :root {
+      --page-scale: ${initialScale};
+    }
+
     html, body {
       background: transparent !important;
+      overflow-x: hidden;
     }
     .pagedjs_pages {
       display: flex;
@@ -388,12 +537,84 @@ ${printCssText}
       padding: 16px 0;
     }
 
-    /* ── Light Page Theme (Default) ── */
+    /* ── Scaled Page Footprint Wrapper ── */
+    .page-wrapper {
+      width: calc(var(--pagedjs-width, 210mm) * var(--page-scale, 1));
+      height: calc(var(--pagedjs-height, 297mm) * var(--page-scale, 1));
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      flex-shrink: 0;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0, 0, 0, 0.08);
+      transition: box-shadow 150ms ease;
+    }
+
+    html[data-theme="dark"] .page-wrapper {
+      box-shadow: 0 4px 22px rgba(0, 0, 0, 0.65), 0 0 0 1px #2e2e34 !important;
+    }
+
+    /* ── Intrinsic Uncompressed Page Box ── */
+    .page,
     .pagedjs_page {
+      width: var(--pagedjs-width, 210mm) !important;
+      min-width: var(--pagedjs-width, 210mm) !important;
+      max-width: var(--pagedjs-width, 210mm) !important;
+      height: var(--pagedjs-height, 297mm) !important;
+      min-height: var(--pagedjs-height, 297mm) !important;
+      max-height: var(--pagedjs-height, 297mm) !important;
+      flex-shrink: 0 !important;
+      transform-origin: top center;
+      transform: scale(var(--page-scale, 1));
+      box-sizing: border-box;
       background: #ffffff !important;
       color: var(--color-text, #1a1a1a);
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0, 0, 0, 0.08) !important;
       transition: background 150ms ease, color 150ms ease;
+    }
+
+    /* When page is inside page-wrapper, shadow is carried by wrapper */
+    .page-wrapper > .page,
+    .page-wrapper > .pagedjs_page {
+      box-shadow: none !important;
+      margin: 0 !important;
+    }
+
+    /* Fallback shadow if not wrapped */
+    .pagedjs_pages > .page,
+    .pagedjs_pages > .pagedjs_page {
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Paged.js split content compatibility through page-wrapper */
+    .page-wrapper > .pagedjs_page > .pagedjs_sheet > .pagedjs_pagebox > .pagedjs_area > div [data-split-to] {
+      margin-bottom: unset;
+      padding-bottom: unset;
+    }
+    .page-wrapper > .pagedjs_page > .pagedjs_sheet > .pagedjs_pagebox > .pagedjs_area > div [data-split-from] {
+      text-indent: unset;
+      margin-top: unset;
+      padding-top: unset;
+      initial-letter: unset;
+    }
+    .page-wrapper > .pagedjs_page > .pagedjs_sheet > .pagedjs_pagebox > .pagedjs_area > div [data-split-from] > *::first-letter,
+    .page-wrapper > .pagedjs_page > .pagedjs_sheet > .pagedjs_pagebox > .pagedjs_area > div [data-split-from]::first-letter {
+      color: unset;
+      font-size: unset;
+      font-weight: unset;
+      font-family: unset;
+      line-height: unset;
+      float: unset;
+      padding: unset;
+      margin: unset;
+    }
+    .page-wrapper > .pagedjs_page > .pagedjs_sheet > .pagedjs_pagebox > .pagedjs_area > div [data-split-to]:not([data-footnote-call]):after {
+      content: unset;
+    }
+    .page-wrapper > .pagedjs_page > .pagedjs_sheet > .pagedjs_pagebox > .pagedjs_area > div [data-split-from]:not([data-footnote-call]):before {
+      content: unset;
+    }
+    .page-wrapper > .pagedjs_page > .pagedjs_sheet > .pagedjs_pagebox > .pagedjs_area > div li[data-split-from]:first-of-type {
+      list-style: none;
     }
 
     /* ── Dark Page Theme ── */
@@ -412,9 +633,14 @@ ${printCssText}
       color: #e5e7eb !important;
     }
 
+    html[data-theme="dark"] .page,
     html[data-theme="dark"] .pagedjs_page {
       background: #1c1c1f !important;
       color: #e5e7eb !important;
+    }
+
+    html[data-theme="dark"] .pagedjs_pages > .page,
+    html[data-theme="dark"] .pagedjs_pages > .pagedjs_page {
       box-shadow: 0 4px 22px rgba(0, 0, 0, 0.65), 0 0 0 1px #2e2e34 !important;
     }
 
@@ -517,14 +743,25 @@ ${printCssText}
       auto: true,
       after: function(flow) {
         try {
-          var count = (flow && flow.pages) ? flow.pages.length : (flow && flow.total) ? flow.total : (document.querySelectorAll('.pagedjs_page').length || 0);
-          var pagesEl = document.querySelector('.pagedjs_pages');
+          var doc = document;
+          var pages = doc.querySelectorAll('.pagedjs_page, .page');
+          pages.forEach(function(page) {
+            if (page.classList.contains('page-wrapper')) return;
+            if (!page.parentNode) return;
+            if (page.parentElement && page.parentElement.classList.contains('page-wrapper')) return;
+            var wrapper = doc.createElement('div');
+            wrapper.className = 'page-wrapper';
+            page.parentNode.insertBefore(wrapper, page);
+            wrapper.appendChild(page);
+          });
+          var count = (flow && flow.pages) ? flow.pages.length : (flow && flow.total) ? flow.total : (doc.querySelectorAll('.pagedjs_page').length || 0);
+          var pagesEl = doc.querySelector('.pagedjs_pages');
           var h = pagesEl ? (pagesEl.offsetHeight + 48) : Math.max(
-            document.body ? document.body.scrollHeight : 0,
-            document.body ? document.body.offsetHeight : 0,
-            document.documentElement ? document.documentElement.clientHeight : 0,
-            document.documentElement ? document.documentElement.scrollHeight : 0,
-            document.documentElement ? document.documentElement.offsetHeight : 0
+            doc.body ? doc.body.scrollHeight : 0,
+            doc.body ? doc.body.offsetHeight : 0,
+            doc.documentElement ? doc.documentElement.clientHeight : 0,
+            doc.documentElement ? doc.documentElement.scrollHeight : 0,
+            doc.documentElement ? doc.documentElement.offsetHeight : 0
           );
           window.parent.postMessage({
             type: 'pagedjs:ready',

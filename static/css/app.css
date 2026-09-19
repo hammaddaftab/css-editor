@@ -489,6 +489,11 @@ html, body {
 .pane-divider:hover,
 .pane-divider.dragging { background: var(--border-accent); }
 
+.panes.dragging iframe,
+body.is-resizing iframe {
+  pointer-events: none !important;
+}
+
 /* --------------------------------------------------------------------------
    CodeMirror 6 Editor & Drop Targets
    -------------------------------------------------------------------------- */
@@ -767,6 +772,7 @@ html, body {
   background: var(--bg-preview-light);
   transition: background var(--transition);
   position:   relative;
+  --page-scale: 1;
 }
 .preview-scroll.preview-theme--light {
   background: #e8e8ea;
@@ -775,11 +781,17 @@ html, body {
   background: #141414;
 }
 
+.page-wrapper {
+  width:       calc(210mm * var(--page-scale, 1));
+  height:      calc(297mm * var(--page-scale, 1));
+  overflow:    hidden;
+}
+
 .preview-frame {
   width:       100%;
   border:      none;
   display:     block;
-  min-height:  297mm;
+  min-height:  calc(297mm * var(--page-scale, 1));
   box-sizing:  border-box;
 }
 
