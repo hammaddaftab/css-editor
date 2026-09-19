@@ -165,6 +165,26 @@ css-editor --port 9090 --no-browser
 
 ---
 
+## Image & Asset Handling
+
+`css-editor` resolves all image paths **relative to the active Markdown file**. Standard CommonMark syntax is preserved with zero lock-in—your documents render identically in VS Code, Obsidian, GitHub, the live browser preview, and WeasyPrint PDF export.
+
+### Resolution & Portability Table
+
+| Image Location | Markdown Syntax | Storage Action | Live Preview & PDF Export | Portability |
+| :--- | :--- | :--- | :--- | :--- |
+| **Local Subfolder** (`./images/`, `figures/`, `assets/`) | `![Diagram](./figures/arch.png)` | Left in place on disk | Live preview mounts via `<base href>`; WeasyPrint reads directly from disk. | ✅ **100% Portable** |
+| **Sibling / Parent Repo Folder** | `![Logo](../shared/branding.png)` | Left in place on disk | Resolved natively via relative path traversal. | ✅ **100% Portable** |
+| **Same Directory as `.md`** | `![Hero](./hero.jpg)` | Left in place on disk | Read directly from document folder. | ✅ **100% Portable** |
+| **External Drop / Pick** (Downloads, Desktop) | Drop file → `![Photo](./images/photo.png)` | Automatically imported (copied) into `./images/` | Copied into local project so the document remains self-contained. | ✅ **Auto-Imported** |
+
+> **Why this matters:**
+> - **Zero HTML / AST Rewriting:** Your Markdown is rendered cleanly without string manipulation or regex hacks, preserving code blocks and syntax integrity.
+> - **Live Preview Accuracy:** The live preview polyfill (Paged.js) loads relative assets and CSS `url(...)` background images through a scoped local mount (`/api/assets/<doc_token>/`).
+> - **Self-Contained Projects:** Copying external images into `./images/` guarantees that moving, cloning, or sharing the folder never results in broken image links.
+
+---
+
 ## Configuration & Environment Variables
 
 Default settings and projects are stored in standard user directories:
