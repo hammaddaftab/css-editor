@@ -19,7 +19,7 @@ from app.services.watcher.project import ProjectWatcherHandler
 from app.services.watcher.standalone import WatchModeHandler
 
 if TYPE_CHECKING:
-    from app.models.context import DocumentContext, WatchDocumentContext
+    from app.models.context import DocumentContext
 
 logger = logging.getLogger(__name__)
 
@@ -54,19 +54,30 @@ class WatchOrchestrator:
         return self.watch_handler.current_doc
 
     @property
-    def _current_doc(self) -> Path | None:
-        """Backward compatibility alias for test assertions."""
-        return self.current_doc
-
-    @property
     def current_project(self) -> str | None:
         """Return the currently watched project name, if any."""
         return self.project_handler.current_project
 
     @property
-    def current_path(self) -> Path | None:
-        """Backward compatibility alias for current projects root."""
+    def projects_root(self) -> Path | None:
+        """Return the configured projects root directory."""
         return self._projects_root
+
+    # ── Workspace Root Configuration ───────────────────────────────────────────
+
+    def set_projects_root(self, projects_root: Path) -> None:
+        """Configure the active projects root directory."""
+        self._projects_root = projects_root.resolve()
+
+    def switch_projects_root(self, new_root: Path) -> None:
+        """Update projects root and restart project watcher if currently active."""
+        self._projects_root = new_root.resolve()
+        if self._current_mode == "project" and self.project_handler.current_project:
+            proj_dir = self._projects_root / self.project_handler.current_project
+            if proj_dir.is_dir():
+                asyncio.create_task(
+                    self.project_handler.start(self.project_handler.current_project, proj_dir),
+                )
 
     # ── 1. Detection & Activation: CLI Flag ──────────────────────────────────────
 
@@ -130,39 +141,3 @@ class WatchOrchestrator:
         await self.project_handler.stop()
         self._current_mode = "idle"
         self._active_target = None
-
-    # ── 4. Backward Compatibility Bridges ──────────────────────────────────────
-
-    def start(self, projects_root: Path) -> None:
-        """Set initial projects_root without forcing global root watching."""
-        self._projects_root = projects_root.resolve()
-
-    def switch_directory(self, new_root: Path) -> None:
-        """Update projects_root and switch project watcher if in project mode."""
-        self._projects_root = new_root.resolve()
-        if self._current_mode == "project" and self.project_handler.current_project:
-            proj_dir = self._projects_root / self.project_handler.current_project
-            if proj_dir.is_dir():
-                asyncio.create_task(
-                    self.project_handler.start(self.project_handler.current_project, proj_dir),
-                )
-
-    def watch_document(self, context: DocumentContext) -> None:
-        """Bridge for synchronous callers: schedules detect_and_activate in background."""
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(self.detect_and_activate(context))
-        except RuntimeError:
-            asyncio.run(self.detect_and_activate(context))
-
-    def stop_document_watcher(self) -> None:
-        """Bridge for synchronous callers: schedules watch_handler.stop() in background."""
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(self.watch_handler.stop())
-        except RuntimeError:
-            asyncio.run(self.watch_handler.stop())
-
-    async def stop(self) -> None:
-        """Bridge for shutdown()."""
-        await self.shutdown()

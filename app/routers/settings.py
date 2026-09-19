@@ -16,7 +16,7 @@ from app.services.config_manager import (
     seed_welcome_project,
 )
 from app.services.system_dialog import is_dialog_supported, pick_directory, pick_file
-from app.services.watcher import watcher_manager
+from app.services.watcher import watch_orchestrator
 
 router = APIRouter(prefix="/api", tags=["settings"])
 
@@ -65,7 +65,7 @@ async def update_config(req: UpdateConfigRequest) -> JSONResponse:
             target_path = Path(raw_path).expanduser().resolve()
             target_path.mkdir(parents=True, exist_ok=True)
             # Switch file watcher to the new target
-            watcher_manager.switch_directory(target_path)
+            watch_orchestrator.switch_projects_root(target_path)
             config.projects_dir = str(target_path)
         except Exception as exc:
             raise HTTPException(status_code=400, detail=f"Invalid projects directory: {exc}")

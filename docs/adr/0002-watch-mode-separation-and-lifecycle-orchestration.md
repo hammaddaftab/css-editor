@@ -92,8 +92,7 @@ Neither handler relies on callers to manage task cancellation. Each handler's `s
 - **Clean Separation of Concerns**: Detection logic is decoupled from low-level filesystem polling and event broadcasting.
 - **Reduced OS Overhead**: Watching only the active project directory minimizes OS inotify/kqueue watchers and eliminates cross-project noise.
 - **Zero Dangling Background Tasks**: Self-contained lifecycle management prevents memory leaks and orphaned background tasks on mode transitions and server shutdown.
-- **Simplified Application Lifespan**: `app/main.py` replaces loose task lists with `watch_orchestrator.detect_cli_watch()` on startup and `watch_orchestrator.shutdown()` on exit.
-- **Backward Compatible**: Package facade (`app/services/watcher/__init__.py`) re-exports aliases (`watcher_manager`, `watch_document`, `watch_directory`), ensuring 100% test and route compatibility.
+- **Pure Modern API Surface**: All legacy aliases (`watcher_manager`, `ProjectWatcherManager`, `watch_markdown_file`) have been excised in favor of the clean, typed `watch_orchestrator` interface.
 
 ### Negative / Trade-offs
 - Switching between projects requires an explicit transition call to the orchestrator rather than relying on a passive global directory watcher.

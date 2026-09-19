@@ -126,7 +126,7 @@ class TestConfigAndProjects(unittest.TestCase):
             self.assertFalse(data["cancelled"])
 
     def test_watch_document_dynamic_lifecycle(self):
-        from app.services.watcher import watcher_manager
+        from app.services.watcher import watch_orchestrator
 
         external_file = self.base_path / "standalone.md"
         external_file.write_text("# Standalone\n\nContent", encoding="utf-8")
@@ -135,13 +135,13 @@ class TestConfigAndProjects(unittest.TestCase):
         res = self.client.get(f"/api/document?mode=watch&path={external_file}")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json()["filename"], "standalone.md")
-        self.assertEqual(watcher_manager._current_doc, external_file.resolve())
+        self.assertEqual(watch_orchestrator.current_doc, external_file.resolve())
 
         # Switch back to project mode
         self.client.post("/api/config", json={"first_run_completed": True})
         proj_res = self.client.get("/api/document?mode=project&project=welcome&filename=README.md")
         self.assertEqual(proj_res.status_code, 200)
-        self.assertIsNone(watcher_manager._current_doc)
+        self.assertIsNone(watch_orchestrator.current_doc)
 
 
 if __name__ == "__main__":

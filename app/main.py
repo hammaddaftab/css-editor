@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Start background tasks on startup; cancel them cleanly on shutdown."""
     projects_root = get_projects_root()
     projects_root.mkdir(parents=True, exist_ok=True)
-    watch_orchestrator.start(projects_root)
+    watch_orchestrator.set_projects_root(projects_root)
 
     # Track app_opened event on application launch
     try:
