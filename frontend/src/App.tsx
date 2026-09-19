@@ -147,13 +147,12 @@ export default function App() {
 
   return <div className="app">
     <Toolbar projects={workspace.projects} project={workspace.project} files={workspace.files} filename={workspace.filename}
-      dirty={workspace.dirty} saveStatus={workspace.saveStatus} status={status} statusTitle={statusTitle} exporting={exporting}
+      dirty={workspace.dirty} status={status} statusTitle={statusTitle} exporting={exporting}
       settingsOpen={preferences.settingsOpen}
       mode={workspace.target.mode} docPath={workspace.docPath} onSwitchToProjects={switchToProjects}
-      onSwitchToIdle={switchToIdle}
       activeWatchTarget={workspace.activeWatchTarget} onOpenWatchFile={() => void openWatchFile()} onSwitchToWatch={() => void switchToWatch()}
       imageInput={workspace.refs.imageInput} onProject={(event) => void switchProject(event.target.value)} onFile={(event) => void switchFile(event.target.value)}
-      onSave={() => void workspace.saveDocument()} onExport={() => void exportPdf()} onLibrary={() => setLibraryVisible((value) => !value)} libraryVisible={libraryVisible}
+      onExport={() => void exportPdf()} onLibrary={() => setLibraryVisible((value) => !value)} libraryVisible={libraryVisible}
       onCss={() => setCssVisible((value) => !value)} cssVisible={cssVisible}
       onSettings={(event) => { event.stopPropagation(); preferences.setSettingsOpen((value) => !value); }} />
     {workspace.conflict && <ConflictBanner conflict={workspace.conflict} onReload={reloadConflict} onKeep={() => workspace.setConflict(null)} />}
@@ -166,6 +165,12 @@ export default function App() {
       noWhitespace={preferences.noWhitespace}
       onNoCrop={(event) => preferences.changeNoCrop(event.target.checked)}
       onNoWhitespace={(event) => preferences.changeNoWhitespace(event.target.checked)}
+      mode={workspace.target.mode}
+      filename={workspace.filename}
+      dirty={workspace.dirty}
+      saveStatus={workspace.saveStatus}
+      onSave={() => void workspace.saveDocument()}
+      onSwitchToIdle={switchToIdle}
     />
     <WorkspacePanes refs={workspace.refs} library={library} panes={panes} divider={divider} leftPane={leftPane}
       libraryVisible={libraryVisible} cssVisible={cssVisible} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}

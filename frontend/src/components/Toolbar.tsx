@@ -7,7 +7,6 @@ type Props = {
   files: ProjectFile[];
   filename: string;
   dirty: boolean;
-  saveStatus: string;
   status: AppStatus;
   statusTitle: string;
   exporting: boolean;
@@ -18,11 +17,9 @@ type Props = {
   onOpenWatchFile: () => void;
   onSwitchToWatch?: () => void;
   onSwitchToProjects?: () => void;
-  onSwitchToIdle?: () => void;
   imageInput: RefObject<HTMLInputElement | null>;
   onProject: (event: ChangeEvent<HTMLSelectElement>) => void;
   onFile: (event: ChangeEvent<HTMLSelectElement>) => void;
-  onSave: () => void;
   onExport: () => void;
   onLibrary: () => void;
   libraryVisible: boolean;
@@ -78,11 +75,6 @@ export function Toolbar(props: Props) {
                 Projects
               </button>
             )}
-            {props.onSwitchToIdle && (
-              <button className="btn btn--ghost btn--xs" title="Return to mode selection launcher" onClick={props.onSwitchToIdle}>
-                Launcher
-              </button>
-            )}
           </>
         ) : (
           <>
@@ -99,7 +91,7 @@ export function Toolbar(props: Props) {
                 {fileOptions}
                 <option value="__new__">New file…</option>
               </select>
-              <span className={`doc-dirty${props.dirty ? ' is-dirty' : ''}`} title="Unsaved changes">●</span>
+              <span className={`doc-dirty${props.dirty ? ' is-dirty' : ''}`} title="Unsaved changes (Ctrl+S or Settings)">●</span>
             </div>
             <button className="btn btn--ghost btn--xs" title="Open and watch an external Markdown file (Ctrl+O)" onClick={props.onOpenWatchFile}>
               Watch File…
@@ -113,23 +105,8 @@ export function Toolbar(props: Props) {
                 {props.activeWatchTarget.filename}
               </button>
             )}
-            {props.onSwitchToIdle && (
-              <button className="btn btn--ghost btn--xs" title="Return to mode selection launcher" onClick={props.onSwitchToIdle}>
-                Launcher
-              </button>
-            )}
           </>
         )}
-        <button
-          className="btn btn--ghost btn--xs"
-          title="Save document (Ctrl+S)"
-          disabled={props.mode === 'idle'}
-          style={props.mode === 'idle' ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
-          onClick={props.onSave}
-        >
-          Save
-        </button>
-        <span className={`save-status${props.saveStatus === 'Saved' ? ' is-saved' : ''}`}>{props.saveStatus}</span>
       </div>
 
       <div className="toolbar__actions">

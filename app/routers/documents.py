@@ -64,6 +64,7 @@ async def load_document(
     path: str | None = Query(default=None, description="Absolute Markdown path for watch mode"),
     custom_css: str | None = Query(default=None, description="Custom CSS path for watch mode"),
     project: str | None = Query(default=None, description="Project name for project mode"),
+    file: str | None = Query(default=None, description="Document filename for project mode"),
     filename: str | None = Query(default=None, description="Filename for project mode"),
 ) -> JSONResponse:
     projects_root = get_projects_root()
@@ -82,7 +83,7 @@ async def load_document(
                 raise HTTPException(status_code=400, detail="project parameter is required for project mode.")
             target = ProjectTarget(
                 project_name=project,
-                filename=filename or "README.md",
+                filename=file or filename or "README.md",
             )
             context = resolve_document_context(target, projects_root=projects_root)
     except ValueError as exc:

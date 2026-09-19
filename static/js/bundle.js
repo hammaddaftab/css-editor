@@ -45269,6 +45269,49 @@ function SettingsSideWindow(props) {
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "side-window__body", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "prefs-group", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "prefs-group__title", children: "Document & Session" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-group__card", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "Save Document" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: props.mode === "idle" ? "No active document loaded" : props.dirty ? `Unsaved edits in ${props.filename || "document"} (Ctrl+S)` : props.saveStatus === "Saved" ? `All changes saved (${props.filename || "document"})` : `Synchronized with disk (Ctrl+S)` })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      className: "btn btn--primary btn--xs",
+                      disabled: props.mode === "idle",
+                      style: props.mode === "idle" ? { opacity: 0.45, cursor: "not-allowed" } : void 0,
+                      onClick: props.onSave,
+                      title: "Save document changes to disk (Ctrl+S)",
+                      children: "Save"
+                    }
+                  )
+                ] }),
+                props.onSwitchToIdle && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "Workflow Launcher" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: props.mode === "watch" ? "Active: Live external file watcher" : props.mode === "project" ? "Active: Project workspace" : "Startup mode selection screen" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      type: "button",
+                      className: "btn btn--secondary btn--xs",
+                      onClick: () => {
+                        var _a3;
+                        props.onClose();
+                        (_a3 = props.onSwitchToIdle) == null ? void 0 : _a3.call(props);
+                      },
+                      title: "Return to startup mode selection launcher",
+                      children: "Open Launcher"
+                    }
+                  )
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "prefs-group", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "prefs-group__title", children: "Workspace & Storage" }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "prefs-group__card", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row prefs-row--column", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
@@ -45367,64 +45410,48 @@ function Toolbar(props) {
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "toolbar__brand-text", children: "CSS Editor" })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__doc", children: [
-      props.mode === "idle" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--idle", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--idle" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", children: "Idle" })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open an external Markdown file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Watch File…" })
-      ] }) : props.mode === "watch" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--watch", title: `Watching external file: ${props.docPath}`, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--live", title: "Live disk watch active" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", style: { fontWeight: 600, maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: props.filename }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge-watch", children: "WATCH" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open another file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Open File…" }),
-        props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Switch to Projects workspace", onClick: props.onSwitchToProjects, children: "Projects" }),
-        props.onSwitchToIdle && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Return to mode selection launcher", onClick: props.onSwitchToIdle, children: "Launcher" })
-      ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--project" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Project directory", value: props.project, onChange: props.onProject, children: [
-            projectOptions,
-            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "New project…" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__watch__", children: "Watch file…" })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Files in this project", value: props.filename, onChange: props.onFile, children: [
-            fileOptions,
-            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "New file…" })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open and watch an external Markdown file (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Watch File…" }),
-        props.activeWatchTarget && /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            className: "btn btn--ghost btn--xs",
-            title: `Switch back to watching ${props.activeWatchTarget.path}`,
-            onClick: props.onSwitchToWatch,
-            children: props.activeWatchTarget.filename
-          }
-        ),
-        props.onSwitchToIdle && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Return to mode selection launcher", onClick: props.onSwitchToIdle, children: "Launcher" })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "toolbar__doc", children: props.mode === "idle" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--idle", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--idle" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", children: "Idle" })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open an external Markdown file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Watch File…" })
+    ] }) : props.mode === "watch" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--watch", title: `Watching external file: ${props.docPath}`, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--live", title: "Live disk watch active" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", style: { fontWeight: 600, maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: props.filename }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge-watch", children: "WATCH" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open another file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Open File…" }),
+      props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Switch to Projects workspace", onClick: props.onSwitchToProjects, children: "Projects" })
+    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--project" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Project directory", value: props.project, onChange: props.onProject, children: [
+          projectOptions,
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "New project…" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__watch__", children: "Watch file…" })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Files in this project", value: props.filename, onChange: props.onFile, children: [
+          fileOptions,
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "New file…" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes (Ctrl+S or Settings)", children: "●" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open and watch an external Markdown file (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Watch File…" }),
+      props.activeWatchTarget && /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
           className: "btn btn--ghost btn--xs",
-          title: "Save document (Ctrl+S)",
-          disabled: props.mode === "idle",
-          style: props.mode === "idle" ? { opacity: 0.4, cursor: "not-allowed" } : void 0,
-          onClick: props.onSave,
-          children: "Save"
+          title: `Switch back to watching ${props.activeWatchTarget.path}`,
+          onClick: props.onSwitchToWatch,
+          children: props.activeWatchTarget.filename
         }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `save-status${props.saveStatus === "Saved" ? " is-saved" : ""}`, children: props.saveStatus })
-    ] }),
+      )
+    ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__actions", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status status--${props.status}`, title: props.statusTitle, "aria-label": "SSE status" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.libraryVisible ? " active" : ""}`, title: "Toggle Image Library", onClick: props.onLibrary, children: "Library" }),
@@ -47152,7 +47179,6 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         files: workspace.files,
         filename: workspace.filename,
         dirty: workspace.dirty,
-        saveStatus: workspace.saveStatus,
         status,
         statusTitle,
         exporting,
@@ -47160,14 +47186,12 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         mode: workspace.target.mode,
         docPath: workspace.docPath,
         onSwitchToProjects: switchToProjects,
-        onSwitchToIdle: switchToIdle,
         activeWatchTarget: workspace.activeWatchTarget,
         onOpenWatchFile: () => void openWatchFile(),
         onSwitchToWatch: () => void switchToWatch(),
         imageInput: workspace.refs.imageInput,
         onProject: (event) => void switchProject(event.target.value),
         onFile: (event) => void switchFile(event.target.value),
-        onSave: () => void workspace.saveDocument(),
         onExport: () => void exportPdf(),
         onLibrary: () => setLibraryVisible((value) => !value),
         libraryVisible,
@@ -47190,7 +47214,13 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         noCrop: preferences.noCrop,
         noWhitespace: preferences.noWhitespace,
         onNoCrop: (event) => preferences.changeNoCrop(event.target.checked),
-        onNoWhitespace: (event) => preferences.changeNoWhitespace(event.target.checked)
+        onNoWhitespace: (event) => preferences.changeNoWhitespace(event.target.checked),
+        mode: workspace.target.mode,
+        filename: workspace.filename,
+        dirty: workspace.dirty,
+        saveStatus: workspace.saveStatus,
+        onSave: () => void workspace.saveDocument(),
+        onSwitchToIdle: switchToIdle
       }
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(

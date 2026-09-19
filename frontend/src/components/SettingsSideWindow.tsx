@@ -10,6 +10,12 @@ type Props = {
   noWhitespace: boolean;
   onNoCrop: (event: ChangeEvent<HTMLInputElement>) => void;
   onNoWhitespace: (event: ChangeEvent<HTMLInputElement>) => void;
+  mode?: 'idle' | 'watch' | 'project';
+  filename?: string;
+  dirty?: boolean;
+  saveStatus?: string;
+  onSave?: () => void;
+  onSwitchToIdle?: () => void;
 };
 
 export function SettingsSideWindow(props: Props) {
@@ -51,6 +57,65 @@ export function SettingsSideWindow(props: Props) {
         </div>
 
         <div className="side-window__body">
+          {/* Document & Session Actions */}
+          <section className="prefs-group">
+            <h3 className="prefs-group__title">Document & Session</h3>
+            <div className="prefs-group__card">
+              {/* Save Option */}
+              <div className="prefs-row">
+                <div className="prefs-row__info">
+                  <span className="prefs-row__title">Save Document</span>
+                  <span className="prefs-row__desc">
+                    {props.mode === 'idle'
+                      ? 'No active document loaded'
+                      : props.dirty
+                      ? `Unsaved edits in ${props.filename || 'document'} (Ctrl+S)`
+                      : props.saveStatus === 'Saved'
+                      ? `All changes saved (${props.filename || 'document'})`
+                      : `Synchronized with disk (Ctrl+S)`}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn--primary btn--xs"
+                  disabled={props.mode === 'idle'}
+                  style={props.mode === 'idle' ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                  onClick={props.onSave}
+                  title="Save document changes to disk (Ctrl+S)"
+                >
+                  Save
+                </button>
+              </div>
+
+              {/* Launcher Option */}
+              {props.onSwitchToIdle && (
+                <div className="prefs-row">
+                  <div className="prefs-row__info">
+                    <span className="prefs-row__title">Workflow Launcher</span>
+                    <span className="prefs-row__desc">
+                      {props.mode === 'watch'
+                        ? 'Active: Live external file watcher'
+                        : props.mode === 'project'
+                        ? 'Active: Project workspace'
+                        : 'Startup mode selection screen'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--xs"
+                    onClick={() => {
+                      props.onClose();
+                      props.onSwitchToIdle?.();
+                    }}
+                    title="Return to startup mode selection launcher"
+                  >
+                    Open Launcher
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* Workspace Group */}
           <section className="prefs-group">
             <h3 className="prefs-group__title">Workspace & Storage</h3>

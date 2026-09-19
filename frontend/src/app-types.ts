@@ -1,5 +1,25 @@
 import type { RefObject } from 'react';
 
+export type Mode =
+  | { watch: false; project: false }
+  | { watch: true;  project: false }
+  | { watch: false; project: true }
+  | { watch: true;  project: true; focus: 'watch' | 'project' };
+
+export type WorkspaceSession =
+  | { watch: false; project: false }
+  | { watch: true; project: false; path: string; customCss?: string }
+  | { watch: false; project: true; project: string; file: string }
+  | {
+      watch: true;
+      project: true;
+      focus: 'watch' | 'project';
+      path: string;
+      customCss?: string;
+      project: string;
+      file: string;
+    };
+
 export type TargetSpec =
   | { mode: 'idle' }
   | { mode: 'watch'; path: string; customCss?: string }
