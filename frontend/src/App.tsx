@@ -20,7 +20,9 @@ import type { AppStatus } from './app-types';
 
 export default function App() {
   const workspace = useWorkspace();
-  const frame = useRef<HTMLIFrameElement>(null);
+  const frameA = useRef<HTMLIFrameElement>(null);
+  const frameB = useRef<HTMLIFrameElement>(null);
+  const previewScroll = useRef<HTMLDivElement>(null);
   const panes = useRef<HTMLDivElement>(null);
   const divider = useRef<HTMLDivElement>(null);
   const leftPane = useRef<HTMLDivElement>(null);
@@ -35,7 +37,7 @@ export default function App() {
   const [libraryVisible, setLibraryVisible] = useState(true);
   const [cssVisible, setCssVisible] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const preferences = usePreferences(frame);
+  const preferences = usePreferences(frameA);
   const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle } = useProjects(workspace);
 
   useEffect(() => {
@@ -97,8 +99,8 @@ export default function App() {
     setStatus(next); setStatusTitle(title || next);
   }, []);
   useEditors(workspace, library);
-  usePreview(frame, preferences.theme);
-  useLiveSync(workspace, frame, preferences.theme, setAppStatus, setPageCount);
+  usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount);
+  useLiveSync(workspace, frameA, preferences.theme, setAppStatus, setPageCount);
   useLayout(workspace, panes, divider, leftPane);
 
   useEffect(() => {
@@ -135,7 +137,7 @@ export default function App() {
     if (conflict.markdown !== undefined) { workspace.setMarkdown(conflict.markdown); setEditorContent(workspace.refs.markdownView.current, conflict.markdown); }
     if (conflict.css !== undefined) { workspace.setCss(conflict.css); setEditorContent(workspace.refs.cssView.current, conflict.css); }
     if (conflict.project_css !== undefined) workspace.setProjectCss(conflict.project_css);
-    if (conflict.html) updatePreview(frame.current, conflict.html, conflict.project_css ? `${conflict.project_css}\n${conflict.css || ''}` : conflict.css || '', preferences.theme, workspace.docToken);
+    if (conflict.html) updatePreview(frameA.current, conflict.html, conflict.project_css ? `${conflict.project_css}\n${conflict.css || ''}` : conflict.css || '', preferences.theme, workspace.docToken, setPageCount);
     workspace.markClean('Reloaded from disk');
   }, [preferences.theme, workspace]);
 
@@ -171,7 +173,7 @@ export default function App() {
     />
     <WorkspacePanes refs={workspace.refs} library={library} panes={panes} divider={divider} leftPane={leftPane}
       libraryVisible={libraryVisible} cssVisible={cssVisible} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
-      frame={frame} pageCount={pageCount} theme={preferences.theme} onCss={() => setCssVisible((value) => !value)} onTheme={preferences.changeTheme} />
+      frameA={frameA} frameB={frameB} previewScroll={previewScroll} pageCount={pageCount} theme={preferences.theme} onCss={() => setCssVisible((value) => !value)} onTheme={preferences.changeTheme} />
     {workspace.target.mode === 'idle' && (
       <IdleLauncher
         projects={workspace.projects}

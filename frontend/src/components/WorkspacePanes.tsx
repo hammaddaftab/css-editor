@@ -11,7 +11,9 @@ type Props = {
   cssVisible: boolean;
   noCrop: boolean;
   noWhitespace: boolean;
-  frame: RefObject<HTMLIFrameElement | null>;
+  frameA: RefObject<HTMLIFrameElement | null>;
+  frameB: RefObject<HTMLIFrameElement | null>;
+  previewScroll: RefObject<HTMLDivElement | null>;
   pageCount: string;
   theme: string;
   onCss: () => void;
@@ -88,8 +90,9 @@ export function WorkspacePanes(props: Props) {
             </div>
           </div>
         </div>
-        <div className={`preview-scroll preview-theme--${props.theme}`}>
-          <iframe ref={props.frame} className="preview-frame" sandbox="allow-scripts allow-same-origin" title="Document preview" />
+        <div className={`preview-scroll preview-theme--${props.theme}`} ref={props.previewScroll}>
+          <iframe ref={props.frameA} className="preview-frame preview-frame--visible" title="Document preview" />
+          <iframe ref={props.frameB} className="preview-frame preview-frame--staging" title="Document preview staging" />
         </div>
       </div>
     </div>

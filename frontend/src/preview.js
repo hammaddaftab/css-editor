@@ -1,81 +1,352 @@
 /**
- * preview.js — iframe-based A4 live preview with paged.js
+ * preview.js — double-buffered iframe-based A4 live preview with paged.js
  *
- * Each update builds a full HTML document, wraps it in a Blob URL, and
- * points a sandboxed <iframe> at it. paged.js polyfill runs inside the
- * iframe and splits the content into A4 page boxes — giving a WYSIWYG
- * multi-page preview in the browser.
+ * Employs a double-buffered architecture (active visible frame vs staging background frame)
+ * to ensure that document updates render completely off-screen, eliminating all flashes
+ * of unstyled or unloaded content on keystroke/SSE renders.
  *
- * The iframe is isolated so paged.js can freely rewrite its DOM without
- * touching the editor UI.
+ * print.css is inlined directly into a <style> tag so that styles are synchronously
+ * available when the HTML parser reaches <head>, avoiding forced layout warnings before
+ * stylesheets load.
  */
 
-const PRINT_CSS_URL = `${location.origin}/static/css/print.css`;
-const PAGED_JS_URL  = `${location.origin}/static/vendor/paged.polyfill.js`;
+import printCssText from '../../static/css/print.css?raw';
 
-let _currentBlobUrl = null;
-let _currentTheme   = 'light';
+const PAGED_JS_URL = `${location.origin}/static/vendor/paged.polyfill.js`;
+
+let _frameA = null;
+let _frameB = null;
+let _singleFrame = null;
+let _scrollEl = null;
+
+let _activeFrameName = 'A'; // 'A' or 'B'
+let _currentTheme = 'light';
 let _currentDocToken = '';
+let _currentRenderId = 0;
+
+let _activeBlobUrls = { A: null, B: null, single: null };
+let _stagingBlobUrl = null;
+
+let _pendingFallbackTimer = null;
+let _onPageCountCallback = null;
+let _messageListenerAttached = false;
+
+function _ensureMessageListener() {
+  if (_messageListenerAttached || typeof window === 'undefined') return;
+  window.addEventListener('message', (event) => {
+    if (event.data?.type === 'pagedjs:ready') {
+      const { renderId, pageCount, height } = event.data;
+      if (renderId === _currentRenderId) {
+        if (_frameA && _frameB) {
+          _performSwap(renderId, pageCount, height);
+        } else if (_singleFrame) {
+          _performSingleFrameReady(renderId, pageCount, height);
+        }
+      }
+    }
+  });
+  _messageListenerAttached = true;
+}
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
-export function setPreviewDocumentTheme(iframe, theme) {
-  _currentTheme = theme;
-  try {
-    const doc = iframe.contentDocument;
-    if (doc?.documentElement) {
-      doc.documentElement.setAttribute('data-theme', theme);
+export function setPreviewDocumentTheme(targetOrTheme, theme) {
+  const nextTheme = typeof targetOrTheme === 'string' ? targetOrTheme : (theme || 'light');
+  _currentTheme = nextTheme;
+
+  const frames = [];
+  if (_frameA) frames.push(_frameA);
+  if (_frameB) frames.push(_frameB);
+  if (_singleFrame) frames.push(_singleFrame);
+  if (targetOrTheme && (targetOrTheme instanceof HTMLIFrameElement || targetOrTheme.tagName === 'IFRAME')) {
+    frames.push(targetOrTheme);
+  }
+
+  for (const frame of frames) {
+    try {
+      const doc = frame.contentDocument;
+      if (doc?.documentElement) {
+        doc.documentElement.setAttribute('data-theme', nextTheme);
+      }
+    } catch { /* cross-origin guard */ }
+  }
+}
+
+/**
+ * @param {any} target
+ * @param {string} [theme]
+ * @param {((count: string) => void) | null} [onPageCount]
+ */
+export function initPreview(target, theme = 'light', onPageCount = undefined) {
+  _ensureMessageListener();
+  _currentTheme = theme || 'light';
+  if (onPageCount) _onPageCountCallback = onPageCount;
+
+  if (target && target.frameA && target.frameB) {
+    _frameA = target.frameA;
+    _frameB = target.frameB;
+    _scrollEl = target.scrollEl || null;
+    _activeFrameName = 'A';
+
+    _frameA.className = 'preview-frame preview-frame--visible';
+    _frameB.className = 'preview-frame preview-frame--staging';
+
+    _renderFrameDirect(_frameA, '', '', _currentTheme, _currentDocToken, 'A');
+    return;
+  }
+
+  if (target && (target instanceof HTMLIFrameElement || target.tagName === 'IFRAME')) {
+    _singleFrame = target;
+    _renderSingleFrame(_singleFrame, '', '', _currentTheme, _currentDocToken);
+  }
+}
+
+/**
+ * @param {any} targetOrHtml
+ * @param {string} [htmlOrCss]
+ * @param {string} [userCss]
+ * @param {string} [theme]
+ * @param {string|((count: string) => void)} [docToken]
+ * @param {((count: string) => void)} [onPageCount]
+ */
+export function updatePreview(targetOrHtml, htmlOrCss, userCss, theme, docToken, onPageCount) {
+  _ensureMessageListener();
+
+  let htmlBody = '';
+  let css = '';
+  let th = _currentTheme;
+  let tok = _currentDocToken;
+
+  if (typeof targetOrHtml === 'string') {
+    htmlBody = targetOrHtml;
+    css = typeof htmlOrCss === 'string' ? htmlOrCss : '';
+    th = typeof userCss === 'string' ? userCss : _currentTheme;
+    tok = typeof theme === 'string' ? theme : _currentDocToken;
+    if (typeof docToken === 'function') _onPageCountCallback = docToken;
+    else if (typeof onPageCount === 'function') _onPageCountCallback = onPageCount;
+  } else {
+    htmlBody = typeof htmlOrCss === 'string' ? htmlOrCss : '';
+    css = typeof userCss === 'string' ? userCss : '';
+    th = typeof theme === 'string' ? theme : _currentTheme;
+    tok = typeof docToken === 'string' ? docToken : _currentDocToken;
+    if (typeof onPageCount === 'function') _onPageCountCallback = onPageCount;
+
+    if (targetOrHtml && targetOrHtml.frameA && targetOrHtml.frameB) {
+      _frameA = targetOrHtml.frameA;
+      _frameB = targetOrHtml.frameB;
+      if (targetOrHtml.scrollEl) _scrollEl = targetOrHtml.scrollEl;
+    } else if (targetOrHtml && (targetOrHtml instanceof HTMLIFrameElement || targetOrHtml.tagName === 'IFRAME')) {
+      _singleFrame = targetOrHtml;
     }
-  } catch { /* cross-origin guard */ }
-}
+  }
 
-export function initPreview(iframe, theme = 'light') {
-  _currentTheme = theme;
-  _render(iframe, '', '', _currentTheme, _currentDocToken);
-}
+  _currentTheme = th || 'light';
+  _currentDocToken = tok || '';
 
-export function updatePreview(iframe, htmlBody, userCss, theme = _currentTheme, docToken = _currentDocToken) {
-  if (theme) _currentTheme = theme;
-  if (docToken !== undefined) _currentDocToken = docToken;
-  _render(iframe, htmlBody, userCss, _currentTheme, _currentDocToken);
+  if (_frameA && _frameB) {
+    _renderDoubleBuffered(htmlBody, css, _currentTheme, _currentDocToken);
+  } else if (_singleFrame) {
+    _renderSingleFrame(_singleFrame, htmlBody, css, _currentTheme, _currentDocToken);
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Internal
+// Double-Buffering Implementation
 // ---------------------------------------------------------------------------
 
-function _render(iframe, htmlBody, userCss, theme = _currentTheme, docToken = _currentDocToken) {
-  const html = _buildDocument(htmlBody, userCss, theme, docToken);
+function _renderDoubleBuffered(htmlBody, userCss, theme, docToken) {
+  const renderId = ++_currentRenderId;
+  const stagingName = _activeFrameName === 'A' ? 'B' : 'A';
+  const stagingFrame = stagingName === 'A' ? _frameA : _frameB;
+
+  if (!stagingFrame) return;
+
+  const html = _buildDocument(htmlBody, userCss, theme, docToken, renderId);
   const blob = new Blob([html], { type: 'text/html' });
 
-  if (_currentBlobUrl) URL.revokeObjectURL(_currentBlobUrl);
-  _currentBlobUrl = URL.createObjectURL(blob);
+  _stagingBlobUrl = URL.createObjectURL(blob);
 
-  iframe.onload = () => _resizeIframe(iframe);
-  iframe.src    = _currentBlobUrl;
+  if (_pendingFallbackTimer) clearTimeout(_pendingFallbackTimer);
+  _pendingFallbackTimer = setTimeout(() => {
+    if (_currentRenderId === renderId) {
+      _performSwap(renderId);
+    }
+  }, 1500);
+
+  stagingFrame.onload = () => {
+    setTimeout(() => {
+      if (_currentRenderId === renderId && stagingFrame.classList.contains('preview-frame--staging')) {
+        _performSwap(renderId);
+      }
+    }, 800);
+  };
+
+  stagingFrame.src = _stagingBlobUrl;
 }
 
-function _resizeIframe(iframe) {
-  // Give paged.js time to finish its DOM work, then stretch the iframe
-  setTimeout(() => {
+function _performSwap(renderId, pageCount, height) {
+  if (renderId !== _currentRenderId) return;
+
+  if (_pendingFallbackTimer) {
+    clearTimeout(_pendingFallbackTimer);
+    _pendingFallbackTimer = null;
+  }
+
+  const activeName = _activeFrameName;
+  const stagingName = activeName === 'A' ? 'B' : 'A';
+  const activeFrame = activeName === 'A' ? _frameA : _frameB;
+  const stagingFrame = stagingName === 'A' ? _frameA : _frameB;
+
+  if (!activeFrame || !stagingFrame) return;
+
+  let finalHeight = height;
+  if (!finalHeight || finalHeight <= 0) {
     try {
-      const doc  = iframe.contentDocument;
-      const body = doc?.body;
-      const html = doc?.documentElement;
-      if (!body || !html) return;
-
-      const height = Math.max(
-        body.scrollHeight, body.offsetHeight,
-        html.clientHeight, html.scrollHeight, html.offsetHeight,
+      const doc = stagingFrame.contentDocument;
+      const pagesEl = doc?.querySelector('.pagedjs_pages');
+      finalHeight = pagesEl ? (pagesEl.offsetHeight + 48) : Math.max(
+        doc?.body?.scrollHeight || 0,
+        doc?.documentElement?.scrollHeight || 0,
       );
-      iframe.style.height = `${height}px`;
     } catch { /* cross-origin guard */ }
-  }, 650);
+  }
+
+  if (finalHeight && finalHeight > 0) {
+    stagingFrame.style.height = `${finalHeight}px`;
+  }
+
+  const savedScrollTop = _scrollEl ? _scrollEl.scrollTop : null;
+
+  stagingFrame.classList.remove('preview-frame--staging');
+  stagingFrame.classList.add('preview-frame--visible');
+
+  activeFrame.classList.remove('preview-frame--visible');
+  activeFrame.classList.add('preview-frame--staging');
+
+  if (savedScrollTop !== null && _scrollEl) {
+    _scrollEl.scrollTop = savedScrollTop;
+  }
+
+  if (_activeBlobUrls[activeName]) {
+    URL.revokeObjectURL(_activeBlobUrls[activeName]);
+    _activeBlobUrls[activeName] = null;
+  }
+  _activeBlobUrls[stagingName] = _stagingBlobUrl;
+  _stagingBlobUrl = null;
+
+  _activeFrameName = stagingName;
+
+  let count = pageCount;
+  if (count === undefined) {
+    try {
+      count = stagingFrame.contentDocument?.querySelectorAll('.pagedjs_page').length || 0;
+    } catch { count = 0; }
+  }
+  if (_onPageCountCallback) {
+    _onPageCountCallback(count ? `${count} page${count > 1 ? 's' : ''}` : '');
+  }
 }
 
-function _buildDocument(htmlBody, userCss, theme = 'light', docToken = '') {
+// ---------------------------------------------------------------------------
+// Single Frame Fallback
+// ---------------------------------------------------------------------------
+
+function _renderFrameDirect(frame, htmlBody, userCss, theme, docToken, key) {
+  const renderId = ++_currentRenderId;
+  const html = _buildDocument(htmlBody, userCss, theme, docToken, renderId);
+  const blob = new Blob([html], { type: 'text/html' });
+
+  if (_activeBlobUrls[key]) {
+    URL.revokeObjectURL(_activeBlobUrls[key]);
+  }
+  const url = URL.createObjectURL(blob);
+  _activeBlobUrls[key] = url;
+
+  frame.onload = () => {
+    setTimeout(() => {
+      try {
+        const doc = frame.contentDocument;
+        const pagesEl = doc?.querySelector('.pagedjs_pages');
+        const height = pagesEl ? (pagesEl.offsetHeight + 48) : Math.max(
+          doc?.body?.scrollHeight || 0,
+          doc?.documentElement?.scrollHeight || 0,
+        );
+        if (height > 0) frame.style.height = `${height}px`;
+      } catch { /* cross-origin guard */ }
+    }, 650);
+  };
+  frame.src = url;
+}
+
+function _renderSingleFrame(frame, htmlBody, userCss, theme, docToken) {
+  const renderId = ++_currentRenderId;
+  const html = _buildDocument(htmlBody, userCss, theme, docToken, renderId);
+  const blob = new Blob([html], { type: 'text/html' });
+
+  if (_activeBlobUrls.single) {
+    URL.revokeObjectURL(_activeBlobUrls.single);
+  }
+  _activeBlobUrls.single = URL.createObjectURL(blob);
+
+  if (_pendingFallbackTimer) clearTimeout(_pendingFallbackTimer);
+  _pendingFallbackTimer = setTimeout(() => {
+    if (_currentRenderId === renderId) {
+      _performSingleFrameReady(renderId);
+    }
+  }, 1500);
+
+  frame.onload = () => {
+    setTimeout(() => {
+      if (_currentRenderId === renderId) {
+        _performSingleFrameReady(renderId);
+      }
+    }, 650);
+  };
+
+  frame.src = _activeBlobUrls.single;
+}
+
+function _performSingleFrameReady(renderId, pageCount, height) {
+  if (renderId !== _currentRenderId || !_singleFrame) return;
+  if (_pendingFallbackTimer) {
+    clearTimeout(_pendingFallbackTimer);
+    _pendingFallbackTimer = null;
+  }
+
+  let finalHeight = height;
+  if (!finalHeight || finalHeight <= 0) {
+    try {
+      const doc = _singleFrame.contentDocument;
+      const pagesEl = doc?.querySelector('.pagedjs_pages');
+      finalHeight = pagesEl ? (pagesEl.offsetHeight + 48) : Math.max(
+        doc?.body?.scrollHeight || 0,
+        doc?.documentElement?.scrollHeight || 0,
+      );
+    } catch { /* cross-origin guard */ }
+  }
+
+  if (finalHeight && finalHeight > 0) {
+    _singleFrame.style.height = `${finalHeight}px`;
+  }
+
+  let count = pageCount;
+  if (count === undefined) {
+    try {
+      count = _singleFrame.contentDocument?.querySelectorAll('.pagedjs_page').length || 0;
+    } catch { count = 0; }
+  }
+  if (_onPageCountCallback) {
+    _onPageCountCallback(count ? `${count} page${count > 1 ? 's' : ''}` : '');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Document Template Generation
+// ---------------------------------------------------------------------------
+
+function _buildDocument(htmlBody, userCss, theme = 'light', docToken = '', renderId = 0) {
   const baseHref = docToken ? `${location.origin}/api/assets/${docToken}/` : `${location.origin}/`;
   return `<!DOCTYPE html>
 <html lang="en" data-theme="${theme}">
@@ -84,8 +355,11 @@ function _buildDocument(htmlBody, userCss, theme = 'light', docToken = '') {
 
   <base href="${baseHref}">
 
-  <link rel="stylesheet" href="${PRINT_CSS_URL}">
-  <style>
+  <style id="base-print-css">
+${printCssText}
+  </style>
+
+  <style id="base-theme-css">
     html, body {
       background: transparent !important;
     }
@@ -220,7 +494,34 @@ function _buildDocument(htmlBody, userCss, theme = 'light', docToken = '') {
 
     ${userCss}
   </style>
-  <script src="${PAGED_JS_URL}"><\/script>
+
+  <script>
+    window.PagedConfig = {
+      auto: true,
+      after: function(flow) {
+        try {
+          var count = (flow && flow.pages) ? flow.pages.length : (flow && flow.total) ? flow.total : (document.querySelectorAll('.pagedjs_page').length || 0);
+          var pagesEl = document.querySelector('.pagedjs_pages');
+          var h = pagesEl ? (pagesEl.offsetHeight + 48) : Math.max(
+            document.body ? document.body.scrollHeight : 0,
+            document.body ? document.body.offsetHeight : 0,
+            document.documentElement ? document.documentElement.clientHeight : 0,
+            document.documentElement ? document.documentElement.scrollHeight : 0,
+            document.documentElement ? document.documentElement.offsetHeight : 0
+          );
+          window.parent.postMessage({
+            type: 'pagedjs:ready',
+            renderId: ${renderId},
+            pageCount: count,
+            height: h
+          }, '*');
+        } catch (e) {
+          console.warn('PagedConfig.after error:', e);
+        }
+      }
+    };
+  </script>
+  <script src="${PAGED_JS_URL}"></script>
 </head>
 <body>
 ${htmlBody}

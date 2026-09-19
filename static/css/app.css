@@ -766,6 +766,7 @@ html, body {
   padding:    24px;
   background: var(--bg-preview-light);
   transition: background var(--transition);
+  position:   relative;
 }
 .preview-scroll.preview-theme--light {
   background: #e8e8ea;
@@ -775,11 +776,29 @@ html, body {
 }
 
 .preview-frame {
-  width:      100%;
-  height:     100%;
-  border:     none;
-  display:    block;
-  min-height: 297mm;
+  width:       100%;
+  border:      none;
+  display:     block;
+  min-height:  297mm;
+  box-sizing:  border-box;
+}
+
+.preview-frame--visible {
+  position:        relative;
+  opacity:         1;
+  pointer-events:  auto;
+  z-index:         2;
+  transition:      opacity 0.1s ease-in-out;
+}
+
+.preview-frame--staging {
+  position:        absolute;
+  top:             24px;
+  left:            24px;
+  width:           calc(100% - 48px);
+  opacity:         0;
+  pointer-events:  none;
+  z-index:         1;
 }
 
 /* --------------------------------------------------------------------------

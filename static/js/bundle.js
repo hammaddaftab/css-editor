@@ -44896,58 +44896,523 @@ h1 { border-bottom-color: var(--accent); }
 h2 { color: #0f766e; }
 pre.code-block { border-left-color: var(--accent); }
 `;
-const PRINT_CSS_URL = `${location.origin}/static/css/print.css`;
+const printCssText = `/* ==========================================================================
+   Document styles — used by BOTH the paged.js preview iframe AND WeasyPrint.
+   Keep print-compatible units (pt, mm) for anything that appears in the PDF.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   @page — defines the A4 canvas
+   -------------------------------------------------------------------------- */
+@page {
+  size: A4;
+  margin: 20mm 25mm;
+}
+
+/* --------------------------------------------------------------------------
+   CSS custom properties — easy to override via user CSS
+   -------------------------------------------------------------------------- */
+:root {
+  --font-body:    Georgia, "Times New Roman", Times, serif;
+  --font-sans:    system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-code:    "JetBrains Mono", "Fira Code", "Cascadia Code", "Courier New", monospace;
+
+  --size-body:    11pt;
+  --size-code:    9pt;
+  --lh-body:      1.7;
+
+  --color-text:     #1a1a1a;
+  --color-heading:  #111111;
+  --color-link:     #1d4ed8;
+  --color-border:   #d1d5db;
+  --color-muted:    #6b7280;
+  --color-code-bg:  #f3f4f6;
+  --color-blockquote-border: #9ca3af;
+  --accent:         #2563eb;
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family:  var(--font-body);
+  font-size:    var(--size-body);
+  line-height:  var(--lh-body);
+  color:        var(--color-text);
+  margin:       0;
+  padding:      0;
+}
+
+/* --------------------------------------------------------------------------
+   Headings
+   -------------------------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6 {
+  font-family:  var(--font-body);
+  color:        var(--color-heading);
+  line-height:  1.3;
+  margin:       1.4em 0 0.4em;
+  break-after:  avoid;  /* don't orphan a heading at the bottom of a page */
+}
+
+h1 {
+  font-size:     22pt;
+  border-bottom: 2pt solid var(--color-heading);
+  padding-bottom: 6pt;
+  margin-top:    0;
+}
+
+h2 {
+  font-size:     16pt;
+  border-bottom: 1pt solid var(--color-border);
+  padding-bottom: 4pt;
+}
+
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; font-style: italic; }
+h5 { font-size: 11pt;   text-transform: uppercase; letter-spacing: 0.04em; }
+h6 { font-size: 10.5pt; color: var(--color-muted); }
+
+/* --------------------------------------------------------------------------
+   Paragraphs & inline
+   -------------------------------------------------------------------------- */
+p {
+  margin:  0 0 0.9em;
+  orphans: 3;
+  widows:  3;
+}
+
+a               { color: var(--color-link); }
+a:visited       { color: #7c3aed; }
+strong          { font-weight: bold; }
+em              { font-style: italic; }
+del             { text-decoration: line-through; color: var(--color-muted); }
+
+/* --------------------------------------------------------------------------
+   Code
+   -------------------------------------------------------------------------- */
+code {
+  font-family: var(--font-code);
+  font-size:   var(--size-code);
+  background:  var(--color-code-bg);
+  padding:     1.5pt 4pt;
+  border-radius: 3pt;
+}
+
+pre, pre.code-block {
+  background:   var(--color-code-bg);
+  border:       1pt solid var(--color-border);
+  border-left:  3pt solid var(--color-muted);
+  padding:      10pt 14pt;
+  margin:       0.8em 0 1em;
+  overflow-x:   auto;
+  break-inside: avoid;
+  font-size:    var(--size-code);
+  line-height:  1.5;
+  color:        var(--color-text);
+}
+
+pre code, pre.code-block code {
+  background: none;
+  padding:    0;
+  font-size:  inherit;
+  border-radius: 0;
+  color:      inherit;
+}
+
+/* --------------------------------------------------------------------------
+   Blockquotes
+   -------------------------------------------------------------------------- */
+blockquote {
+  border-left: 4pt solid var(--color-blockquote-border);
+  margin:      1em 0 1em 0;
+  padding:     6pt 14pt;
+  color:       var(--color-muted);
+  font-style:  italic;
+  break-inside: avoid;
+}
+
+blockquote p:last-child { margin-bottom: 0; }
+
+/* --------------------------------------------------------------------------
+   Tables
+   -------------------------------------------------------------------------- */
+table {
+  width:           100%;
+  border-collapse: collapse;
+  break-inside:    avoid;
+  margin:          1em 0;
+  font-size:       10pt;
+}
+
+thead tr        { background: #f0f0f0; }
+th              { font-weight: bold; text-align: left; }
+th, td          { border: 1pt solid var(--color-border); padding: 5pt 8pt; }
+tr:nth-child(even) td { background: #fafafa; }
+
+/* --------------------------------------------------------------------------
+   Lists
+   -------------------------------------------------------------------------- */
+ul, ol {
+  margin:        0 0 1em;
+  padding-left:  1.6em;
+}
+li              { margin: 0.2em 0; }
+li > ul, li > ol { margin-bottom: 0; }
+
+/* Task lists */
+li.task-list-item        { list-style: none; margin-left: -1.2em; }
+li.task-list-item input  { margin-right: 0.4em; }
+
+/* --------------------------------------------------------------------------
+   Misc
+   -------------------------------------------------------------------------- */
+img  { max-width: 100%; height: auto; break-inside: avoid; }
+hr   { border: none; border-top: 1pt solid var(--color-border); margin: 2em 0; }
+
+/* Footnotes */
+.footnotes {
+  font-size:    9.5pt;
+  color:        var(--color-muted);
+  border-top:   1pt solid var(--color-border);
+  margin-top:   2em;
+  padding-top:  0.5em;
+}
+
+/* --------------------------------------------------------------------------
+   Page-break utilities (usable in markdown via class attributes)
+   -------------------------------------------------------------------------- */
+.page-break   { page-break-after: always;  break-after: page; }
+.no-break     { page-break-inside: avoid;  break-inside: avoid; }
+.keep-with-next { page-break-after: avoid; break-after: avoid; }
+
+/* --------------------------------------------------------------------------
+   Pandoc-style Fenced Divs (::: class) and Inline Spans ([text]{.class})
+   -------------------------------------------------------------------------- */
+.callout, .warning, .info, .note {
+  padding: 10pt 14pt;
+  margin: 1em 0;
+  border-radius: 4pt;
+  break-inside: avoid;
+}
+
+.warning {
+  background: #fef2f2;
+  border-left: 4pt solid #ef4444;
+  color: #991b1b;
+}
+
+.info, .note {
+  background: #eff6ff;
+  border-left: 4pt solid #3b82f6;
+  color: #1e40af;
+}
+
+.callout {
+  background: #f9fafb;
+  border: 1pt solid var(--color-border);
+  border-left: 4pt solid var(--accent);
+}
+
+.columns {
+  display: flex;
+  gap: 16pt;
+  margin: 1em 0;
+  break-inside: avoid;
+}
+
+.col {
+  flex: 1;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1pt 5pt;
+  font-size: 8.5pt;
+  font-weight: 600;
+  border-radius: 3pt;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.badge-info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-warning {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+`;
 const PAGED_JS_URL = `${location.origin}/static/vendor/paged.polyfill.js`;
-let _currentBlobUrl = null;
+let _frameA = null;
+let _frameB = null;
+let _singleFrame = null;
+let _scrollEl = null;
+let _activeFrameName = "A";
 let _currentTheme = "light";
 let _currentDocToken = "";
-function setPreviewDocumentTheme(iframe, theme2) {
-  _currentTheme = theme2;
-  try {
-    const doc2 = iframe.contentDocument;
-    if (doc2 == null ? void 0 : doc2.documentElement) {
-      doc2.documentElement.setAttribute("data-theme", theme2);
+let _currentRenderId = 0;
+let _activeBlobUrls = { A: null, B: null, single: null };
+let _stagingBlobUrl = null;
+let _pendingFallbackTimer = null;
+let _onPageCountCallback = null;
+let _messageListenerAttached = false;
+function _ensureMessageListener() {
+  if (_messageListenerAttached || typeof window === "undefined") return;
+  window.addEventListener("message", (event) => {
+    var _a2;
+    if (((_a2 = event.data) == null ? void 0 : _a2.type) === "pagedjs:ready") {
+      const { renderId, pageCount, height } = event.data;
+      if (renderId === _currentRenderId) {
+        if (_frameA && _frameB) {
+          _performSwap(renderId, pageCount, height);
+        } else if (_singleFrame) {
+          _performSingleFrameReady(renderId, pageCount, height);
+        }
+      }
     }
-  } catch {
+  });
+  _messageListenerAttached = true;
+}
+function setPreviewDocumentTheme(targetOrTheme, theme2) {
+  const nextTheme = typeof targetOrTheme === "string" ? targetOrTheme : theme2;
+  _currentTheme = nextTheme;
+  const frames = [];
+  if (_frameA) frames.push(_frameA);
+  if (_frameB) frames.push(_frameB);
+  if (_singleFrame) frames.push(_singleFrame);
+  if (targetOrTheme && (targetOrTheme instanceof HTMLIFrameElement || targetOrTheme.tagName === "IFRAME")) {
+    frames.push(targetOrTheme);
   }
-}
-function initPreview(iframe, theme2 = "light") {
-  _currentTheme = theme2;
-  _render(iframe, "", "", _currentTheme, _currentDocToken);
-}
-function updatePreview(iframe, htmlBody, userCss, theme2 = _currentTheme, docToken = _currentDocToken) {
-  if (theme2) _currentTheme = theme2;
-  if (docToken !== void 0) _currentDocToken = docToken;
-  _render(iframe, htmlBody, userCss, _currentTheme, _currentDocToken);
-}
-function _render(iframe, htmlBody, userCss, theme2 = _currentTheme, docToken = _currentDocToken) {
-  const html2 = _buildDocument(htmlBody, userCss, theme2, docToken);
-  const blob = new Blob([html2], { type: "text/html" });
-  if (_currentBlobUrl) URL.revokeObjectURL(_currentBlobUrl);
-  _currentBlobUrl = URL.createObjectURL(blob);
-  iframe.onload = () => _resizeIframe(iframe);
-  iframe.src = _currentBlobUrl;
-}
-function _resizeIframe(iframe) {
-  setTimeout(() => {
+  for (const frame of frames) {
     try {
-      const doc2 = iframe.contentDocument;
-      const body = doc2 == null ? void 0 : doc2.body;
-      const html2 = doc2 == null ? void 0 : doc2.documentElement;
-      if (!body || !html2) return;
-      const height = Math.max(
-        body.scrollHeight,
-        body.offsetHeight,
-        html2.clientHeight,
-        html2.scrollHeight,
-        html2.offsetHeight
-      );
-      iframe.style.height = `${height}px`;
+      const doc2 = frame.contentDocument;
+      if (doc2 == null ? void 0 : doc2.documentElement) {
+        doc2.documentElement.setAttribute("data-theme", nextTheme);
+      }
     } catch {
     }
-  }, 650);
+  }
 }
-function _buildDocument(htmlBody, userCss, theme2 = "light", docToken = "") {
+function initPreview(target, theme2 = "light", onPageCount = void 0) {
+  _ensureMessageListener();
+  _currentTheme = theme2 || "light";
+  if (onPageCount) _onPageCountCallback = onPageCount;
+  if (target && target.frameA && target.frameB) {
+    _frameA = target.frameA;
+    _frameB = target.frameB;
+    _scrollEl = target.scrollEl || null;
+    _activeFrameName = "A";
+    _frameA.className = "preview-frame preview-frame--visible";
+    _frameB.className = "preview-frame preview-frame--staging";
+    _renderFrameDirect(_frameA, "", "", _currentTheme, _currentDocToken, "A");
+    return;
+  }
+  if (target && (target instanceof HTMLIFrameElement || target.tagName === "IFRAME")) {
+    _singleFrame = target;
+    _renderSingleFrame(_singleFrame, "", "", _currentTheme, _currentDocToken);
+  }
+}
+function updatePreview(targetOrHtml, htmlOrCss, userCss, theme2, docToken, onPageCount) {
+  _ensureMessageListener();
+  let htmlBody = "";
+  let css2 = "";
+  let th = _currentTheme;
+  let tok = _currentDocToken;
+  if (typeof targetOrHtml === "string") {
+    htmlBody = targetOrHtml;
+    css2 = typeof htmlOrCss === "string" ? htmlOrCss : "";
+    th = typeof userCss === "string" ? userCss : _currentTheme;
+    tok = typeof theme2 === "string" ? theme2 : _currentDocToken;
+    if (typeof docToken === "function") _onPageCountCallback = docToken;
+    else if (typeof onPageCount === "function") _onPageCountCallback = onPageCount;
+  } else {
+    htmlBody = typeof htmlOrCss === "string" ? htmlOrCss : "";
+    css2 = typeof userCss === "string" ? userCss : "";
+    th = typeof theme2 === "string" ? theme2 : _currentTheme;
+    tok = typeof docToken === "string" ? docToken : _currentDocToken;
+    if (typeof onPageCount === "function") _onPageCountCallback = onPageCount;
+    if (targetOrHtml && targetOrHtml.frameA && targetOrHtml.frameB) {
+      _frameA = targetOrHtml.frameA;
+      _frameB = targetOrHtml.frameB;
+      if (targetOrHtml.scrollEl) _scrollEl = targetOrHtml.scrollEl;
+    } else if (targetOrHtml && (targetOrHtml instanceof HTMLIFrameElement || targetOrHtml.tagName === "IFRAME")) {
+      _singleFrame = targetOrHtml;
+    }
+  }
+  _currentTheme = th || "light";
+  _currentDocToken = tok || "";
+  if (_frameA && _frameB) {
+    _renderDoubleBuffered(htmlBody, css2, _currentTheme, _currentDocToken);
+  } else if (_singleFrame) {
+    _renderSingleFrame(_singleFrame, htmlBody, css2, _currentTheme, _currentDocToken);
+  }
+}
+function _renderDoubleBuffered(htmlBody, userCss, theme2, docToken) {
+  const renderId = ++_currentRenderId;
+  const stagingName = _activeFrameName === "A" ? "B" : "A";
+  const stagingFrame = stagingName === "A" ? _frameA : _frameB;
+  if (!stagingFrame) return;
+  const html2 = _buildDocument(htmlBody, userCss, theme2, docToken, renderId);
+  const blob = new Blob([html2], { type: "text/html" });
+  _stagingBlobUrl = URL.createObjectURL(blob);
+  if (_pendingFallbackTimer) clearTimeout(_pendingFallbackTimer);
+  _pendingFallbackTimer = setTimeout(() => {
+    if (_currentRenderId === renderId) {
+      _performSwap(renderId);
+    }
+  }, 1500);
+  stagingFrame.onload = () => {
+    setTimeout(() => {
+      if (_currentRenderId === renderId && stagingFrame.classList.contains("preview-frame--staging")) {
+        _performSwap(renderId);
+      }
+    }, 800);
+  };
+  stagingFrame.src = _stagingBlobUrl;
+}
+function _performSwap(renderId, pageCount, height) {
+  var _a2, _b, _c;
+  if (renderId !== _currentRenderId) return;
+  if (_pendingFallbackTimer) {
+    clearTimeout(_pendingFallbackTimer);
+    _pendingFallbackTimer = null;
+  }
+  const activeName = _activeFrameName;
+  const stagingName = activeName === "A" ? "B" : "A";
+  const activeFrame = activeName === "A" ? _frameA : _frameB;
+  const stagingFrame = stagingName === "A" ? _frameA : _frameB;
+  if (!activeFrame || !stagingFrame) return;
+  let finalHeight = height;
+  if (!finalHeight || finalHeight <= 0) {
+    try {
+      const doc2 = stagingFrame.contentDocument;
+      const pagesEl = doc2 == null ? void 0 : doc2.querySelector(".pagedjs_pages");
+      finalHeight = pagesEl ? pagesEl.offsetHeight + 48 : Math.max(
+        ((_a2 = doc2 == null ? void 0 : doc2.body) == null ? void 0 : _a2.scrollHeight) || 0,
+        ((_b = doc2 == null ? void 0 : doc2.documentElement) == null ? void 0 : _b.scrollHeight) || 0
+      );
+    } catch {
+    }
+  }
+  if (finalHeight && finalHeight > 0) {
+    stagingFrame.style.height = `${finalHeight}px`;
+  }
+  const savedScrollTop = _scrollEl ? _scrollEl.scrollTop : null;
+  stagingFrame.classList.remove("preview-frame--staging");
+  stagingFrame.classList.add("preview-frame--visible");
+  activeFrame.classList.remove("preview-frame--visible");
+  activeFrame.classList.add("preview-frame--staging");
+  if (savedScrollTop !== null && _scrollEl) {
+    _scrollEl.scrollTop = savedScrollTop;
+  }
+  if (_activeBlobUrls[activeName]) {
+    URL.revokeObjectURL(_activeBlobUrls[activeName]);
+    _activeBlobUrls[activeName] = null;
+  }
+  _activeBlobUrls[stagingName] = _stagingBlobUrl;
+  _stagingBlobUrl = null;
+  _activeFrameName = stagingName;
+  let count2 = pageCount;
+  if (count2 === void 0) {
+    try {
+      count2 = ((_c = stagingFrame.contentDocument) == null ? void 0 : _c.querySelectorAll(".pagedjs_page").length) || 0;
+    } catch {
+      count2 = 0;
+    }
+  }
+  if (_onPageCountCallback) {
+    _onPageCountCallback(count2 ? `${count2} page${count2 > 1 ? "s" : ""}` : "");
+  }
+}
+function _renderFrameDirect(frame, htmlBody, userCss, theme2, docToken, key) {
+  const renderId = ++_currentRenderId;
+  const html2 = _buildDocument(htmlBody, userCss, theme2, docToken, renderId);
+  const blob = new Blob([html2], { type: "text/html" });
+  if (_activeBlobUrls[key]) {
+    URL.revokeObjectURL(_activeBlobUrls[key]);
+  }
+  const url = URL.createObjectURL(blob);
+  _activeBlobUrls[key] = url;
+  frame.onload = () => {
+    setTimeout(() => {
+      var _a2, _b;
+      try {
+        const doc2 = frame.contentDocument;
+        const pagesEl = doc2 == null ? void 0 : doc2.querySelector(".pagedjs_pages");
+        const height = pagesEl ? pagesEl.offsetHeight + 48 : Math.max(
+          ((_a2 = doc2 == null ? void 0 : doc2.body) == null ? void 0 : _a2.scrollHeight) || 0,
+          ((_b = doc2 == null ? void 0 : doc2.documentElement) == null ? void 0 : _b.scrollHeight) || 0
+        );
+        if (height > 0) frame.style.height = `${height}px`;
+      } catch {
+      }
+    }, 650);
+  };
+  frame.src = url;
+}
+function _renderSingleFrame(frame, htmlBody, userCss, theme2, docToken) {
+  const renderId = ++_currentRenderId;
+  const html2 = _buildDocument(htmlBody, userCss, theme2, docToken, renderId);
+  const blob = new Blob([html2], { type: "text/html" });
+  if (_activeBlobUrls.single) {
+    URL.revokeObjectURL(_activeBlobUrls.single);
+  }
+  _activeBlobUrls.single = URL.createObjectURL(blob);
+  if (_pendingFallbackTimer) clearTimeout(_pendingFallbackTimer);
+  _pendingFallbackTimer = setTimeout(() => {
+    if (_currentRenderId === renderId) {
+      _performSingleFrameReady(renderId);
+    }
+  }, 1500);
+  frame.onload = () => {
+    setTimeout(() => {
+      if (_currentRenderId === renderId) {
+        _performSingleFrameReady(renderId);
+      }
+    }, 650);
+  };
+  frame.src = _activeBlobUrls.single;
+}
+function _performSingleFrameReady(renderId, pageCount, height) {
+  var _a2, _b, _c;
+  if (renderId !== _currentRenderId || !_singleFrame) return;
+  if (_pendingFallbackTimer) {
+    clearTimeout(_pendingFallbackTimer);
+    _pendingFallbackTimer = null;
+  }
+  let finalHeight = height;
+  if (!finalHeight || finalHeight <= 0) {
+    try {
+      const doc2 = _singleFrame.contentDocument;
+      const pagesEl = doc2 == null ? void 0 : doc2.querySelector(".pagedjs_pages");
+      finalHeight = pagesEl ? pagesEl.offsetHeight + 48 : Math.max(
+        ((_a2 = doc2 == null ? void 0 : doc2.body) == null ? void 0 : _a2.scrollHeight) || 0,
+        ((_b = doc2 == null ? void 0 : doc2.documentElement) == null ? void 0 : _b.scrollHeight) || 0
+      );
+    } catch {
+    }
+  }
+  if (finalHeight && finalHeight > 0) {
+    _singleFrame.style.height = `${finalHeight}px`;
+  }
+  let count2 = pageCount;
+  if (count2 === void 0) {
+    try {
+      count2 = ((_c = _singleFrame.contentDocument) == null ? void 0 : _c.querySelectorAll(".pagedjs_page").length) || 0;
+    } catch {
+      count2 = 0;
+    }
+  }
+  if (_onPageCountCallback) {
+    _onPageCountCallback(count2 ? `${count2} page${count2 > 1 ? "s" : ""}` : "");
+  }
+}
+function _buildDocument(htmlBody, userCss, theme2 = "light", docToken = "", renderId = 0) {
   const baseHref = docToken ? `${location.origin}/api/assets/${docToken}/` : `${location.origin}/`;
   return `<!DOCTYPE html>
 <html lang="en" data-theme="${theme2}">
@@ -44956,8 +45421,11 @@ function _buildDocument(htmlBody, userCss, theme2 = "light", docToken = "") {
 
   <base href="${baseHref}">
 
-  <link rel="stylesheet" href="${PRINT_CSS_URL}">
-  <style>
+  <style id="base-print-css">
+${printCssText}
+  </style>
+
+  <style id="base-theme-css">
     html, body {
       background: transparent !important;
     }
@@ -45092,6 +45560,33 @@ function _buildDocument(htmlBody, userCss, theme2 = "light", docToken = "") {
 
     ${userCss}
   </style>
+
+  <script>
+    window.PagedConfig = {
+      auto: true,
+      after: function(flow) {
+        try {
+          var count = (flow && flow.pages) ? flow.pages.length : (flow && flow.total) ? flow.total : (document.querySelectorAll('.pagedjs_page').length || 0);
+          var pagesEl = document.querySelector('.pagedjs_pages');
+          var h = pagesEl ? (pagesEl.offsetHeight + 48) : Math.max(
+            document.body ? document.body.scrollHeight : 0,
+            document.body ? document.body.offsetHeight : 0,
+            document.documentElement ? document.documentElement.clientHeight : 0,
+            document.documentElement ? document.documentElement.scrollHeight : 0,
+            document.documentElement ? document.documentElement.offsetHeight : 0
+          );
+          window.parent.postMessage({
+            type: 'pagedjs:ready',
+            renderId: ${renderId},
+            pageCount: count,
+            height: h
+          }, '*');
+        } catch (e) {
+          console.warn('PagedConfig.after error:', e);
+        }
+      }
+    };
+  <\/script>
   <script src="${PAGED_JS_URL}"><\/script>
 </head>
 <body>
@@ -45726,7 +46221,10 @@ function WorkspacePanes(props) {
           )
         ] }) })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `preview-scroll preview-theme--${props.theme}`, children: /* @__PURE__ */ jsxRuntimeExports.jsx("iframe", { ref: props.frame, className: "preview-frame", sandbox: "allow-scripts allow-same-origin", title: "Document preview" }) })
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `preview-scroll preview-theme--${props.theme}`, ref: props.previewScroll, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("iframe", { ref: props.frameA, className: "preview-frame preview-frame--visible", title: "Document preview" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("iframe", { ref: props.frameB, className: "preview-frame preview-frame--staging", title: "Document preview staging" })
+      ] })
     ] })
   ] });
 }
@@ -46485,13 +46983,8 @@ function useLiveSync(workspace, frame, theme2, setStatus, setPageCount) {
       const renderedCss = data2.project_css !== void 0 ? `${data2.project_css}
 ${data2.css || ""}` : data2.css || effectiveCss();
       const token = data2.doc_token || active.docToken;
-      updatePreview(frame.current, data2.html || "", renderedCss, theme2, token);
+      updatePreview(frame.current, data2.html || "", renderedCss, theme2, token, setPageCount);
       setStatus("connected", "Live");
-      window.setTimeout(() => {
-        var _a2, _b;
-        const pages = ((_b = (_a2 = frame.current) == null ? void 0 : _a2.contentDocument) == null ? void 0 : _b.querySelectorAll(".pagedjs_page").length) || 0;
-        setPageCount(pages ? `${pages} page${pages > 1 ? "s" : ""}` : "");
-      }, 800);
     };
     const onDocumentChange = (event) => {
       const data2 = event.detail || {};
@@ -46546,7 +47039,7 @@ ${active.css}` : active.css);
 ${data2.css || ""}` : data2.css || active.css;
       const token = data2.doc_token || active.docToken;
       if (data2.html) {
-        updatePreview(frame.current, data2.html, renderedCss, theme2, token);
+        updatePreview(frame.current, data2.html, renderedCss, theme2, token, setPageCount);
       }
       markClean("Synced from disk");
     };
@@ -46635,10 +47128,14 @@ function usePreferences(frame) {
   }, []);
   return { theme: theme2, settingsOpen, noCrop, noWhitespace, setSettingsOpen, changeTheme, changeNoCrop, changeNoWhitespace };
 }
-function usePreview(frame, theme2) {
+function usePreview(frameA, frameB, previewScroll, theme2, onPageCount) {
   reactExports.useEffect(() => {
-    initPreview(frame.current, theme2);
-  }, [frame]);
+    initPreview(
+      { frameA: frameA.current, frameB: frameB.current, scrollEl: previewScroll.current },
+      theme2,
+      onPageCount
+    );
+  }, [frameA, frameB, previewScroll, onPageCount]);
 }
 function useProjects(workspace) {
   const {
@@ -47284,7 +47781,9 @@ ${value}` : value);
 }
 function App() {
   const workspace = useWorkspace();
-  const frame = reactExports.useRef(null);
+  const frameA = reactExports.useRef(null);
+  const frameB = reactExports.useRef(null);
+  const previewScroll = reactExports.useRef(null);
   const panes = reactExports.useRef(null);
   const divider = reactExports.useRef(null);
   const leftPane = reactExports.useRef(null);
@@ -47301,7 +47800,7 @@ function App() {
   const [libraryVisible, setLibraryVisible] = reactExports.useState(true);
   const [cssVisible, setCssVisible] = reactExports.useState(true);
   const [exporting, setExporting] = reactExports.useState(false);
-  const preferences = usePreferences(frame);
+  const preferences = usePreferences(frameA);
   const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle } = useProjects(workspace);
   reactExports.useEffect(() => {
     const handleKeyDown = (e) => {
@@ -47361,8 +47860,8 @@ function App() {
     setStatusTitle(title || next);
   }, []);
   useEditors(workspace, library);
-  usePreview(frame, preferences.theme);
-  useLiveSync(workspace, frame, preferences.theme, setAppStatus, setPageCount);
+  usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount);
+  useLiveSync(workspace, frameA, preferences.theme, setAppStatus, setPageCount);
   useLayout(workspace, panes, divider, leftPane);
   reactExports.useEffect(() => {
     const closeSettings = () => preferences.setSettingsOpen(false);
@@ -47408,8 +47907,8 @@ function App() {
       setEditorContent(workspace.refs.cssView.current, conflict.css);
     }
     if (conflict.project_css !== void 0) workspace.setProjectCss(conflict.project_css);
-    if (conflict.html) updatePreview(frame.current, conflict.html, conflict.project_css ? `${conflict.project_css}
-${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docToken);
+    if (conflict.html) updatePreview(frameA.current, conflict.html, conflict.project_css ? `${conflict.project_css}
+${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docToken, setPageCount);
     workspace.markClean("Reloaded from disk");
   }, [preferences.theme, workspace]);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "app", children: [
@@ -47479,7 +47978,9 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         cssVisible,
         noCrop: preferences.noCrop,
         noWhitespace: preferences.noWhitespace,
-        frame,
+        frameA,
+        frameB,
+        previewScroll,
         pageCount,
         theme: preferences.theme,
         onCss: () => setCssVisible((value) => !value),

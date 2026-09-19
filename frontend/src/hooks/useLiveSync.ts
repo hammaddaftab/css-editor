@@ -41,13 +41,8 @@ export function useLiveSync(
         : data.css || effectiveCss();
       const token = data.doc_token || active.docToken;
 
-      updatePreview(frame.current, data.html || '', renderedCss, theme, token);
+      updatePreview(frame.current, data.html || '', renderedCss, theme, token, setPageCount);
       setStatus('connected', 'Live');
-
-      window.setTimeout(() => {
-        const pages = frame.current?.contentDocument?.querySelectorAll('.pagedjs_page').length || 0;
-        setPageCount(pages ? `${pages} page${pages > 1 ? 's' : ''}` : '');
-      }, 800);
     };
 
     const onDocumentChange = (event: Event) => {
@@ -118,7 +113,7 @@ export function useLiveSync(
       const token = data.doc_token || active.docToken;
 
       if (data.html) {
-        updatePreview(frame.current, data.html, renderedCss, theme, token);
+        updatePreview(frame.current, data.html, renderedCss, theme, token, setPageCount);
       }
       markClean('Synced from disk');
     };
