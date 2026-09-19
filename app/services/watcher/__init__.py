@@ -1,9 +1,9 @@
-"""Watcher subsystem facade and backward compatibility module.
+"""Watcher subsystem package.
 
-Decomposed into three distinct layers:
-1. WatchOrchestrator (orchestrator layer whose job is only detecting watch mode via CLI flag or frontend call)
-2. WatchModeHandler (layer for handling standalone watch mode itself with self-contained cleanup)
-3. ProjectWatcherHandler (project handling layer which watches the respective project only with self-contained cleanup)
+Layers:
+1. WatchOrchestrator: Pure detection of watch mode (CLI flag or frontend call) & coordination.
+2. WatchModeHandler: Standalone document watch layer with self-contained cleanup.
+3. ProjectWatcherHandler: Project watch layer watching respective project only with self-contained cleanup.
 """
 from pathlib import Path
 
@@ -21,9 +21,10 @@ watch_orchestrator = WatchOrchestrator(
     project_handler=project_watcher_handler,
 )
 
-# Backward-compatible alias
+# Backward-compatible aliases
 watcher_manager = watch_orchestrator
 ProjectWatcherManager = WatchOrchestrator
+watch_directory = watch_project_directory
 
 
 async def watch_markdown_file(path: Path, custom_css: Path | None = None) -> None:
@@ -31,9 +32,6 @@ async def watch_markdown_file(path: Path, custom_css: Path | None = None) -> Non
     context = resolve_watch_context(doc_path=path, custom_css=custom_css)
     await watch_document(context)
 
-
-# Alias for backwards compatibility
-watch_directory = watch_project_directory
 
 __all__ = [
     "ProjectWatcherHandler",
