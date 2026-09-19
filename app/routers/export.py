@@ -46,7 +46,9 @@ _HTML_TEMPLATE = """\
 
 
 
-
+# relies on local service which uses MarkdownIt to render html body
+# combies with a template and fill in body + css
+# passes the html to weasyprint
 @router.post("/export", summary="Export markdown to PDF")
 async def export_pdf(req: ExportRequest, request: Request) -> Response:
     html_body = render_markdown(req.markdown)
@@ -61,9 +63,12 @@ async def export_pdf(req: ExportRequest, request: Request) -> Response:
     )
     full_html = _HTML_TEMPLATE.format(css=combined_css, body=html_body, author_meta=author_meta)
 
-    # Pass the server's base URL so WeasyPrint can resolve image paths like
-    # /static/images/photo.jpg → http://localhost:8000/static/images/photo.jpg
-    base_url = str(request.base_url)
+    # Pass local directory base URL if doc_path is specified so WeasyPrint can resolve
+    # relative image paths (e.g. ./figures/arch.png) directly from disk.
+    if req.doc_path:
+        base_url = str(Path(req.doc_path).resolve().parent)
+    else:
+        base_url = str(request.base_url)
 
     # Run blocking WeasyPrint off the event loop
     pdf_bytes: bytes = await asyncio.to_thread(render_pdf, full_html, base_url)

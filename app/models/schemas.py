@@ -17,3 +17,4 @@ class ExportRequest(BaseModel):
     markdown: str = Field(default="", description="Raw markdown text")
     css: str = Field(default="", description="Custom CSS to apply to the document")
     filename: str = Field(default="document", description="Output filename without extension")
+    doc_path: str | None = Field(default=None, description="Document path for local relative asset resolution")

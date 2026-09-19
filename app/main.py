@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.routers import documents, export, images, pages, render, settings as settings_router, sse, telemetry
+from app.routers import assets, documents, export, images, pages, render, settings as settings_router, sse, telemetry
 from app.services.watcher import watch_markdown_file, watcher_manager
 
 
@@ -67,5 +67,5 @@ app = FastAPI(
 
 app.mount("/static", StaticFiles(directory=settings.static_path), name="static")
 
-for _router in (pages.router, render.router, export.router, sse.router, images.router, documents.router, settings_router.router, telemetry.router):
+for _router in (pages.router, render.router, export.router, sse.router, images.router, assets.router, documents.router, settings_router.router, telemetry.router):
     app.include_router(_router)

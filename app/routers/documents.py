@@ -1,17 +1,21 @@
-"""
-Documents router — save and load project Markdown and CSS files.
+"""Documents router — unified document loading, saving, and workspace discovery.
 
-Security:
-  Project paths are restricted strictly to the configured projects directory
-  (no path traversal, no hidden files).
+Supports both:
+- Unified document endpoints (/api/document) accepting TargetSpec (mode='watch' | mode='project').
+- Legacy endpoints for backward compatibility with existing frontend and tests.
 """
 from pathlib import Path
+from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.models.context import ProjectTarget, WatchTarget
+from app.routers.assets import encode_doc_token
+from app.services.context_svc import resolve_document_context
+from app.services.document_svc import read_document_io, write_document_io
 
 router = APIRouter(prefix="/api", tags=["documents"])
 
@@ -21,6 +25,19 @@ def get_projects_root() -> Path:
     root = settings.projects_path
     root.mkdir(parents=True, exist_ok=True)
     return root
+
+
+# ── Request / Response Models ──────────────────────────────────────────────────
+
+
+class SaveUnifiedDocumentRequest(BaseModel):
+    mode: Literal["watch", "project"] = Field(default="watch", description="Active editing mode")
+    path: Path | None = Field(default=None, description="Absolute Markdown path for watch mode")
+    custom_css: Path | None = Field(default=None, description="Custom CSS path for watch mode")
+    project: str | None = Field(default=None, description="Project directory name for project mode")
+    filename: str | None = Field(default=None, description="Document filename for project mode")
+    markdown: str = Field(default="", description="Markdown text")
+    css: str = Field(default="", description="CSS text")
 
 
 class SaveDocumentRequest(BaseModel):
@@ -35,6 +52,9 @@ class ProjectDocumentRequest(SaveDocumentRequest):
 
 class CreateProjectRequest(BaseModel):
     name: str = Field(description="Project directory name")
+
+
+# ── Legacy Project Helpers ────────────────────────────────────────────────────
 
 
 def resolve_project(project: str) -> Path:
@@ -78,16 +98,120 @@ def resolve_project_file(project_path: Path, filename: str) -> Path:
     return path
 
 
-@router.get("/projects", summary="List filesystem-backed projects")
+# ── Unified Endpoints (Phase 2) ────────────────────────────────────────────────
+
+
+@router.get("/document", summary="Load a document using unified TargetSpec")
+async def load_document(
+    mode: Literal["watch", "project"] = Query(default="watch"),
+    path: str | None = Query(default=None, description="Absolute Markdown path for watch mode"),
+    custom_css: str | None = Query(default=None, description="Custom CSS path for watch mode"),
+    project: str | None = Query(default=None, description="Project name for project mode"),
+    filename: str | None = Query(default=None, description="Filename for project mode"),
+) -> JSONResponse:
+    projects_root = get_projects_root()
+
+    try:
+        if mode == "watch":
+            if not path:
+                raise HTTPException(status_code=400, detail="path parameter is required for watch mode.")
+            target = WatchTarget(
+                doc_path=Path(path),
+                custom_css=Path(custom_css) if custom_css else None,
+            )
+            context = resolve_document_context(target)
+        else:
+            if not project:
+                raise HTTPException(status_code=400, detail="project parameter is required for project mode.")
+            target = ProjectTarget(
+                project_name=project,
+                filename=filename or "README.md",
+            )
+            context = resolve_document_context(target, projects_root=projects_root)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    markdown, css, mtime = read_document_io(context.doc_path, context.css_path)
+    shared_css = None
+
+    if context.mode == "project" and context.project_css_path and context.project_css_path.is_file():
+        shared_css = context.project_css_path.read_text(encoding="utf-8")
+
+    doc_token = encode_doc_token(context.doc_path.parent)
+
+    return JSONResponse({
+        "doc_path": str(context.doc_path),
+        "filename": context.doc_path.name,
+        "mode": context.mode,
+        "markdown": markdown,
+        "css": css,
+        "shared_css": shared_css,
+        "doc_token": doc_token,
+        "exists": context.doc_path.is_file(),
+        "mtime": mtime,
+    })
+
+
+@router.post("/document", summary="Save a document using unified TargetSpec")
+async def save_document(req: SaveUnifiedDocumentRequest) -> JSONResponse:
+    projects_root = get_projects_root()
+
+    try:
+        if req.mode == "watch":
+            if not req.path:
+                raise HTTPException(status_code=400, detail="path field is required for watch mode.")
+            target = WatchTarget(
+                doc_path=req.path,
+                custom_css=req.custom_css,
+            )
+            context = resolve_document_context(target)
+        else:
+            if not req.project:
+                raise HTTPException(status_code=400, detail="project field is required for project mode.")
+            target = ProjectTarget(
+                project_name=req.project,
+                filename=req.filename or "README.md",
+            )
+            context = resolve_document_context(target, projects_root=projects_root)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    write_document_io(context.doc_path, req.markdown, req.css, context.css_path)
+    mtime = context.doc_path.stat().st_mtime if context.doc_path.is_file() else None
+
+    return JSONResponse({
+        "saved": True,
+        "doc_path": str(context.doc_path),
+        "mtime": mtime,
+    })
+
+
+@router.get("/workspace", summary="Discover workspace projects and files")
+async def get_workspace() -> JSONResponse:
+    projects = []
+    root = get_projects_root()
+    for path in sorted(root.iterdir(), key=lambda item: item.name.lower()):
+        if not path.is_dir() or path.name.startswith(".") or not path.resolve().is_relative_to(root):
+            continue
+        documents = scan_project_documents(path)
+        if documents:
+            projects.append({
+                "name": path.name,
+                "path": str(path),
+                "documents": documents,
+            })
+    return JSONResponse({"projects": projects})
+
+
+# ── Backward Compatibility Endpoints ──────────────────────────────────────────
+
+
+@router.get("/projects", summary="List filesystem-backed projects (Legacy)")
 async def list_projects() -> JSONResponse:
     projects = []
     root = get_projects_root()
     for path in sorted(root.iterdir(), key=lambda item: item.name.lower()):
-        if (
-            not path.is_dir()
-            or path.name.startswith(".")
-            or not path.resolve().is_relative_to(root)
-        ):
+        if not path.is_dir() or path.name.startswith(".") or not path.resolve().is_relative_to(root):
             continue
         documents = scan_project_documents(path)
         if documents:
@@ -115,7 +239,7 @@ async def create_project(req: CreateProjectRequest) -> JSONResponse:
     return JSONResponse({"created": True, "name": name}, status_code=201)
 
 
-@router.get("/project/document", summary="Load a document from a project")
+@router.get("/project/document", summary="Load a document from a project (Legacy)")
 async def load_project_document(project: str, filename: str = "README.md") -> JSONResponse:
     project_path = resolve_project(project)
     path = resolve_project_file(project_path, filename)
@@ -134,17 +258,15 @@ async def load_project_document(project: str, filename: str = "README.md") -> JS
     })
 
 
-@router.post("/project/document", summary="Save a document in a project")
+@router.post("/project/document", summary="Save a document in a project (Legacy)")
 async def save_project_document(req: ProjectDocumentRequest) -> JSONResponse:
     project_path = resolve_project(req.project)
     path = resolve_project_file(project_path, req.filename)
     css_path = path.with_suffix(".css")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(req.markdown, encoding="utf-8")
-    css_path.write_text(req.css, encoding="utf-8")
+    write_document_io(path, req.markdown, req.css, css_path)
     return JSONResponse({"saved": True, "project": req.project, "filename": path.relative_to(project_path).as_posix()})
 
 
-@router.get("/project/documents", summary="List Markdown documents in a project")
+@router.get("/project/documents", summary="List Markdown documents in a project (Legacy)")
 async def list_project_documents(project: str) -> JSONResponse:
     return JSONResponse({"files": scan_project_documents(resolve_project(project))})
