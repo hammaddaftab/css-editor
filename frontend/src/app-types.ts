@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 
 export type TargetSpec =
+  | { mode: 'idle' }
   | { mode: 'watch'; path: string; customCss?: string }
   | { mode: 'project'; project: string; filename: string };
 

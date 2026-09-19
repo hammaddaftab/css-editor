@@ -1199,3 +1199,252 @@ html, body {
   border-top:      1px solid var(--border);
 }
 
+/* --------------------------------------------------------------------------
+   Idle Mode Launcher & Selection Cards
+   -------------------------------------------------------------------------- */
+.idle-overlay {
+  position:        fixed;
+  top:             var(--toolbar-h);
+  left:            0;
+  right:           0;
+  bottom:          0;
+  background:      rgba(17, 17, 19, 0.96);
+  backdrop-filter: blur(8px);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  z-index:         40;
+  padding:         24px;
+  overflow-y:      auto;
+}
+
+.idle-container {
+  max-width:       860px;
+  width:           100%;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  text-align:      center;
+  gap:             32px;
+  animation:       fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.idle-header {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             10px;
+}
+
+.idle-badge {
+  font-size:       11px;
+  font-weight:     700;
+  letter-spacing:  0.08em;
+  color:           var(--accent);
+  background:      var(--accent-subtle);
+  border:          1px solid rgba(37, 99, 235, 0.3);
+  padding:         3px 10px;
+  border-radius:   20px;
+}
+
+.idle-title {
+  font-size:       28px;
+  font-weight:     700;
+  color:           var(--text-primary);
+  letter-spacing:  -0.02em;
+}
+
+.idle-subtitle {
+  font-size:       15px;
+  color:           var(--text-secondary);
+  max-width:       540px;
+  line-height:     1.5;
+}
+
+.idle-cards {
+  display:               grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap:                   24px;
+  width:                 100%;
+  text-align:            left;
+}
+
+.idle-card {
+  background:      var(--bg-surface);
+  border:          1px solid var(--border);
+  border-radius:   10px;
+  padding:         28px;
+  display:         flex;
+  flex-direction:  column;
+  justify-content: space-between;
+  transition:      transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+  box-shadow:      0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.idle-card:hover {
+  transform:       translateY(-2px);
+  border-color:    var(--border-hover);
+  box-shadow:      0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+.idle-card--watch:hover {
+  border-color:    rgba(37, 99, 235, 0.5);
+  box-shadow:      0 8px 30px rgba(37, 99, 235, 0.15);
+}
+
+.idle-card--project:hover {
+  border-color:    rgba(16, 185, 129, 0.5);
+  box-shadow:      0 8px 30px rgba(16, 185, 129, 0.15);
+}
+
+.idle-card__header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   16px;
+}
+
+.idle-card__icon {
+  font-size:       28px;
+}
+
+.idle-card__badge {
+  font-size:       11px;
+  font-weight:     600;
+  padding:         2px 8px;
+  border-radius:   var(--radius-sm);
+  background:      rgba(16, 185, 129, 0.12);
+  color:           #34d399;
+  border:          1px solid rgba(16, 185, 129, 0.3);
+}
+
+.idle-card__badge--watch {
+  background:      var(--accent-subtle);
+  color:           #60a5fa;
+  border-color:    rgba(37, 99, 235, 0.4);
+}
+
+.idle-card__title {
+  font-size:       19px;
+  font-weight:     600;
+  color:           var(--text-primary);
+  margin-bottom:   8px;
+}
+
+.idle-card__desc {
+  font-size:       13.5px;
+  color:           var(--text-secondary);
+  line-height:     1.55;
+  margin-bottom:   24px;
+}
+
+.idle-card__desc code {
+  font-family:     var(--font-mono);
+  font-size:       12px;
+  background:      var(--bg-subtle);
+  padding:         2px 5px;
+  border-radius:   3px;
+  color:           var(--text-primary);
+}
+
+.idle-card__actions {
+  display:         flex;
+  flex-direction:  column;
+  gap:             14px;
+  margin-top:      auto;
+}
+
+.idle-project-select-row {
+  display:         flex;
+  flex-direction:  column;
+  gap:             6px;
+}
+
+.idle-label {
+  font-size:       12px;
+  font-weight:     500;
+  color:           var(--text-muted);
+}
+
+.idle-select {
+  width:           100%;
+  height:          36px;
+  background:      var(--bg-header);
+  border:          1px solid var(--border);
+  color:           var(--text-primary);
+  border-radius:   var(--radius);
+  padding:         0 10px;
+  font-size:       13px;
+  outline:         none;
+}
+
+.idle-select:focus {
+  border-color:    var(--border-accent);
+}
+
+.idle-empty-projects {
+  font-size:       12.5px;
+  color:           var(--text-muted);
+  padding:         8px 0;
+}
+
+.idle-btn-group {
+  display:         flex;
+  gap:             10px;
+  flex-wrap:       wrap;
+}
+
+.idle-btn-main {
+  flex:            1;
+  height:          38px;
+  font-size:       13.5px;
+  font-weight:     600;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             6px;
+}
+
+.idle-btn-sec {
+  height:          38px;
+  font-size:       13px;
+}
+
+.idle-shortcut-hint {
+  font-size:       11.5px;
+  color:           var(--text-muted);
+  text-align:      center;
+  margin-top:      4px;
+}
+
+.idle-shortcut-hint kbd {
+  display:         inline-block;
+  padding:         1px 5px;
+  font-family:     var(--font-mono);
+  font-size:       10.5px;
+  background:      var(--bg-header);
+  border:          1px solid var(--border);
+  border-radius:   3px;
+  color:           var(--text-secondary);
+}
+
+.doc-pill--idle {
+  border-color:    rgba(156, 163, 175, 0.3);
+  background:      rgba(156, 163, 175, 0.08);
+}
+
+.badge-idle {
+  font-size:       10px;
+  background:      #4b5563;
+  color:           #ffffff;
+  border-radius:   var(--radius-sm);
+  padding:         1px 6px;
+  font-weight:     700;
+  letter-spacing:  0.04em;
+}
+

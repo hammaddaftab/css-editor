@@ -114,7 +114,7 @@ export function useProjects(workspace: any) {
     initialized.current = true;
 
     void (async () => {
-      const available = await refreshProjects();
+      await refreshProjects();
 
       // If CLI seeded a watch file:
       const activeWatch = workspace.activeWatchTarget;
@@ -123,19 +123,15 @@ export function useProjects(workspace: any) {
         return;
       }
 
-      if (!available.length) return;
-      const nextProject = available.some((item: { name: string }) => item.name === current.current.project)
-        ? current.current.project : available[0].name;
-      setProject(nextProject);
-      const nextFiles = await refreshFiles(nextProject);
-      const nextFile = nextFiles.some((item: { filename: string }) => item.filename === current.current.filename)
-        ? current.current.filename : nextFiles[0]?.filename;
-      if (nextFile) {
-        setFilename(nextFile);
-        await loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
-      }
+      // Explicitly stay in idle mode when watch mode condition fails:
+      // The user will be prompted with the mode selection cards.
+      workspace.setTarget({ mode: 'idle' });
     })();
-  }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject, workspace.activeWatchTarget]);
+  }, [loadDocument, refreshProjects, workspace]);
 
-  return { project, filename, switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch };
+  const switchToIdle = useCallback(() => {
+    workspace.setTarget({ mode: 'idle' });
+  }, [workspace]);
+
+  return { project, filename, switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle };
 }

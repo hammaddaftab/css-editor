@@ -45113,6 +45113,118 @@ function ConflictBanner({ conflict, onReload, onKeep }) {
     ] })
   ] });
 }
+function IdleLauncher(props) {
+  var _a2;
+  const [selectedProject, setSelectedProject] = reactExports.useState("");
+  reactExports.useEffect(() => {
+    if (props.projects.length > 0 && !selectedProject) {
+      setSelectedProject(props.projects[0].name);
+    }
+  }, [props.projects, selectedProject]);
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-overlay", role: "dialog", "aria-modal": "true", "aria-label": "Select an editing mode", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-container", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-header", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-badge", children: "CSS MARKDOWN EDITOR" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "idle-title", children: "Select an Editing Mode" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "idle-subtitle", children: "Choose your workflow to begin. No default mode is forced." })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-cards", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card idle-card--project", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__header", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "idle-card__icon", children: "📦" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "idle-card__badge", children: "Managed Publication" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "idle-card__title", children: "Project Workspace" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "idle-card__desc", children: [
+          "Draft multi-page publications, reports, or books with shared ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "project.css" }),
+          " stylesheets and a managed image asset library."
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__actions", children: [
+          props.projects.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-project-select-row", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "idle-label", htmlFor: "idle-project-select", children: "Available Project:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "select",
+              {
+                id: "idle-project-select",
+                className: "idle-select",
+                value: selectedProject || ((_a2 = props.projects[0]) == null ? void 0 : _a2.name) || "",
+                onChange: (e) => setSelectedProject(e.target.value),
+                children: props.projects.map((p) => /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: p.name, children: [
+                  p.name,
+                  " (",
+                  p.documents,
+                  " ",
+                  p.documents === 1 ? "document" : "documents",
+                  ")"
+                ] }, p.name))
+              }
+            )
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-empty-projects", children: "No projects created yet. Create a new one below." }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-btn-group", children: [
+            props.projects.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                className: "btn btn--primary idle-btn-main",
+                onClick: () => props.onSelectProject(selectedProject || props.projects[0].name),
+                children: "📦 Open Project"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                className: `btn ${props.projects.length === 0 ? "btn--primary" : "btn--ghost"} idle-btn-sec`,
+                onClick: props.onCreateProject,
+                children: "＋ New Project…"
+              }
+            )
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card idle-card--watch", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__header", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "idle-card__icon", children: "👁" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "idle-card__badge idle-card__badge--watch", children: "Live Companion" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "idle-card__title", children: "Standalone / Watch Mode" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "idle-card__desc", children: "Write in your external editor (Neovim, VS Code, Obsidian) with atomic-safe live reload, zero project style bleeding, and PDF export." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__actions", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-btn-group", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                className: "btn btn--primary idle-btn-main",
+                onClick: props.onOpenWatchFile,
+                children: "👁 Open File to Watch…"
+              }
+            ),
+            props.activeWatchTarget && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                type: "button",
+                className: "btn btn--ghost idle-btn-sec",
+                title: `Resume watching ${props.activeWatchTarget.path}`,
+                onClick: props.onSwitchToWatch,
+                children: [
+                  "Resume: ",
+                  props.activeWatchTarget.filename
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-shortcut-hint", children: [
+            "External file picker shortcut: ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("kbd", { children: "Ctrl" }),
+            " + ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("kbd", { children: "O" })
+          ] })
+        ] })
+      ] })
+    ] })
+  ] }) });
+}
 function Toolbar(props) {
   var _a2, _b, _c, _d;
   const projectOptions = props.projects.length ? props.projects.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item.name, children: item.name }, item.name)) : /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "Loading projects…" });
@@ -45123,7 +45235,14 @@ function Toolbar(props) {
       "CSS Markdown Editor"
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__doc", children: [
-      props.mode === "watch" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      props.mode === "idle" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--idle", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon", children: "⏸" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", style: { color: "var(--text-secondary)", fontWeight: 500 }, children: "Idle · Select a Mode" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge-idle", children: "IDLE" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open an external Markdown file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "👁 Watch File…" })
+      ] }) : props.mode === "watch" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--watch", title: `Watching external file: ${props.docPath}`, children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon doc-icon--pulse", children: "👁" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", style: { fontWeight: 600, maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: props.filename }),
@@ -45131,7 +45250,8 @@ function Toolbar(props) {
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open another file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "👁 Open File…" }),
-        props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Switch back to Projects workspace", onClick: props.onSwitchToProjects, children: "📂 Projects" })
+        props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Switch back to Projects workspace", onClick: props.onSwitchToProjects, children: "📂 Projects" }),
+        props.onSwitchToIdle && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Return to mode selection launcher", onClick: props.onSwitchToIdle, children: "⏸ Launcher" })
       ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon", children: "📦" }),
@@ -45161,9 +45281,20 @@ function Toolbar(props) {
               props.activeWatchTarget.filename
             ]
           }
-        )
+        ),
+        props.onSwitchToIdle && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Return to mode selection launcher", onClick: props.onSwitchToIdle, children: "⏸ Launcher" })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Save document (Ctrl+S)", onClick: props.onSave, children: "💾 Save" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: "btn btn--ghost btn--xs",
+          title: "Save document (Ctrl+S)",
+          disabled: props.mode === "idle",
+          style: props.mode === "idle" ? { opacity: 0.4, cursor: "not-allowed" } : void 0,
+          onClick: props.onSave,
+          children: "💾 Save"
+        }
+      ),
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `save-status${props.saveStatus === "Saved" ? " is-saved" : ""}`, children: props.saveStatus })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__actions", children: [
@@ -45218,7 +45349,16 @@ function Toolbar(props) {
         ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("input", { ref: props.imageInput, type: "file", accept: "image/jpeg,image/png,image/gif,image/webp,image/svg+xml", style: { display: "none" }, multiple: true }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--primary", disabled: props.exporting, onClick: props.onExport, children: props.exporting ? "⏳ Exporting…" : "⬇ Export PDF" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: "btn btn--primary",
+          disabled: props.mode === "idle" || props.exporting,
+          style: props.mode === "idle" ? { opacity: 0.4, cursor: "not-allowed" } : void 0,
+          onClick: props.onExport,
+          children: props.exporting ? "⏳ Exporting…" : "⬇ Export PDF"
+        }
+      )
     ] })
   ] });
 }
@@ -46463,25 +46603,19 @@ function useProjects(workspace) {
     if (initialized.current) return;
     initialized.current = true;
     void (async () => {
-      var _a2;
-      const available = await refreshProjects();
+      await refreshProjects();
       const activeWatch = workspace.activeWatchTarget;
       if (activeWatch && activeWatch.path) {
         await loadDocument({ mode: "watch", path: activeWatch.path });
         return;
       }
-      if (!available.length) return;
-      const nextProject = available.some((item) => item.name === current.current.project) ? current.current.project : available[0].name;
-      setProject(nextProject);
-      const nextFiles = await refreshFiles(nextProject);
-      const nextFile = nextFiles.some((item) => item.filename === current.current.filename) ? current.current.filename : (_a2 = nextFiles[0]) == null ? void 0 : _a2.filename;
-      if (nextFile) {
-        setFilename(nextFile);
-        await loadDocument({ mode: "project", project: nextProject, filename: nextFile });
-      }
+      workspace.setTarget({ mode: "idle" });
     })();
-  }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject, workspace.activeWatchTarget]);
-  return { project, filename, switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch };
+  }, [loadDocument, refreshProjects, workspace]);
+  const switchToIdle = reactExports.useCallback(() => {
+    workspace.setTarget({ mode: "idle" });
+  }, [workspace]);
+  return { project, filename, switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle };
 }
 const PROJECT_KEY = "css_editor_active_project";
 const FILE_KEY = "css_editor_active_file";
@@ -46505,9 +46639,7 @@ function useWorkspace() {
   const [files, setFiles] = reactExports.useState([]);
   const [filename, setFilename] = reactExports.useState(() => stored(FILE_KEY, "document.md"));
   const [target, setTarget] = reactExports.useState(() => ({
-    mode: "project",
-    project: stored(PROJECT_KEY, ""),
-    filename: stored(FILE_KEY, "document.md")
+    mode: "idle"
   }));
   const [activeWatchTarget, setActiveWatchTarget] = reactExports.useState(null);
   const [docToken, setDocToken] = reactExports.useState("");
@@ -46616,6 +46748,10 @@ ${value.css}` : value.css;
   }, []);
   const loadDocument = reactExports.useCallback(async (spec) => {
     var _a2;
+    if (spec.mode === "idle") {
+      setTarget({ mode: "idle" });
+      return;
+    }
     try {
       let query = `mode=${spec.mode}`;
       if (spec.mode === "watch") {
@@ -46665,6 +46801,9 @@ ${nextCss}` : nextCss;
   const saveDocument = reactExports.useCallback(async (override) => {
     const value = current.current;
     const activeTarget = value.target;
+    if (activeTarget.mode === "idle") {
+      return;
+    }
     const mdToSave = (override == null ? void 0 : override.markdown) ?? value.markdown;
     const cssToSave = (override == null ? void 0 : override.css) ?? value.css;
     setSaveStatus("Saving…");
@@ -46776,7 +46915,7 @@ function App() {
   const [cssVisible, setCssVisible] = reactExports.useState(true);
   const [exporting, setExporting] = reactExports.useState(false);
   const preferences = usePreferences(frame);
-  const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch } = useProjects(workspace);
+  const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle } = useProjects(workspace);
   reactExports.useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "o") {
@@ -46790,7 +46929,7 @@ function App() {
   const onDirectoryChanged = reactExports.useCallback(async () => {
     var _a2;
     const available = await workspace.refreshProjects();
-    if (available.length) {
+    if (available.length && workspace.target.mode !== "idle") {
       const nextProject = available[0].name;
       workspace.setProject(nextProject);
       const nextFiles = await workspace.refreshFiles(nextProject);
@@ -46799,6 +46938,33 @@ function App() {
       await workspace.loadDocument({ mode: "project", project: nextProject, filename: nextFile });
     }
   }, [workspace]);
+  const handleSelectProject = reactExports.useCallback(async (projectName) => {
+    var _a2;
+    const nextFiles = await workspace.refreshFiles(projectName);
+    const nextFile = ((_a2 = nextFiles[0]) == null ? void 0 : _a2.filename) || "README.md";
+    workspace.setProject(projectName);
+    workspace.setFilename(nextFile);
+    workspace.remember("css_editor_active_project", projectName);
+    workspace.remember("css_editor_active_file", nextFile);
+    await workspace.loadDocument({ mode: "project", project: projectName, filename: nextFile });
+  }, [workspace]);
+  const handleCreateProject = reactExports.useCallback(async () => {
+    var _a2;
+    const name2 = (_a2 = window.prompt("New project directory name (e.g. dsa-2):")) == null ? void 0 : _a2.trim();
+    if (!name2) return;
+    const response = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name2 })
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      window.alert(`Project creation failed: ${err.detail || response.status}`);
+      return;
+    }
+    await workspace.refreshProjects();
+    await handleSelectProject(name2);
+  }, [handleSelectProject, workspace]);
   const {
     config: config2,
     modalOpen,
@@ -46886,6 +47052,7 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         mode: workspace.target.mode,
         docPath: workspace.docPath,
         onSwitchToProjects: switchToProjects,
+        onSwitchToIdle: switchToIdle,
         activeWatchTarget: workspace.activeWatchTarget,
         onOpenWatchFile: () => void openWatchFile(),
         onSwitchToWatch: () => void switchToWatch(),
@@ -46924,6 +47091,17 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         theme: preferences.theme,
         onCss: () => setCssVisible((value) => !value),
         onTheme: preferences.changeTheme
+      }
+    ),
+    workspace.target.mode === "idle" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      IdleLauncher,
+      {
+        projects: workspace.projects,
+        activeWatchTarget: workspace.activeWatchTarget,
+        onOpenWatchFile: () => void openWatchFile(),
+        onSelectProject: (projectName) => void handleSelectProject(projectName),
+        onCreateProject: () => void handleCreateProject(),
+        onSwitchToWatch: () => void switchToWatch()
       }
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(

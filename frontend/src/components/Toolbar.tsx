@@ -15,12 +15,13 @@ type Props = {
   noCrop: boolean;
   noWhitespace: boolean;
   config: UserConfig | null;
-  mode?: 'watch' | 'project';
+  mode?: 'idle' | 'watch' | 'project';
   docPath?: string;
   activeWatchTarget?: { path: string; filename: string } | null;
   onOpenWatchFile: () => void;
   onSwitchToWatch?: () => void;
   onSwitchToProjects?: () => void;
+  onSwitchToIdle?: () => void;
   onOpenConfigModal: () => void;
   imageInput: RefObject<HTMLInputElement | null>;
   onProject: (event: ChangeEvent<HTMLSelectElement>) => void;
@@ -42,7 +43,20 @@ export function Toolbar(props: Props) {
   return <header className="toolbar">
     <div className="toolbar__brand"><span className="toolbar__brand-icon">📄</span>CSS Markdown Editor</div>
     <div className="toolbar__doc">
-      {props.mode === 'watch' ? (
+      {props.mode === 'idle' ? (
+        <>
+          <div className="doc-pill doc-pill--idle">
+            <span className="doc-icon">⏸</span>
+            <span className="doc-name" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+              Idle · Select a Mode
+            </span>
+            <span className="badge-idle">IDLE</span>
+          </div>
+          <button className="btn btn--ghost btn--xs" title="Open an external Markdown file to watch (Ctrl+O)" onClick={props.onOpenWatchFile}>
+            👁 Watch File…
+          </button>
+        </>
+      ) : props.mode === 'watch' ? (
         <>
           <div className="doc-pill doc-pill--watch" title={`Watching external file: ${props.docPath}`}>
             <span className="doc-icon doc-icon--pulse">👁</span>
@@ -60,6 +74,11 @@ export function Toolbar(props: Props) {
           {props.onSwitchToProjects && (
             <button className="btn btn--ghost btn--xs" title="Switch back to Projects workspace" onClick={props.onSwitchToProjects}>
               📂 Projects
+            </button>
+          )}
+          {props.onSwitchToIdle && (
+            <button className="btn btn--ghost btn--xs" title="Return to mode selection launcher" onClick={props.onSwitchToIdle}>
+              ⏸ Launcher
             </button>
           )}
         </>
@@ -93,9 +112,23 @@ export function Toolbar(props: Props) {
               👁 {props.activeWatchTarget.filename}
             </button>
           )}
+          {props.onSwitchToIdle && (
+            <button className="btn btn--ghost btn--xs" title="Return to mode selection launcher" onClick={props.onSwitchToIdle}>
+              ⏸ Launcher
+            </button>
+          )}
         </>
       )}
-      <button className="btn btn--ghost btn--xs" title="Save document (Ctrl+S)" onClick={props.onSave}>💾 Save</button><span className={`save-status${props.saveStatus === 'Saved' ? ' is-saved' : ''}`}>{props.saveStatus}</span>
+      <button
+        className="btn btn--ghost btn--xs"
+        title="Save document (Ctrl+S)"
+        disabled={props.mode === 'idle'}
+        style={props.mode === 'idle' ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+        onClick={props.onSave}
+      >
+        💾 Save
+      </button>
+      <span className={`save-status${props.saveStatus === 'Saved' ? ' is-saved' : ''}`}>{props.saveStatus}</span>
     </div>
     <div className="toolbar__actions">
       <span className={`status status--${props.status}`} title={props.statusTitle} aria-label="SSE status" />
@@ -159,7 +192,14 @@ export function Toolbar(props: Props) {
         )}
       </div>
       <input ref={props.imageInput} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml" style={{ display: 'none' }} multiple />
-      <button className="btn btn--primary" disabled={props.exporting} onClick={props.onExport}>{props.exporting ? '⏳ Exporting…' : '⬇ Export PDF'}</button>
+      <button
+        className="btn btn--primary"
+        disabled={props.mode === 'idle' || props.exporting}
+        style={props.mode === 'idle' ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+        onClick={props.onExport}
+      >
+        {props.exporting ? '⏳ Exporting…' : '⬇ Export PDF'}
+      </button>
     </div>
   </header>;
 }

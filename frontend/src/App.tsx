@@ -3,6 +3,7 @@ import { posthog } from './analytics';
 import { setEditorContent } from './editor.js';
 import { updatePreview } from './preview.js';
 import { ConflictBanner } from './components/ConflictBanner';
+import { IdleLauncher } from './components/IdleLauncher';
 import { Toolbar } from './components/Toolbar';
 import { WelcomeModal } from './components/WelcomeModal';
 import { WorkspacePanes } from './components/WorkspacePanes';
@@ -34,7 +35,7 @@ export default function App() {
   const [cssVisible, setCssVisible] = useState(true);
   const [exporting, setExporting] = useState(false);
   const preferences = usePreferences(frame);
-  const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch } = useProjects(workspace);
+  const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle } = useProjects(workspace);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -49,7 +50,7 @@ export default function App() {
 
   const onDirectoryChanged = useCallback(async () => {
     const available = await workspace.refreshProjects();
-    if (available.length) {
+    if (available.length && workspace.target.mode !== 'idle') {
       const nextProject = available[0].name;
       workspace.setProject(nextProject);
       const nextFiles = await workspace.refreshFiles(nextProject);
@@ -58,6 +59,33 @@ export default function App() {
       await workspace.loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
     }
   }, [workspace]);
+
+  const handleSelectProject = useCallback(async (projectName: string) => {
+    const nextFiles = await workspace.refreshFiles(projectName);
+    const nextFile = nextFiles[0]?.filename || 'README.md';
+    workspace.setProject(projectName);
+    workspace.setFilename(nextFile);
+    workspace.remember('css_editor_active_project', projectName);
+    workspace.remember('css_editor_active_file', nextFile);
+    await workspace.loadDocument({ mode: 'project', project: projectName, filename: nextFile });
+  }, [workspace]);
+
+  const handleCreateProject = useCallback(async () => {
+    const name = window.prompt('New project directory name (e.g. dsa-2):')?.trim();
+    if (!name) return;
+    const response = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      window.alert(`Project creation failed: ${err.detail || response.status}`);
+      return;
+    }
+    await workspace.refreshProjects();
+    await handleSelectProject(name);
+  }, [handleSelectProject, workspace]);
 
   const {
     config,
@@ -122,6 +150,7 @@ export default function App() {
       settingsOpen={preferences.settingsOpen} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
       config={config} onOpenConfigModal={() => setModalOpen(true)}
       mode={workspace.target.mode} docPath={workspace.docPath} onSwitchToProjects={switchToProjects}
+      onSwitchToIdle={switchToIdle}
       activeWatchTarget={workspace.activeWatchTarget} onOpenWatchFile={() => void openWatchFile()} onSwitchToWatch={() => void switchToWatch()}
       imageInput={workspace.refs.imageInput} onProject={(event) => void switchProject(event.target.value)} onFile={(event) => void switchFile(event.target.value)}
       onSave={() => void workspace.saveDocument()} onExport={() => void exportPdf()} onLibrary={() => setLibraryVisible((value) => !value)} libraryVisible={libraryVisible}
@@ -132,6 +161,16 @@ export default function App() {
     <WorkspacePanes refs={workspace.refs} library={library} panes={panes} divider={divider} leftPane={leftPane}
       libraryVisible={libraryVisible} cssVisible={cssVisible} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
       frame={frame} pageCount={pageCount} theme={preferences.theme} onCss={() => setCssVisible((value) => !value)} onTheme={preferences.changeTheme} />
+    {workspace.target.mode === 'idle' && (
+      <IdleLauncher
+        projects={workspace.projects}
+        activeWatchTarget={workspace.activeWatchTarget}
+        onOpenWatchFile={() => void openWatchFile()}
+        onSelectProject={(projectName) => void handleSelectProject(projectName)}
+        onCreateProject={() => void handleCreateProject()}
+        onSwitchToWatch={() => void switchToWatch()}
+      />
+    )}
     <WelcomeModal
       config={config}
       isOpen={modalOpen}

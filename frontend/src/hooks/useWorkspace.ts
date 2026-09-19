@@ -20,9 +20,7 @@ export function useWorkspace() {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [filename, setFilename] = useState(() => stored(FILE_KEY, 'document.md'));
   const [target, setTarget] = useState<TargetSpec>(() => ({
-    mode: 'project',
-    project: stored(PROJECT_KEY, ''),
-    filename: stored(FILE_KEY, 'document.md'),
+    mode: 'idle',
   }));
   const [activeWatchTarget, setActiveWatchTarget] = useState<{ path: string; filename: string } | null>(null);
   const [docToken, setDocToken] = useState('');
@@ -128,6 +126,10 @@ export function useWorkspace() {
   }, []);
 
   const loadDocument = useCallback(async (spec: TargetSpec) => {
+    if (spec.mode === 'idle') {
+      setTarget({ mode: 'idle' });
+      return;
+    }
 
     try {
       let query = `mode=${spec.mode}`;
@@ -183,6 +185,9 @@ export function useWorkspace() {
   const saveDocument = useCallback(async (override?: { filename?: string; markdown?: string; css?: string }) => {
     const value = current.current;
     const activeTarget = value.target;
+    if (activeTarget.mode === 'idle') {
+      return;
+    }
     const mdToSave = override?.markdown ?? value.markdown;
     const cssToSave = override?.css ?? value.css;
 
