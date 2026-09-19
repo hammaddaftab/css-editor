@@ -12,7 +12,7 @@ export function useLiveSync(
 ): void {
   const {
     current, refs, setProjectCss, setMarkdown, setCss, setFiles, setDirty, setSaveStatus,
-    setConflict, markClean, effectiveCss, postRender, refreshFiles,
+    setConflict, markClean, effectiveCss, postRender, refreshFiles, isSelfSave,
   } = workspace;
 
   useEffect(() => {
@@ -67,6 +67,17 @@ export function useLiveSync(
       const sharedChanged = data.shared_css !== undefined && data.shared_css !== active.projectCss;
 
       if (!mdChanged && !cssChanged && !sharedChanged) return;
+
+      // Echo suppression: check if this event reflects our own recent save
+      if (isSelfSave && isSelfSave(data.markdown ?? '', data.css ?? '')) {
+        if (sharedChanged) {
+          setProjectCss(data.shared_css || '');
+        }
+        if (!active.dirty) {
+          markClean('Saved');
+        }
+        return;
+      }
 
       if (active.dirty) {
         setConflict({
@@ -144,7 +155,7 @@ export function useLiveSync(
       window.removeEventListener('sse:offline', onOffline);
     };
   }, [
-    current, effectiveCss, frame, markClean, postRender, refreshFiles,
+    current, effectiveCss, frame, isSelfSave, markClean, postRender, refreshFiles,
     refs.cssView, refs.markdownView, setConflict, setCss, setDirty, setFiles,
     setMarkdown, setProjectCss, setSaveStatus, setStatus, theme,
   ]);

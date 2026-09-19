@@ -8,6 +8,7 @@ import { SettingsSideWindow } from './components/SettingsSideWindow';
 import { Toolbar } from './components/Toolbar';
 import { WelcomeModal } from './components/WelcomeModal';
 import { WorkspacePanes } from './components/WorkspacePanes';
+import { useAutosave } from './hooks/useAutosave';
 import { useConfig } from './hooks/useConfig';
 import { useEditors } from './hooks/useEditors';
 import { useLayout } from './hooks/useLayout';
@@ -102,6 +103,7 @@ export default function App() {
   useEditors(workspace, library);
   usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount, setActiveFrame);
   useLiveSync(workspace, frameA, preferences.theme, setAppStatus, setPageCount);
+  useAutosave(workspace, preferences.autosave, preferences.autosaveDelay);
   useLayout(workspace, panes, divider, leftPane);
 
   useEffect(() => {
@@ -144,7 +146,8 @@ export default function App() {
 
   return <div className="app">
     <Toolbar projects={workspace.projects} project={workspace.project} files={workspace.files} filename={workspace.filename}
-      dirty={workspace.dirty} status={status} statusTitle={statusTitle} exporting={exporting}
+      dirty={workspace.dirty} saveStatus={workspace.saveStatus} autosave={preferences.autosave}
+      status={status} statusTitle={statusTitle} exporting={exporting}
       settingsOpen={preferences.settingsOpen}
       mode={workspace.target.mode}
       watchActive={Boolean(workspace.session.watch)}
@@ -165,6 +168,8 @@ export default function App() {
       noWhitespace={preferences.noWhitespace}
       onNoCrop={(event) => preferences.changeNoCrop(event.target.checked)}
       onNoWhitespace={(event) => preferences.changeNoWhitespace(event.target.checked)}
+      autosave={preferences.autosave}
+      onAutosave={(event) => preferences.changeAutosave(event.target.checked)}
       mode={workspace.target.mode}
       filename={workspace.filename}
       dirty={workspace.dirty}

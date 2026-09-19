@@ -10,6 +10,11 @@ export function usePreferences(frame: RefObject<HTMLIFrameElement | null>) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [noCrop, setNoCrop] = useState(() => stored('css_editor_nocrop', '0') === '1');
   const [noWhitespace, setNoWhitespace] = useState(() => stored('css_editor_nowhitespace', '0') === '1' && stored('css_editor_nocrop', '0') === '1');
+  const [autosave, setAutosave] = useState(() => stored('css_editor_autosave', '1') !== '0');
+  const [autosaveDelay, setAutosaveDelay] = useState(() => {
+    const val = parseInt(stored('css_editor_autosave_delay', '1000'), 10);
+    return isNaN(val) ? 1000 : val;
+  });
 
   const changeTheme = useCallback((value: string) => {
     const next = value === 'dark' ? 'dark' : 'light'; setTheme(next);
@@ -26,5 +31,18 @@ export function usePreferences(frame: RefObject<HTMLIFrameElement | null>) {
     setNoWhitespace(enabled); try { localStorage.setItem('css_editor_nowhitespace', enabled ? '1' : '0'); } catch { /* optional */ }
   }, []);
 
-  return { theme, settingsOpen, noCrop, noWhitespace, setSettingsOpen, changeTheme, changeNoCrop, changeNoWhitespace };
+  const changeAutosave = useCallback((enabled: boolean) => {
+    setAutosave(enabled);
+    try { localStorage.setItem('css_editor_autosave', enabled ? '1' : '0'); } catch { /* optional */ }
+  }, []);
+
+  const changeAutosaveDelay = useCallback((ms: number) => {
+    setAutosaveDelay(ms);
+    try { localStorage.setItem('css_editor_autosave_delay', String(ms)); } catch { /* optional */ }
+  }, []);
+
+  return {
+    theme, settingsOpen, noCrop, noWhitespace, autosave, autosaveDelay,
+    setSettingsOpen, changeTheme, changeNoCrop, changeNoWhitespace, changeAutosave, changeAutosaveDelay,
+  };
 }

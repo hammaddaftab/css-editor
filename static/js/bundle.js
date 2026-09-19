@@ -45791,8 +45791,26 @@ function SettingsSideWindow(props) {
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-group__card", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "Autosave" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: "Automatically save document changes to disk after a 1-second pause" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "settings-toggle", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        type: "checkbox",
+                        className: "settings-toggle__input",
+                        checked: props.autosave,
+                        onChange: props.onAutosave
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__slider" })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "Save Document" }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: props.mode === "idle" ? "No active document loaded" : props.dirty ? `Unsaved edits in ${props.filename || "document"} (Ctrl+S)` : props.saveStatus === "Saved" ? `All changes saved (${props.filename || "document"})` : `Synchronized with disk (Ctrl+S)` })
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: props.mode === "idle" ? "No active document loaded" : props.dirty ? props.autosave ? `Saving edits shortly… (Ctrl+S to save now)` : `Unsaved edits in ${props.filename || "document"} (Ctrl+S)` : props.saveStatus === "Saved" ? `All changes saved (${props.filename || "document"})` : `Synchronized with disk (Ctrl+S)` })
                   ] }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "button",
@@ -45939,7 +45957,15 @@ function Toolbar(props) {
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--live", title: "Live disk watch active" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", style: { fontWeight: 600, maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: props.filename }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge-watch", children: "WATCH" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "span",
+          {
+            className: `doc-dirty${props.dirty ? " is-dirty" : ""}`,
+            title: props.autosave ? props.dirty ? "Autosave: Saving shortly…" : "Autosave: Saved" : "Unsaved changes (Ctrl+S)",
+            children: "●"
+          }
+        ),
+        props.saveStatus ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `save-status${props.saveStatus === "Saved" ? " is-saved" : ""}`, style: { marginLeft: 4 }, children: props.saveStatus }) : null
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open another file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Open File…" }),
       props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -45965,7 +45991,15 @@ function Toolbar(props) {
           fileOptions,
           /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "New file…" })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes (Ctrl+S or Settings)", children: "●" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "span",
+          {
+            className: `doc-dirty${props.dirty ? " is-dirty" : ""}`,
+            title: props.autosave ? props.dirty ? "Autosave: Saving shortly…" : "Autosave: Saved" : "Unsaved changes (Ctrl+S or Settings)",
+            children: "●"
+          }
+        ),
+        props.saveStatus ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `save-status${props.saveStatus === "Saved" ? " is-saved" : ""}`, style: { marginLeft: 4 }, children: props.saveStatus }) : null
       ] }),
       props.watchActive ? props.onSwitchToWatch && /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
@@ -46259,6 +46293,67 @@ function WorkspacePanes(props) {
       ] })
     ] })
   ] });
+}
+function useAutosave(workspace, enabled, delay = 1e3) {
+  const { dirty, markdown: markdown2, css: css2, target, current, saveDocument } = workspace;
+  const timerRef = reactExports.useRef(null);
+  reactExports.useEffect(() => {
+    if (!enabled || !dirty || target.mode === "idle") {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      const active = current.current;
+      if (active.dirty && active.target.mode !== "idle") {
+        void saveDocument(void 0, { isAutosave: true });
+      }
+    }, delay);
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [enabled, dirty, markdown2, css2, delay, target.mode, saveDocument, current]);
+  reactExports.useEffect(() => {
+    if (!enabled) return;
+    const flushSave = () => {
+      const active = current.current;
+      if (active.dirty && active.target.mode !== "idle") {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+        void saveDocument(void 0, { isAutosave: true });
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flushSave();
+      }
+    };
+    const handleWindowBlur = () => {
+      flushSave();
+    };
+    const handleBeforeUnload = () => {
+      flushSave();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [enabled, current, saveDocument]);
 }
 function useConfig(onProjectsDirChanged) {
   const [config2, setConfig] = reactExports.useState(null);
@@ -46994,7 +47089,8 @@ function useLiveSync(workspace, frame, theme2, setStatus, setPageCount) {
     markClean,
     effectiveCss,
     postRender,
-    refreshFiles
+    refreshFiles,
+    isSelfSave
   } = workspace;
   reactExports.useEffect(() => {
     const connection = connectSSE(window);
@@ -47032,6 +47128,15 @@ ${data2.css || ""}` : data2.css || effectiveCss();
       const cssChanged = data2.css !== void 0 && data2.css !== active.css;
       const sharedChanged = data2.shared_css !== void 0 && data2.shared_css !== active.projectCss;
       if (!mdChanged && !cssChanged && !sharedChanged) return;
+      if (isSelfSave && isSelfSave(data2.markdown ?? "", data2.css ?? "")) {
+        if (sharedChanged) {
+          setProjectCss(data2.shared_css || "");
+        }
+        if (!active.dirty) {
+          markClean("Saved");
+        }
+        return;
+      }
       if (active.dirty) {
         setConflict({
           filename: data2.filename || active.filename,
@@ -47105,6 +47210,7 @@ ${data2.css || ""}` : data2.css || active.css;
     current,
     effectiveCss,
     frame,
+    isSelfSave,
     markClean,
     postRender,
     refreshFiles,
@@ -47133,6 +47239,11 @@ function usePreferences(frame) {
   const [settingsOpen, setSettingsOpen] = reactExports.useState(false);
   const [noCrop, setNoCrop] = reactExports.useState(() => stored("css_editor_nocrop", "0") === "1");
   const [noWhitespace, setNoWhitespace] = reactExports.useState(() => stored("css_editor_nowhitespace", "0") === "1" && stored("css_editor_nocrop", "0") === "1");
+  const [autosave, setAutosave] = reactExports.useState(() => stored("css_editor_autosave", "1") !== "0");
+  const [autosaveDelay, setAutosaveDelay] = reactExports.useState(() => {
+    const val = parseInt(stored("css_editor_autosave_delay", "1000"), 10);
+    return isNaN(val) ? 1e3 : val;
+  });
   const changeTheme = reactExports.useCallback((value) => {
     const next = value === "dark" ? "dark" : "light";
     setTheme(next);
@@ -47158,7 +47269,34 @@ function usePreferences(frame) {
     } catch {
     }
   }, []);
-  return { theme: theme2, settingsOpen, noCrop, noWhitespace, setSettingsOpen, changeTheme, changeNoCrop, changeNoWhitespace };
+  const changeAutosave = reactExports.useCallback((enabled) => {
+    setAutosave(enabled);
+    try {
+      localStorage.setItem("css_editor_autosave", enabled ? "1" : "0");
+    } catch {
+    }
+  }, []);
+  const changeAutosaveDelay = reactExports.useCallback((ms) => {
+    setAutosaveDelay(ms);
+    try {
+      localStorage.setItem("css_editor_autosave_delay", String(ms));
+    } catch {
+    }
+  }, []);
+  return {
+    theme: theme2,
+    settingsOpen,
+    noCrop,
+    noWhitespace,
+    autosave,
+    autosaveDelay,
+    setSettingsOpen,
+    changeTheme,
+    changeNoCrop,
+    changeNoWhitespace,
+    changeAutosave,
+    changeAutosaveDelay
+  };
 }
 function usePreview(frameA, frameB, previewScroll, theme2, onPageCount, onSwap) {
   reactExports.useEffect(() => {
@@ -47553,6 +47691,9 @@ function useUrlTarget() {
     switchToIdle
   };
 }
+function getContentSignature(markdown2 = "", css2 = "") {
+  return `${markdown2.length}:${css2.length}:${markdown2.slice(0, 40)}:${markdown2.slice(-40)}:${css2}`;
+}
 function useWorkspace() {
   const urlTarget = useUrlTarget();
   const { session, mode, target } = urlTarget;
@@ -47575,6 +47716,18 @@ function useWorkspace() {
   const [dirty, setDirty] = reactExports.useState(false);
   const [saveStatus, setSaveStatus] = reactExports.useState("");
   const [conflict, setConflict] = reactExports.useState(null);
+  const recentSaves = reactExports.useRef(/* @__PURE__ */ new Set());
+  const recordSelfSave = reactExports.useCallback((md = "", customCss = "") => {
+    const sig = getContentSignature(md, customCss);
+    recentSaves.current.add(sig);
+    window.setTimeout(() => {
+      recentSaves.current.delete(sig);
+    }, 6e3);
+  }, []);
+  const isSelfSave = reactExports.useCallback((md = "", customCss = "") => {
+    const sig = getContentSignature(md, customCss);
+    return recentSaves.current.has(sig);
+  }, []);
   const refs = {
     markdownHost: reactExports.useRef(null),
     cssHost: reactExports.useRef(null),
@@ -47709,6 +47862,7 @@ ${value.css}` : value.css;
       setEditorContent(refs.markdownView.current, nextMarkdown);
       setEditorContent(refs.cssView.current, nextCss);
       await ((_a2 = refs.imageLibrary.current) == null ? void 0 : _a2.setDoc(data2.doc_path));
+      recordSelfSave(nextMarkdown, nextCss);
       markClean("Loaded");
       const renderedCss = sharedCss ? `${sharedCss}
 ${nextCss}` : nextCss;
@@ -47721,8 +47875,8 @@ ${nextCss}` : nextCss;
     } catch (error) {
       console.error("Failed to load document:", error);
     }
-  }, [markClean, postRender, refs.cssView, refs.imageLibrary, refs.markdownView]);
-  const saveDocument = reactExports.useCallback(async (override) => {
+  }, [markClean, postRender, recordSelfSave, refs.cssView, refs.imageLibrary, refs.markdownView]);
+  const saveDocument = reactExports.useCallback(async (override, options) => {
     const value = current.current;
     const activeTarget = value.target;
     if (activeTarget.mode === "idle") {
@@ -47731,6 +47885,7 @@ ${nextCss}` : nextCss;
     const mdToSave = (override == null ? void 0 : override.markdown) ?? value.markdown;
     const cssToSave = (override == null ? void 0 : override.css) ?? value.css;
     setSaveStatus("Saving…");
+    recordSelfSave(mdToSave, cssToSave);
     try {
       const payload = {
         mode: activeTarget.mode,
@@ -47753,15 +47908,23 @@ ${nextCss}` : nextCss;
         const error = await response.json().catch(() => ({}));
         throw new Error(error.detail || response.status);
       }
-      markClean("Saved");
+      if (current.current.markdown === mdToSave && current.current.css === cssToSave) {
+        markClean("Saved");
+      } else {
+        setSaveStatus("");
+      }
       if (activeTarget.mode === "project") {
         await refreshFiles(activeTarget.project);
       }
     } catch (error) {
       setSaveStatus("Save failed");
-      window.alert(`Save failed: ${error.message}`);
+      if (!(options == null ? void 0 : options.isAutosave)) {
+        window.alert(`Save failed: ${error.message}`);
+      } else {
+        console.warn("Autosave failed:", error);
+      }
     }
-  }, [markClean, refreshFiles]);
+  }, [markClean, recordSelfSave, refreshFiles]);
   const updateMarkdown = reactExports.useCallback((value) => {
     setMarkdown(value);
     markDirty();
@@ -47814,6 +47977,8 @@ ${value}` : value);
     updateCss,
     markDirty,
     markClean,
+    recordSelfSave,
+    isSelfSave,
     urlTarget
   };
 }
@@ -47901,6 +48066,7 @@ function App() {
   useEditors(workspace, library);
   usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount, setActiveFrame);
   useLiveSync(workspace, frameA, preferences.theme, setAppStatus, setPageCount);
+  useAutosave(workspace, preferences.autosave, preferences.autosaveDelay);
   useLayout(workspace, panes, divider, leftPane);
   reactExports.useEffect(() => {
     const closeSettings = () => preferences.setSettingsOpen(false);
@@ -47959,6 +48125,8 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         files: workspace.files,
         filename: workspace.filename,
         dirty: workspace.dirty,
+        saveStatus: workspace.saveStatus,
+        autosave: preferences.autosave,
         status,
         statusTitle,
         exporting,
@@ -47997,6 +48165,8 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         noWhitespace: preferences.noWhitespace,
         onNoCrop: (event) => preferences.changeNoCrop(event.target.checked),
         onNoWhitespace: (event) => preferences.changeNoWhitespace(event.target.checked),
+        autosave: preferences.autosave,
+        onAutosave: (event) => preferences.changeAutosave(event.target.checked),
         mode: workspace.target.mode,
         filename: workspace.filename,
         dirty: workspace.dirty,

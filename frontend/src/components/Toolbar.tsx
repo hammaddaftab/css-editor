@@ -7,6 +7,8 @@ type Props = {
   files: ProjectFile[];
   filename: string;
   dirty: boolean;
+  saveStatus?: string;
+  autosave?: boolean;
   status: AppStatus;
   statusTitle: string;
   exporting: boolean;
@@ -67,7 +69,15 @@ export function Toolbar(props: Props) {
                 {props.filename}
               </span>
               <span className="badge-watch">WATCH</span>
-              <span className={`doc-dirty${props.dirty ? ' is-dirty' : ''}`} title="Unsaved changes">●</span>
+              <span
+                className={`doc-dirty${props.dirty ? ' is-dirty' : ''}`}
+                title={props.autosave ? (props.dirty ? 'Autosave: Saving shortly…' : 'Autosave: Saved') : 'Unsaved changes (Ctrl+S)'}
+              >●</span>
+              {props.saveStatus ? (
+                <span className={`save-status${props.saveStatus === 'Saved' ? ' is-saved' : ''}`} style={{ marginLeft: 4 }}>
+                  {props.saveStatus}
+                </span>
+              ) : null}
             </div>
             <button className="btn btn--ghost btn--xs" title="Open another file to watch (Ctrl+O)" onClick={props.onOpenWatchFile}>
               Open File…
@@ -97,7 +107,15 @@ export function Toolbar(props: Props) {
                 {fileOptions}
                 <option value="__new__">New file…</option>
               </select>
-              <span className={`doc-dirty${props.dirty ? ' is-dirty' : ''}`} title="Unsaved changes (Ctrl+S or Settings)">●</span>
+              <span
+                className={`doc-dirty${props.dirty ? ' is-dirty' : ''}`}
+                title={props.autosave ? (props.dirty ? 'Autosave: Saving shortly…' : 'Autosave: Saved') : 'Unsaved changes (Ctrl+S or Settings)'}
+              >●</span>
+              {props.saveStatus ? (
+                <span className={`save-status${props.saveStatus === 'Saved' ? ' is-saved' : ''}`} style={{ marginLeft: 4 }}>
+                  {props.saveStatus}
+                </span>
+              ) : null}
             </div>
             {props.watchActive ? (
               props.onSwitchToWatch && (

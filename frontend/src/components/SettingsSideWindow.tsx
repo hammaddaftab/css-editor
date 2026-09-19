@@ -10,6 +10,8 @@ type Props = {
   noWhitespace: boolean;
   onNoCrop: (event: ChangeEvent<HTMLInputElement>) => void;
   onNoWhitespace: (event: ChangeEvent<HTMLInputElement>) => void;
+  autosave?: boolean;
+  onAutosave?: (event: ChangeEvent<HTMLInputElement>) => void;
   mode?: 'idle' | 'watch' | 'project';
   filename?: string;
   dirty?: boolean;
@@ -61,6 +63,25 @@ export function SettingsSideWindow(props: Props) {
           <section className="prefs-group">
             <h3 className="prefs-group__title">Document & Session</h3>
             <div className="prefs-group__card">
+              {/* Autosave Option */}
+              <div className="prefs-row">
+                <div className="prefs-row__info">
+                  <span className="prefs-row__title">Autosave</span>
+                  <span className="prefs-row__desc">
+                    Automatically save document changes to disk after a 1-second pause
+                  </span>
+                </div>
+                <label className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    className="settings-toggle__input"
+                    checked={props.autosave}
+                    onChange={props.onAutosave}
+                  />
+                  <span className="settings-toggle__slider" />
+                </label>
+              </div>
+
               {/* Save Option */}
               <div className="prefs-row">
                 <div className="prefs-row__info">
@@ -69,7 +90,9 @@ export function SettingsSideWindow(props: Props) {
                     {props.mode === 'idle'
                       ? 'No active document loaded'
                       : props.dirty
-                      ? `Unsaved edits in ${props.filename || 'document'} (Ctrl+S)`
+                      ? props.autosave
+                        ? `Saving edits shortly… (Ctrl+S to save now)`
+                        : `Unsaved edits in ${props.filename || 'document'} (Ctrl+S)`
                       : props.saveStatus === 'Saved'
                       ? `All changes saved (${props.filename || 'document'})`
                       : `Synchronized with disk (Ctrl+S)`}

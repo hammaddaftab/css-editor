@@ -3,6 +3,10 @@ import type { Project, ProjectFile, Conflict, WorkspaceRefs, TargetSpec, Workspa
 import { setEditorContent } from '../editor.js';
 import { useUrlTarget } from './useUrlTarget';
 
+function getContentSignature(markdown: string = '', css: string = ''): string {
+  return `${markdown.length}:${css.length}:${markdown.slice(0, 40)}:${markdown.slice(-40)}:${css}`;
+}
+
 export function useWorkspace() {
   const urlTarget = useUrlTarget();
   const { session, mode, target } = urlTarget;
@@ -29,6 +33,20 @@ export function useWorkspace() {
   const [dirty, setDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
   const [conflict, setConflict] = useState<Conflict | null>(null);
+  const recentSaves = useRef<Set<string>>(new Set());
+
+  const recordSelfSave = useCallback((md: string = '', customCss: string = '') => {
+    const sig = getContentSignature(md, customCss);
+    recentSaves.current.add(sig);
+    window.setTimeout(() => {
+      recentSaves.current.delete(sig);
+    }, 6000);
+  }, []);
+
+  const isSelfSave = useCallback((md: string = '', customCss: string = '') => {
+    const sig = getContentSignature(md, customCss);
+    return recentSaves.current.has(sig);
+  }, []);
 
   const refs: WorkspaceRefs = {
     markdownHost: useRef<HTMLDivElement>(null),
@@ -165,6 +183,7 @@ export function useWorkspace() {
       setEditorContent(refs.markdownView.current, nextMarkdown);
       setEditorContent(refs.cssView.current, nextCss);
       await refs.imageLibrary.current?.setDoc(data.doc_path);
+      recordSelfSave(nextMarkdown, nextCss);
       markClean('Loaded');
 
       const renderedCss = sharedCss ? `${sharedCss}\n${nextCss}` : nextCss;
@@ -177,9 +196,12 @@ export function useWorkspace() {
     } catch (error) {
       console.error('Failed to load document:', error);
     }
-  }, [markClean, postRender, refs.cssView, refs.imageLibrary, refs.markdownView]);
+  }, [markClean, postRender, recordSelfSave, refs.cssView, refs.imageLibrary, refs.markdownView]);
 
-  const saveDocument = useCallback(async (override?: { filename?: string; markdown?: string; css?: string }) => {
+  const saveDocument = useCallback(async (
+    override?: { filename?: string; markdown?: string; css?: string },
+    options?: { isAutosave?: boolean },
+  ) => {
     const value = current.current;
     const activeTarget = value.target;
     if (activeTarget.mode === 'idle') {
@@ -189,6 +211,8 @@ export function useWorkspace() {
     const cssToSave = override?.css ?? value.css;
 
     setSaveStatus('Saving…');
+    recordSelfSave(mdToSave, cssToSave);
+
     try {
       const payload: Record<string, any> = {
         mode: activeTarget.mode,
@@ -213,15 +237,25 @@ export function useWorkspace() {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.detail || response.status);
       }
-      markClean('Saved');
+
+      if (current.current.markdown === mdToSave && current.current.css === cssToSave) {
+        markClean('Saved');
+      } else {
+        setSaveStatus('');
+      }
+
       if (activeTarget.mode === 'project') {
         await refreshFiles(activeTarget.project);
       }
     } catch (error) {
       setSaveStatus('Save failed');
-      window.alert(`Save failed: ${(error as Error).message}`);
+      if (!options?.isAutosave) {
+        window.alert(`Save failed: ${(error as Error).message}`);
+      } else {
+        console.warn('Autosave failed:', error);
+      }
     }
-  }, [markClean, refreshFiles]);
+  }, [markClean, recordSelfSave, refreshFiles]);
 
   const updateMarkdown = useCallback((value: string) => {
     setMarkdown(value); markDirty(); void postRender(value, effectiveCss());
@@ -240,6 +274,7 @@ export function useWorkspace() {
     setProjectCss, setFiles, setDirty, setSaveStatus, setConflict,
     refs, current, effectiveCss, postRender, refreshProjects, refreshFiles,
     loadDocument, saveDocument, updateMarkdown, updateCss, markDirty, markClean,
+    recordSelfSave, isSelfSave,
     urlTarget,
   };
 }
