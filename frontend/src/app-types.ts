@@ -92,6 +92,11 @@ export type UserConfig = {
   projects_dir_exists: boolean;
   dialog_supported: boolean;
   anonymous_id?: string;
+  preview_theme?: 'light' | 'dark';
+  library_open?: boolean;
+  css_open?: boolean;
+  no_crop?: boolean;
+  no_whitespace?: boolean;
 };
 
 export type EditorView = any;

@@ -35,11 +35,8 @@ export default function App() {
   const [status, setStatus] = useState<AppStatus>('idle');
   const [statusTitle, setStatusTitle] = useState('Connecting…');
   const [pageCount, setPageCount] = useState('');
-  const [libraryVisible, setLibraryVisible] = useState(true);
-  const [cssVisible, setCssVisible] = useState(true);
   const [activeFrame, setActiveFrame] = useState<'A' | 'B'>('A');
   const [exporting, setExporting] = useState(false);
-  const preferences = usePreferences(frameA);
   const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle } = useProjects(workspace);
 
   useEffect(() => {
@@ -96,6 +93,8 @@ export default function App() {
     browsing,
     error,
   } = useConfig(onDirectoryChanged);
+
+  const preferences = usePreferences(frameA, config);
 
   const setAppStatus = useCallback((next: AppStatus, title = '') => {
     setStatus(next); setStatusTitle(title || next);
@@ -155,8 +154,8 @@ export default function App() {
       docPath={workspace.docPath} onSwitchToProjects={switchToProjects}
       activeWatchTarget={workspace.activeWatchTarget} onOpenWatchFile={() => void openWatchFile()} onSwitchToWatch={() => void switchToWatch()}
       imageInput={workspace.refs.imageInput} onProject={(event) => void switchProject(event.target.value)} onFile={(event) => void switchFile(event.target.value)}
-      onExport={() => void exportPdf()} onLibrary={() => setLibraryVisible((value) => !value)} libraryVisible={libraryVisible}
-      onCss={() => setCssVisible((value) => !value)} cssVisible={cssVisible}
+      onExport={() => void exportPdf()} onLibrary={preferences.toggleLibrary} libraryVisible={preferences.libraryVisible}
+      onCss={preferences.toggleCss} cssVisible={preferences.cssVisible}
       onSettings={(event) => { event.stopPropagation(); preferences.setSettingsOpen((value) => !value); }} />
     {workspace.conflict && <ConflictBanner conflict={workspace.conflict} onReload={reloadConflict} onKeep={() => workspace.setConflict(null)} />}
     <SettingsSideWindow
@@ -170,6 +169,12 @@ export default function App() {
       onNoWhitespace={(event) => preferences.changeNoWhitespace(event.target.checked)}
       autosave={preferences.autosave}
       onAutosave={(event) => preferences.changeAutosave(event.target.checked)}
+      theme={preferences.theme}
+      onTheme={preferences.changeTheme}
+      libraryVisible={preferences.libraryVisible}
+      onLibraryToggle={preferences.toggleLibrary}
+      cssVisible={preferences.cssVisible}
+      onCssToggle={preferences.toggleCss}
       mode={workspace.target.mode}
       filename={workspace.filename}
       dirty={workspace.dirty}
@@ -178,8 +183,8 @@ export default function App() {
       onSwitchToIdle={switchToIdle}
     />
     <WorkspacePanes refs={workspace.refs} library={library} panes={panes} divider={divider} leftPane={leftPane}
-      libraryVisible={libraryVisible} cssVisible={cssVisible} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
-      frameA={frameA} frameB={frameB} activeFrame={activeFrame} previewScroll={previewScroll} pageCount={pageCount} theme={preferences.theme} onCss={() => setCssVisible((value) => !value)} onTheme={preferences.changeTheme} />
+      libraryVisible={preferences.libraryVisible} cssVisible={preferences.cssVisible} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
+      frameA={frameA} frameB={frameB} activeFrame={activeFrame} previewScroll={previewScroll} pageCount={pageCount} theme={preferences.theme} onCss={preferences.toggleCss} onTheme={preferences.changeTheme} />
     {workspace.target.mode === 'idle' && (
       <IdleLauncher
         projects={workspace.projects}

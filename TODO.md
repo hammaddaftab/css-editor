@@ -6,7 +6,7 @@
 - [ ] git history clean/rebase needed since generated bundle files were comitted previously
 - [ ] applied image markers
 - [ ] ui hierarchy redesign
-- [ ] persist preferences, expanded vs collapsed editors. Why not just create more toggles?
+- [x] persist preferences, expanded vs collapsed editors. Why not just create more toggles?
 - [ ] image dimension controls with random ids as css selectors, use titles somewhere for hints
 - [ ] TECHNICAL DEBT, confirm css layers are working nicely with isolation in print vs preview styles - !important
 - [ ] fonts - !important

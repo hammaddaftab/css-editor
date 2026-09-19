@@ -45188,7 +45188,7 @@ function _ensureMessageListener() {
   _messageListenerAttached = true;
 }
 function setPreviewDocumentTheme(targetOrTheme, theme2) {
-  const nextTheme = typeof targetOrTheme === "string" ? targetOrTheme : theme2;
+  const nextTheme = typeof targetOrTheme === "string" ? targetOrTheme : theme2 || "light";
   _currentTheme = nextTheme;
   const frames = [];
   if (_frameA) frames.push(_frameA);
@@ -45910,6 +45910,79 @@ function SettingsSideWindow(props) {
                         className: "settings-toggle__input",
                         checked: props.noWhitespace,
                         onChange: props.onNoWhitespace
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__slider" })
+                  ] })
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "prefs-group", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "prefs-group__title", children: "Appearance & Panels" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-group__card", children: [
+                props.theme && props.onTheme && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "Preview Desk Theme" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: "Choose light or dark background for preview" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "preview-theme-toggle", role: "group", "aria-label": "Preview background theme", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        type: "button",
+                        className: `preview-theme-btn${props.theme === "light" ? " active" : ""}`,
+                        onClick: () => {
+                          var _a3;
+                          return (_a3 = props.onTheme) == null ? void 0 : _a3.call(props, "light");
+                        },
+                        children: "Light"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        type: "button",
+                        className: `preview-theme-btn${props.theme === "dark" ? " active" : ""}`,
+                        onClick: () => {
+                          var _a3;
+                          return (_a3 = props.onTheme) == null ? void 0 : _a3.call(props, "dark");
+                        },
+                        children: "Dark"
+                      }
+                    )
+                  ] })
+                ] }),
+                props.onCssToggle && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "Custom CSS Tab" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: "Show or collapse the custom CSS editor panel" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "settings-toggle", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        type: "checkbox",
+                        className: "settings-toggle__input",
+                        checked: props.cssVisible ?? true,
+                        onChange: props.onCssToggle
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__slider" })
+                  ] })
+                ] }),
+                props.onLibraryToggle && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "Image Library Tab" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: "Show or collapse the image library sidebar panel" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "settings-toggle", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        type: "checkbox",
+                        className: "settings-toggle__input",
+                        checked: props.libraryVisible ?? true,
+                        onChange: props.onLibraryToggle
                       }
                     ),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__slider" })
@@ -47234,9 +47307,22 @@ function stored(key, fallback) {
     return fallback;
   }
 }
-function usePreferences(frame) {
+async function persistPreferences(patch) {
+  try {
+    await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch)
+    });
+  } catch (err) {
+    console.warn("Failed to persist preferences to config.json:", err);
+  }
+}
+function usePreferences(frame, config2) {
   const [theme2, setTheme] = reactExports.useState(() => stored("css_editor_preview_theme", "light"));
   const [settingsOpen, setSettingsOpen] = reactExports.useState(false);
+  const [libraryVisible, setLibraryVisible] = reactExports.useState(() => stored("css_editor_library_open", "1") !== "0");
+  const [cssVisible, setCssVisible] = reactExports.useState(() => stored("css_editor_css_open", "1") !== "0");
   const [noCrop, setNoCrop] = reactExports.useState(() => stored("css_editor_nocrop", "0") === "1");
   const [noWhitespace, setNoWhitespace] = reactExports.useState(() => stored("css_editor_nowhitespace", "0") === "1" && stored("css_editor_nocrop", "0") === "1");
   const [autosave, setAutosave] = reactExports.useState(() => stored("css_editor_autosave", "1") !== "0");
@@ -47244,6 +47330,76 @@ function usePreferences(frame) {
     const val = parseInt(stored("css_editor_autosave_delay", "1000"), 10);
     return isNaN(val) ? 1e3 : val;
   });
+  const initialSyncDone = reactExports.useRef(false);
+  reactExports.useEffect(() => {
+    if (!config2 || initialSyncDone.current) return;
+    initialSyncDone.current = true;
+    let patchNeeded = null;
+    if (config2.preview_theme) {
+      if (config2.preview_theme !== theme2) {
+        setTheme(config2.preview_theme);
+        try {
+          localStorage.setItem("css_editor_preview_theme", config2.preview_theme);
+        } catch {
+        }
+        setPreviewDocumentTheme(frame.current, config2.preview_theme);
+      }
+    } else if (theme2 !== "light") {
+      patchNeeded = patchNeeded || {};
+      patchNeeded.preview_theme = theme2;
+    }
+    if (typeof config2.library_open === "boolean") {
+      if (config2.library_open !== libraryVisible) {
+        setLibraryVisible(config2.library_open);
+        try {
+          localStorage.setItem("css_editor_library_open", config2.library_open ? "1" : "0");
+        } catch {
+        }
+      }
+    } else if (!libraryVisible) {
+      patchNeeded = patchNeeded || {};
+      patchNeeded.library_open = libraryVisible;
+    }
+    if (typeof config2.css_open === "boolean") {
+      if (config2.css_open !== cssVisible) {
+        setCssVisible(config2.css_open);
+        try {
+          localStorage.setItem("css_editor_css_open", config2.css_open ? "1" : "0");
+        } catch {
+        }
+      }
+    } else if (!cssVisible) {
+      patchNeeded = patchNeeded || {};
+      patchNeeded.css_open = cssVisible;
+    }
+    if (typeof config2.no_crop === "boolean") {
+      if (config2.no_crop !== noCrop) {
+        setNoCrop(config2.no_crop);
+        try {
+          localStorage.setItem("css_editor_nocrop", config2.no_crop ? "1" : "0");
+        } catch {
+        }
+      }
+    } else if (noCrop) {
+      patchNeeded = patchNeeded || {};
+      patchNeeded.no_crop = noCrop;
+    }
+    if (typeof config2.no_whitespace === "boolean") {
+      if (config2.no_whitespace !== noWhitespace) {
+        setNoWhitespace(config2.no_whitespace);
+        try {
+          localStorage.setItem("css_editor_nowhitespace", config2.no_whitespace ? "1" : "0");
+        } catch {
+        }
+      }
+    } else if (noWhitespace) {
+      patchNeeded = patchNeeded || {};
+      patchNeeded.no_whitespace = noWhitespace;
+    }
+    if (patchNeeded) {
+      void persistPreferences(patchNeeded);
+    }
+  }, [config2, theme2, libraryVisible, cssVisible, noCrop, noWhitespace, frame]);
   const changeTheme = reactExports.useCallback((value) => {
     const next = value === "dark" ? "dark" : "light";
     setTheme(next);
@@ -47252,15 +47408,40 @@ function usePreferences(frame) {
     } catch {
     }
     setPreviewDocumentTheme(frame.current, next);
+    void persistPreferences({ preview_theme: next });
   }, [frame]);
+  const toggleLibrary = reactExports.useCallback((override) => {
+    setLibraryVisible((prev) => {
+      const next = typeof override === "boolean" ? override : !prev;
+      try {
+        localStorage.setItem("css_editor_library_open", next ? "1" : "0");
+      } catch {
+      }
+      void persistPreferences({ library_open: next });
+      return next;
+    });
+  }, []);
+  const toggleCss = reactExports.useCallback((override) => {
+    setCssVisible((prev) => {
+      const next = typeof override === "boolean" ? override : !prev;
+      try {
+        localStorage.setItem("css_editor_css_open", next ? "1" : "0");
+      } catch {
+      }
+      void persistPreferences({ css_open: next });
+      return next;
+    });
+  }, []);
   const changeNoCrop = reactExports.useCallback((enabled) => {
     setNoCrop(enabled);
+    const nextWhitespace = enabled ? stored("css_editor_nowhitespace", "0") === "1" : false;
     if (!enabled) setNoWhitespace(false);
     try {
       localStorage.setItem("css_editor_nocrop", enabled ? "1" : "0");
-      localStorage.setItem("css_editor_nowhitespace", enabled ? stored("css_editor_nowhitespace", "0") : "0");
+      localStorage.setItem("css_editor_nowhitespace", nextWhitespace ? "1" : "0");
     } catch {
     }
+    void persistPreferences({ no_crop: enabled, no_whitespace: nextWhitespace });
   }, []);
   const changeNoWhitespace = reactExports.useCallback((enabled) => {
     setNoWhitespace(enabled);
@@ -47268,6 +47449,7 @@ function usePreferences(frame) {
       localStorage.setItem("css_editor_nowhitespace", enabled ? "1" : "0");
     } catch {
     }
+    void persistPreferences({ no_whitespace: enabled });
   }, []);
   const changeAutosave = reactExports.useCallback((enabled) => {
     setAutosave(enabled);
@@ -47286,12 +47468,18 @@ function usePreferences(frame) {
   return {
     theme: theme2,
     settingsOpen,
+    libraryVisible,
+    cssVisible,
     noCrop,
     noWhitespace,
     autosave,
     autosaveDelay,
     setSettingsOpen,
     changeTheme,
+    toggleLibrary,
+    toggleCss,
+    setLibraryVisible,
+    setCssVisible,
     changeNoCrop,
     changeNoWhitespace,
     changeAutosave,
@@ -48000,11 +48188,8 @@ function App() {
   const [status, setStatus] = reactExports.useState("idle");
   const [statusTitle, setStatusTitle] = reactExports.useState("Connecting…");
   const [pageCount, setPageCount] = reactExports.useState("");
-  const [libraryVisible, setLibraryVisible] = reactExports.useState(true);
-  const [cssVisible, setCssVisible] = reactExports.useState(true);
   const [activeFrame, setActiveFrame] = reactExports.useState("A");
   const [exporting, setExporting] = reactExports.useState(false);
-  const preferences = usePreferences(frameA);
   const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle } = useProjects(workspace);
   reactExports.useEffect(() => {
     const handleKeyDown = (e) => {
@@ -48059,6 +48244,7 @@ function App() {
     browsing,
     error
   } = useConfig(onDirectoryChanged);
+  const preferences = usePreferences(frameA, config2);
   const setAppStatus = reactExports.useCallback((next, title = "") => {
     setStatus(next);
     setStatusTitle(title || next);
@@ -48143,10 +48329,10 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         onProject: (event) => void switchProject(event.target.value),
         onFile: (event) => void switchFile(event.target.value),
         onExport: () => void exportPdf(),
-        onLibrary: () => setLibraryVisible((value) => !value),
-        libraryVisible,
-        onCss: () => setCssVisible((value) => !value),
-        cssVisible,
+        onLibrary: preferences.toggleLibrary,
+        libraryVisible: preferences.libraryVisible,
+        onCss: preferences.toggleCss,
+        cssVisible: preferences.cssVisible,
         onSettings: (event) => {
           event.stopPropagation();
           preferences.setSettingsOpen((value) => !value);
@@ -48167,6 +48353,12 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         onNoWhitespace: (event) => preferences.changeNoWhitespace(event.target.checked),
         autosave: preferences.autosave,
         onAutosave: (event) => preferences.changeAutosave(event.target.checked),
+        theme: preferences.theme,
+        onTheme: preferences.changeTheme,
+        libraryVisible: preferences.libraryVisible,
+        onLibraryToggle: preferences.toggleLibrary,
+        cssVisible: preferences.cssVisible,
+        onCssToggle: preferences.toggleCss,
         mode: workspace.target.mode,
         filename: workspace.filename,
         dirty: workspace.dirty,
@@ -48183,8 +48375,8 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         panes,
         divider,
         leftPane,
-        libraryVisible,
-        cssVisible,
+        libraryVisible: preferences.libraryVisible,
+        cssVisible: preferences.cssVisible,
         noCrop: preferences.noCrop,
         noWhitespace: preferences.noWhitespace,
         frameA,
@@ -48193,7 +48385,7 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         previewScroll,
         pageCount,
         theme: preferences.theme,
-        onCss: () => setCssVisible((value) => !value),
+        onCss: preferences.toggleCss,
         onTheme: preferences.changeTheme
       }
     ),

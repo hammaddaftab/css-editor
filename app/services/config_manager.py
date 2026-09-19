@@ -40,6 +40,11 @@ class UserConfig(BaseModel):
     anonymous_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Anonymous installation UUID")
     created_at: str = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    preview_theme: str = Field(default="light", description="Preview background theme: 'light' or 'dark'")
+    library_open: bool = Field(default=True, description="Whether the Image Library tab/panel is expanded")
+    css_open: bool = Field(default=True, description="Whether the Custom CSS tab/panel is expanded")
+    no_crop: bool = Field(default=False, description="Whether Image Library is in no-crop mode")
+    no_whitespace: bool = Field(default=False, description="Whether Image Library is in no-whitespace mode")
 
 
 def get_user_config_dir() -> Path:

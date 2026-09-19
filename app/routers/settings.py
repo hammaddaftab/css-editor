@@ -26,6 +26,11 @@ class UpdateConfigRequest(BaseModel):
     author_name: str | None = Field(default=None, description="Default author name for exports")
     author_email: str | None = Field(default=None, description="Default author email")
     first_run_completed: bool | None = Field(default=None, description="Flag indicating first-run setup is done")
+    preview_theme: str | None = Field(default=None, description="Preview theme: 'light' or 'dark'")
+    library_open: bool | None = Field(default=None, description="Whether image library panel is expanded")
+    css_open: bool | None = Field(default=None, description="Whether custom CSS panel is expanded")
+    no_crop: bool | None = Field(default=None, description="Image library no-crop mode")
+    no_whitespace: bool | None = Field(default=None, description="Image library no-whitespace mode")
 
 
 def serialize_config(config: UserConfig) -> dict:
@@ -43,6 +48,11 @@ def serialize_config(config: UserConfig) -> dict:
         "projects_dir_exists": projects_path.is_dir(),
         "dialog_supported": is_dialog_supported(),
         "anonymous_id": config.anonymous_id,
+        "preview_theme": config.preview_theme,
+        "library_open": config.library_open,
+        "css_open": config.css_open,
+        "no_crop": config.no_crop,
+        "no_whitespace": config.no_whitespace,
     }
 
 
@@ -79,8 +89,23 @@ async def update_config(req: UpdateConfigRequest) -> JSONResponse:
     if req.first_run_completed is not None:
         config.first_run_completed = req.first_run_completed
 
+    if req.preview_theme is not None:
+        config.preview_theme = "dark" if req.preview_theme.lower() == "dark" else "light"
+
+    if req.library_open is not None:
+        config.library_open = req.library_open
+
+    if req.css_open is not None:
+        config.css_open = req.css_open
+
+    if req.no_crop is not None:
+        config.no_crop = req.no_crop
+
+    if req.no_whitespace is not None:
+        config.no_whitespace = req.no_whitespace
+
     # Seed the starter welcome project strictly once during initial setup
-    if not config.welcome_seeded:
+    if not config.welcome_seeded and (req.first_run_completed or config.first_run_completed):
         active_projects_dir = Path(config.projects_dir).expanduser().resolve()
         active_projects_dir.mkdir(parents=True, exist_ok=True)
         seed_welcome_project(active_projects_dir)

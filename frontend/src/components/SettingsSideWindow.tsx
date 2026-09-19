@@ -12,6 +12,12 @@ type Props = {
   onNoWhitespace: (event: ChangeEvent<HTMLInputElement>) => void;
   autosave?: boolean;
   onAutosave?: (event: ChangeEvent<HTMLInputElement>) => void;
+  theme?: string;
+  onTheme?: (theme: string) => void;
+  libraryVisible?: boolean;
+  onLibraryToggle?: () => void;
+  cssVisible?: boolean;
+  onCssToggle?: () => void;
   mode?: 'idle' | 'watch' | 'project';
   filename?: string;
   dirty?: boolean;
@@ -214,6 +220,73 @@ export function SettingsSideWindow(props: Props) {
                       className="settings-toggle__input"
                       checked={props.noWhitespace}
                       onChange={props.onNoWhitespace}
+                    />
+                    <span className="settings-toggle__slider" />
+                  </label>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Appearance & Panels Group */}
+          <section className="prefs-group">
+            <h3 className="prefs-group__title">Appearance & Panels</h3>
+            <div className="prefs-group__card">
+              {props.theme && props.onTheme && (
+                <div className="prefs-row">
+                  <div className="prefs-row__info">
+                    <span className="prefs-row__title">Preview Desk Theme</span>
+                    <span className="prefs-row__desc">Choose light or dark background for preview</span>
+                  </div>
+                  <div className="preview-theme-toggle" role="group" aria-label="Preview background theme">
+                    <button
+                      type="button"
+                      className={`preview-theme-btn${props.theme === 'light' ? ' active' : ''}`}
+                      onClick={() => props.onTheme?.('light')}
+                    >
+                      Light
+                    </button>
+                    <button
+                      type="button"
+                      className={`preview-theme-btn${props.theme === 'dark' ? ' active' : ''}`}
+                      onClick={() => props.onTheme?.('dark')}
+                    >
+                      Dark
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {props.onCssToggle && (
+                <div className="prefs-row">
+                  <div className="prefs-row__info">
+                    <span className="prefs-row__title">Custom CSS Tab</span>
+                    <span className="prefs-row__desc">Show or collapse the custom CSS editor panel</span>
+                  </div>
+                  <label className="settings-toggle">
+                    <input
+                      type="checkbox"
+                      className="settings-toggle__input"
+                      checked={props.cssVisible ?? true}
+                      onChange={props.onCssToggle}
+                    />
+                    <span className="settings-toggle__slider" />
+                  </label>
+                </div>
+              )}
+
+              {props.onLibraryToggle && (
+                <div className="prefs-row">
+                  <div className="prefs-row__info">
+                    <span className="prefs-row__title">Image Library Tab</span>
+                    <span className="prefs-row__desc">Show or collapse the image library sidebar panel</span>
+                  </div>
+                  <label className="settings-toggle">
+                    <input
+                      type="checkbox"
+                      className="settings-toggle__input"
+                      checked={props.libraryVisible ?? true}
+                      onChange={props.onLibraryToggle}
                     />
                     <span className="settings-toggle__slider" />
                   </label>

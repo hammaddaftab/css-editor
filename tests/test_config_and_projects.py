@@ -143,6 +143,49 @@ class TestConfigAndProjects(unittest.TestCase):
         self.assertEqual(proj_res.status_code, 200)
         self.assertIsNone(watch_orchestrator.current_doc)
 
+    def test_user_preferences_persistence_lifecycle(self):
+        from app.services.config_manager import load_user_config
+
+        # 1. Default preferences
+        res = self.client.get("/api/config")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["preview_theme"], "light")
+        self.assertTrue(data["library_open"])
+        self.assertTrue(data["css_open"])
+        self.assertFalse(data["no_crop"])
+        self.assertFalse(data["no_whitespace"])
+
+        # 2. Update preferences
+        update_payload = {
+            "preview_theme": "dark",
+            "library_open": False,
+            "css_open": False,
+            "no_crop": True,
+            "no_whitespace": True,
+        }
+        post_res = self.client.post("/api/config", json=update_payload)
+        self.assertEqual(post_res.status_code, 200)
+        updated = post_res.json()
+        self.assertEqual(updated["preview_theme"], "dark")
+        self.assertFalse(updated["library_open"])
+        self.assertFalse(updated["css_open"])
+        self.assertTrue(updated["no_crop"])
+        self.assertTrue(updated["no_whitespace"])
+
+        # 3. Verify on fresh GET and disk reload
+        get_res = self.client.get("/api/config")
+        self.assertEqual(get_res.status_code, 200)
+        self.assertEqual(get_res.json()["preview_theme"], "dark")
+        self.assertFalse(get_res.json()["library_open"])
+        self.assertFalse(get_res.json()["css_open"])
+
+        loaded_config, exists = load_user_config(force_reload=True)
+        self.assertTrue(exists)
+        self.assertEqual(loaded_config.preview_theme, "dark")
+        self.assertFalse(loaded_config.library_open)
+        self.assertFalse(loaded_config.css_open)
+
 
 if __name__ == "__main__":
     unittest.main()
