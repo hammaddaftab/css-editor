@@ -15,6 +15,7 @@ const PAGED_JS_URL  = `${location.origin}/static/vendor/paged.polyfill.js`;
 
 let _currentBlobUrl = null;
 let _currentTheme   = 'light';
+let _currentDocToken = '';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -32,20 +33,21 @@ export function setPreviewDocumentTheme(iframe, theme) {
 
 export function initPreview(iframe, theme = 'light') {
   _currentTheme = theme;
-  _render(iframe, '', '', _currentTheme);
+  _render(iframe, '', '', _currentTheme, _currentDocToken);
 }
 
-export function updatePreview(iframe, htmlBody, userCss, theme = _currentTheme) {
+export function updatePreview(iframe, htmlBody, userCss, theme = _currentTheme, docToken = _currentDocToken) {
   if (theme) _currentTheme = theme;
-  _render(iframe, htmlBody, userCss, _currentTheme);
+  if (docToken !== undefined) _currentDocToken = docToken;
+  _render(iframe, htmlBody, userCss, _currentTheme, _currentDocToken);
 }
 
 // ---------------------------------------------------------------------------
 // Internal
 // ---------------------------------------------------------------------------
 
-function _render(iframe, htmlBody, userCss, theme = _currentTheme) {
-  const html = _buildDocument(htmlBody, userCss, theme);
+function _render(iframe, htmlBody, userCss, theme = _currentTheme, docToken = _currentDocToken) {
+  const html = _buildDocument(htmlBody, userCss, theme, docToken);
   const blob = new Blob([html], { type: 'text/html' });
 
   if (_currentBlobUrl) URL.revokeObjectURL(_currentBlobUrl);
@@ -73,13 +75,14 @@ function _resizeIframe(iframe) {
   }, 650);
 }
 
-function _buildDocument(htmlBody, userCss, theme = 'light') {
+function _buildDocument(htmlBody, userCss, theme = 'light', docToken = '') {
+  const baseHref = docToken ? `${location.origin}/api/assets/${docToken}/` : `${location.origin}/`;
   return `<!DOCTYPE html>
 <html lang="en" data-theme="${theme}">
 <head>
   <meta charset="UTF-8">
 
-  <base href="${location.origin}/">
+  <base href="${baseHref}">
 
   <link rel="stylesheet" href="${PRINT_CSS_URL}">
   <style>

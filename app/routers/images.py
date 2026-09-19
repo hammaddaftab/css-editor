@@ -11,8 +11,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 
+from app.core.config import settings
 from app.routers.assets import encode_doc_token
-from app.routers.documents import resolve_project
 from app.services.asset_svc import list_document_images, save_or_match_image
 
 router = APIRouter(prefix="/api", tags=["images"])
@@ -44,9 +44,9 @@ def resolve_image_dest(
 
     if project:
         clean = project.strip()
-        if not clean:
+        if not clean or clean in {".", ".."} or "/" in clean or "\\" in clean or clean.startswith("."):
             raise HTTPException(status_code=400, detail="Invalid project parameter.")
-        directory = resolve_project(clean) / "images"
+        directory = (settings.projects_path / clean).resolve() / "images"
         directory.mkdir(parents=True, exist_ok=True)
         return directory, f"?project={clean}"
 

@@ -7,6 +7,8 @@ class RenderRequest(BaseModel):
     css: str = Field(default="", description="Custom CSS to apply to the document")
     project: str = Field(default="", description="Active project directory name")
     filename: str = Field(default="", description="Active Markdown filename within the project")
+    doc_path: str | None = Field(default=None, description="Active document path")
+    doc_token: str | None = Field(default=None, description="Document token for scoped asset URL resolution")
 
 
 class RenderResponse(BaseModel):

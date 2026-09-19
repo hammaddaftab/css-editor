@@ -63,13 +63,20 @@ export function initImageLibrary({
   onInsert,
   onNameChange,
   project = '',
+  docPath = '',
 }) {
   let _images = [];
   let _project = project;
+  let _docPath = docPath;
   let _focusedUrl = null;
   let _selectedImage = null;
   let _selectedCard = null;
   let _selectedFilename = null;
+
+  function getQuery(projectOverride = _project) {
+    if (_docPath) return `?doc=${encodeURIComponent(_docPath)}`;
+    return projectOverride ? `?project=${encodeURIComponent(projectOverride)}` : '';
+  }
 
   // ---------------------------------------------------------------------------
   // Toast Feedback in Library Drawer
@@ -156,7 +163,7 @@ export function initImageLibrary({
     const name = imgToDelete.displayName || imgToDelete.filename;
 
     try {
-      const query = _project ? `?project=${encodeURIComponent(_project)}` : '';
+      const query = getQuery();
       const res = await fetch(`/api/images/${encodeURIComponent(imgToDelete.filename)}${query}`, {
         method: 'DELETE',
       });
@@ -228,7 +235,7 @@ export function initImageLibrary({
   // ---------------------------------------------------------------------------
   async function fetchImages(projectOverride = _project) {
     try {
-      const query = projectOverride ? `?project=${encodeURIComponent(projectOverride)}` : '';
+      const query = getQuery(projectOverride);
       const res = await fetch(`/api/images${query}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       _images = await res.json();
@@ -252,7 +259,7 @@ export function initImageLibrary({
       const form = new FormData();
       form.append('file', file);
       try {
-        const query = projectOverride ? `?project=${encodeURIComponent(projectOverride)}` : '';
+        const query = getQuery(projectOverride);
         const res = await fetch(`/api/images${query}`, { method: 'POST', body: form });
         if (res.ok) {
           const data = await res.json();
@@ -430,13 +437,15 @@ export function initImageLibrary({
     card.addEventListener('dragstart', (e) => {
       card.classList.add('is-dragging');
       const altText = img.displayName || img.filename;
+      const targetPath = img.rel_path || img.url;
       const payload = {
         url: img.url,
         alt: altText,
         filename: img.filename,
+        rel_path: img.rel_path,
       };
       e.dataTransfer.setData('application/x-editor-image', JSON.stringify(payload));
-      e.dataTransfer.setData('text/plain', `![${altText}](${img.url})`);
+      e.dataTransfer.setData('text/plain', `![${altText}](${targetPath})`);
       e.dataTransfer.effectAllowed = 'copy';
     });
 
@@ -526,6 +535,11 @@ export function initImageLibrary({
     clearSelection,
     setProject(nextProject) {
       _project = nextProject || '';
+      clearSelection();
+      return fetchImages();
+    },
+    setDoc(docPath) {
+      _docPath = docPath || '';
       clearSelection();
       return fetchImages();
     },

@@ -40,7 +40,7 @@ class TestConfigAndProjects(unittest.TestCase):
         self.assertTrue(Path(data["config_file_path"]).parent.exists())
 
         # Projects directory should not have welcome project yet
-        projects_res = self.client.get("/api/projects")
+        projects_res = self.client.get("/api/workspace")
         self.assertEqual(projects_res.status_code, 200)
         self.assertEqual(len(projects_res.json()["projects"]), 0)
 
@@ -64,7 +64,7 @@ class TestConfigAndProjects(unittest.TestCase):
         self.assertTrue((welcome_dir / "project.css").exists())
 
         # Verify through documents API
-        doc_res = self.client.get("/api/project/document?project=welcome&filename=README.md")
+        doc_res = self.client.get("/api/document?mode=project&project=welcome&filename=README.md")
         self.assertEqual(doc_res.status_code, 200)
         self.assertIn("Welcome to CSS Markdown Editor", doc_res.json()["markdown"])
 
@@ -78,7 +78,7 @@ class TestConfigAndProjects(unittest.TestCase):
         self.assertTrue(get_res.json()["welcome_seeded"])
         self.assertFalse(welcome_dir.exists())
 
-        projects_after_delete = self.client.get("/api/projects").json()["projects"]
+        projects_after_delete = self.client.get("/api/workspace").json()["projects"]
         self.assertEqual(len(projects_after_delete), 0)
 
         # Even updating settings again must NOT recreate it

@@ -51,6 +51,11 @@ export function connectSSE(target = window) {
       dispatch('sse:file:change', data);
     });
 
+    es.addEventListener('document:change', (ev) => {
+      const data = JSON.parse(ev.data ?? '{}');
+      dispatch('sse:document:change', data);
+    });
+
     es.addEventListener('file:list', (ev) => {
       const data = JSON.parse(ev.data ?? '{}');
       dispatch('sse:file:list', data);

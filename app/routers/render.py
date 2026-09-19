@@ -22,6 +22,8 @@ async def render(req: RenderRequest) -> RenderResponse:
     await broadcaster.publish("render", {
         "project": req.project,
         "filename": req.filename,
+        "doc_path": req.doc_path,
+        "doc_token": req.doc_token,
         "html": html,
         "css": req.css,
     })

@@ -13,19 +13,26 @@ export function useProjects(workspace: any) {
     if (nextProject === '__new__') {
       const name = window.prompt('New project directory name (e.g. dsa-2):')?.trim();
       if (!name) return;
-      const response = await fetch('/api/projects', { method: 'POST',
-        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        window.alert(`Project creation failed: ${error.detail || response.status}`); return;
+        window.alert(`Project creation failed: ${error.detail || response.status}`);
+        return;
       }
-      await refreshProjects(); nextProject = name;
+      await refreshProjects();
+      nextProject = name;
     }
-    setProject(nextProject); remember('css_editor_active_project', nextProject);
+    setProject(nextProject);
+    remember('css_editor_active_project', nextProject);
     await refs.imageLibrary.current?.setProject(nextProject);
     const nextFiles = await refreshFiles(nextProject);
-      const nextFile = nextFiles[0]?.filename || 'README.md';
-    setFilename(nextFile); await loadDocument(nextProject, nextFile);
+    const nextFile = nextFiles[0]?.filename || 'README.md';
+    setFilename(nextFile);
+    await loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
   }, [current, loadDocument, remember, refreshFiles, refreshProjects, refs.imageLibrary, setFilename, setProject]);
 
   const switchFile = useCallback(async (nextFilename: string) => {
@@ -34,31 +41,62 @@ export function useProjects(workspace: any) {
       if (!name) return;
       const cleanName = name.endsWith('.md') ? name : `${name}.md`;
       const nextMarkdown = `# ${cleanName.replace(/\.md$/, '')}\n\n`;
-      setFilename(cleanName); setMarkdown(nextMarkdown); setCss('');
-      setEditorContent(refs.markdownView.current, nextMarkdown); setEditorContent(refs.cssView.current, ''); markDirty();
+      setFilename(cleanName);
+      setMarkdown(nextMarkdown);
+      setCss('');
+      setEditorContent(refs.markdownView.current, nextMarkdown);
+      setEditorContent(refs.cssView.current, '');
+      markDirty();
       await saveDocument({ filename: cleanName, markdown: nextMarkdown, css: '' });
       return;
     }
     const active = current.current;
     if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Switch anyway?`)) return;
-    await loadDocument(active.project, nextFilename);
+    await loadDocument({ mode: 'project', project: active.project, filename: nextFilename });
   }, [current, loadDocument, markDirty, refs.cssView, refs.markdownView, saveDocument, setFilename]);
+
+  const switchToProjects = useCallback(async () => {
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes. Switch to project mode anyway?`)) return;
+    const available = await refreshProjects();
+    if (!available.length) return;
+    const nextProject = available.some((item: { name: string }) => item.name === active.project)
+      ? active.project : available[0].name;
+    setProject(nextProject);
+    const nextFiles = await refreshFiles(nextProject);
+    const nextFile = nextFiles[0]?.filename || 'README.md';
+    setFilename(nextFile);
+    await loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
+  }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject]);
 
   useEffect(() => {
     let active = true;
     void (async () => {
       const available = await refreshProjects();
-      if (!active || !available.length) return;
+      if (!active) return;
+
+      // If CLI seeded a watch file and we don't have an active user project override:
+      const activeWatch = workspace.activeWatchTarget;
+      if (activeWatch && activeWatch.path) {
+        await loadDocument({ mode: 'watch', path: activeWatch.path });
+        return;
+      }
+
+      if (!available.length) return;
       const nextProject = available.some((item: { name: string }) => item.name === current.current.project)
         ? current.current.project : available[0].name;
-      setProject(nextProject); await refs.imageLibrary.current?.setProject(nextProject);
+      setProject(nextProject);
+      await refs.imageLibrary.current?.setProject(nextProject);
       const nextFiles = await refreshFiles(nextProject);
       const nextFile = nextFiles.some((item: { filename: string }) => item.filename === current.current.filename)
         ? current.current.filename : nextFiles[0]?.filename;
-      if (nextFile) { setFilename(nextFile); await loadDocument(nextProject, nextFile); }
+      if (nextFile) {
+        setFilename(nextFile);
+        await loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
+      }
     })();
     return () => { active = false; };
-  }, [current, loadDocument, refreshFiles, refreshProjects, refs.imageLibrary, setFilename, setProject]);
+  }, [current, loadDocument, refreshFiles, refreshProjects, refs.imageLibrary, setFilename, setProject, workspace.activeWatchTarget]);
 
-  return { project, filename, switchProject, switchFile };
+  return { project, filename, switchProject, switchFile, switchToProjects };
 }

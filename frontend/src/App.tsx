@@ -34,7 +34,7 @@ export default function App() {
   const [cssVisible, setCssVisible] = useState(true);
   const [exporting, setExporting] = useState(false);
   const preferences = usePreferences(frame);
-  const { switchProject, switchFile } = useProjects(workspace);
+  const { switchProject, switchFile, switchToProjects } = useProjects(workspace);
 
   const onDirectoryChanged = useCallback(async () => {
     const available = await workspace.refreshProjects();
@@ -45,7 +45,7 @@ export default function App() {
       const nextFiles = await workspace.refreshFiles(nextProject);
       const nextFile = nextFiles[0]?.filename || 'README.md';
       workspace.setFilename(nextFile);
-      await workspace.loadDocument(nextProject, nextFile);
+      await workspace.loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
     }
   }, [workspace]);
 
@@ -78,11 +78,19 @@ export default function App() {
     posthog.trackExport(workspace.project, workspace.filename, workspace.current.current.markdown);
     setExporting(true);
     try {
-      const response = await fetch('/api/export', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ markdown: workspace.current.current.markdown, css: workspace.effectiveCss(), filename: 'document' }) });
+      const response = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          markdown: workspace.current.current.markdown,
+          css: workspace.effectiveCss(),
+          filename: workspace.filename.replace(/\.md$/, '') || 'document',
+          doc_path: workspace.current.current.docPath || undefined,
+        }),
+      });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const url = URL.createObjectURL(await response.blob());
-      const link = Object.assign(document.createElement('a'), { href: url, download: 'document.pdf' });
+      const link = Object.assign(document.createElement('a'), { href: url, download: `${workspace.filename.replace(/\.md$/, '') || 'document'}.pdf` });
       document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
     } catch (error) { window.alert(`Export failed: ${(error as Error).message}`); }
     finally { setExporting(false); }
@@ -94,7 +102,7 @@ export default function App() {
     if (conflict.markdown !== undefined) { workspace.setMarkdown(conflict.markdown); setEditorContent(workspace.refs.markdownView.current, conflict.markdown); }
     if (conflict.css !== undefined) { workspace.setCss(conflict.css); setEditorContent(workspace.refs.cssView.current, conflict.css); }
     if (conflict.project_css !== undefined) workspace.setProjectCss(conflict.project_css);
-    if (conflict.html) updatePreview(frame.current, conflict.html, conflict.project_css ? `${conflict.project_css}\n${conflict.css || ''}` : conflict.css || '', preferences.theme);
+    if (conflict.html) updatePreview(frame.current, conflict.html, conflict.project_css ? `${conflict.project_css}\n${conflict.css || ''}` : conflict.css || '', preferences.theme, workspace.docToken);
     workspace.markClean('Reloaded from disk');
   }, [preferences.theme, workspace]);
 
@@ -103,6 +111,7 @@ export default function App() {
       dirty={workspace.dirty} saveStatus={workspace.saveStatus} status={status} statusTitle={statusTitle} exporting={exporting}
       settingsOpen={preferences.settingsOpen} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
       config={config} onOpenConfigModal={() => setModalOpen(true)}
+      mode={workspace.target.mode} docPath={workspace.docPath} onSwitchToProjects={switchToProjects}
       imageInput={workspace.refs.imageInput} onProject={(event) => void switchProject(event.target.value)} onFile={(event) => void switchFile(event.target.value)}
       onSave={() => void workspace.saveDocument()} onExport={() => void exportPdf()} onLibrary={() => setLibraryVisible((value) => !value)} libraryVisible={libraryVisible}
       onCss={() => setCssVisible((value) => !value)} cssVisible={cssVisible}

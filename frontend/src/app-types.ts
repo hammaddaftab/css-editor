@@ -1,5 +1,15 @@
 import type { RefObject } from 'react';
 
+export type TargetSpec =
+  | { mode: 'watch'; path: string; customCss?: string }
+  | { mode: 'project'; project: string; filename: string };
+
+export type WorkspaceProject = {
+  name: string;
+  path: string;
+  documents: Array<{ filename: string; size: number; mtime: number }>;
+};
+
 export type Project = { name: string; documents: number };
 export type ProjectFile = { filename: string; size: number; mtime: number };
 export type AppStatus = 'idle' | 'connected' | 'rendering' | 'error';

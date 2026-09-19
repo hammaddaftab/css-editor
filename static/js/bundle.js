@@ -44898,6 +44898,7 @@ const PRINT_CSS_URL = `${location.origin}/static/css/print.css`;
 const PAGED_JS_URL = `${location.origin}/static/vendor/paged.polyfill.js`;
 let _currentBlobUrl = null;
 let _currentTheme = "light";
+let _currentDocToken = "";
 function setPreviewDocumentTheme(iframe, theme2) {
   _currentTheme = theme2;
   try {
@@ -44910,14 +44911,15 @@ function setPreviewDocumentTheme(iframe, theme2) {
 }
 function initPreview(iframe, theme2 = "light") {
   _currentTheme = theme2;
-  _render(iframe, "", "", _currentTheme);
+  _render(iframe, "", "", _currentTheme, _currentDocToken);
 }
-function updatePreview(iframe, htmlBody, userCss, theme2 = _currentTheme) {
+function updatePreview(iframe, htmlBody, userCss, theme2 = _currentTheme, docToken = _currentDocToken) {
   if (theme2) _currentTheme = theme2;
-  _render(iframe, htmlBody, userCss, _currentTheme);
+  if (docToken !== void 0) _currentDocToken = docToken;
+  _render(iframe, htmlBody, userCss, _currentTheme, _currentDocToken);
 }
-function _render(iframe, htmlBody, userCss, theme2 = _currentTheme) {
-  const html2 = _buildDocument(htmlBody, userCss, theme2);
+function _render(iframe, htmlBody, userCss, theme2 = _currentTheme, docToken = _currentDocToken) {
+  const html2 = _buildDocument(htmlBody, userCss, theme2, docToken);
   const blob = new Blob([html2], { type: "text/html" });
   if (_currentBlobUrl) URL.revokeObjectURL(_currentBlobUrl);
   _currentBlobUrl = URL.createObjectURL(blob);
@@ -44943,13 +44945,14 @@ function _resizeIframe(iframe) {
     }
   }, 650);
 }
-function _buildDocument(htmlBody, userCss, theme2 = "light") {
+function _buildDocument(htmlBody, userCss, theme2 = "light", docToken = "") {
+  const baseHref = docToken ? `${location.origin}/api/assets/${docToken}/` : `${location.origin}/`;
   return `<!DOCTYPE html>
 <html lang="en" data-theme="${theme2}">
 <head>
   <meta charset="UTF-8">
 
-  <base href="${location.origin}/">
+  <base href="${baseHref}">
 
   <link rel="stylesheet" href="${PRINT_CSS_URL}">
   <style>
@@ -45118,22 +45121,32 @@ function Toolbar(props) {
       "CSS Markdown Editor"
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__doc", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon", children: "📦" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Project directory", value: props.project, onChange: props.onProject, children: [
-          projectOptions,
-          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "＋ New project…" })
+      props.mode === "watch" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--watch", title: `Watching external file: ${props.docPath}`, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon doc-icon--pulse", children: "👁" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", style: { fontWeight: 600, maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: props.filename }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge-watch", style: { fontSize: "10px", background: "#2563eb", color: "#fff", borderRadius: "4px", padding: "1px 6px", marginLeft: "6px", fontWeight: "bold" }, children: "WATCH" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
+        ] }),
+        props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Switch back to Projects workspace", onClick: props.onSwitchToProjects, children: "📂 Projects" })
+      ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon", children: "📦" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Project directory", value: props.project, onChange: props.onProject, children: [
+            projectOptions,
+            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "＋ New project…" })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon", children: "📁" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Files in this project", value: props.filename, onChange: props.onFile, children: [
+            fileOptions,
+            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "＋ New file…" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
         ] })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon", children: "📁" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Files in this project", value: props.filename, onChange: props.onFile, children: [
-          fileOptions,
-          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "＋ New file…" })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Save to this project (Ctrl+S)", onClick: props.onSave, children: "💾 Save" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Save document (Ctrl+S)", onClick: props.onSave, children: "💾 Save" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `save-status${props.saveStatus === "Saved" ? " is-saved" : ""}`, children: props.saveStatus })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__actions", children: [
@@ -45533,14 +45546,20 @@ function initImageLibrary({
   uploadBtnEl,
   onInsert,
   onNameChange,
-  project = ""
+  project = "",
+  docPath = ""
 }) {
   let _images = [];
   let _project = project;
+  let _docPath = docPath;
   let _focusedUrl = null;
   let _selectedImage = null;
   let _selectedCard = null;
   let _selectedFilename = null;
+  function getQuery(projectOverride = _project) {
+    if (_docPath) return `?doc=${encodeURIComponent(_docPath)}`;
+    return projectOverride ? `?project=${encodeURIComponent(projectOverride)}` : "";
+  }
   let toastEl = container == null ? void 0 : container.querySelector(".image-library__toast");
   if (container && !toastEl) {
     toastEl = document.createElement("div");
@@ -45608,7 +45627,7 @@ function initImageLibrary({
     const imgToDelete = _selectedImage;
     const name2 = imgToDelete.displayName || imgToDelete.filename;
     try {
-      const query = _project ? `?project=${encodeURIComponent(_project)}` : "";
+      const query = getQuery();
       const res = await fetch(`/api/images/${encodeURIComponent(imgToDelete.filename)}${query}`, {
         method: "DELETE"
       });
@@ -45657,7 +45676,7 @@ function initImageLibrary({
   });
   async function fetchImages(projectOverride = _project) {
     try {
-      const query = projectOverride ? `?project=${encodeURIComponent(projectOverride)}` : "";
+      const query = getQuery(projectOverride);
       const res = await fetch(`/api/images${query}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       _images = await res.json();
@@ -45678,7 +45697,7 @@ function initImageLibrary({
       const form = new FormData();
       form.append("file", file);
       try {
-        const query = projectOverride ? `?project=${encodeURIComponent(projectOverride)}` : "";
+        const query = getQuery(projectOverride);
         const res = await fetch(`/api/images${query}`, { method: "POST", body: form });
         if (res.ok) {
           const data2 = await res.json();
@@ -45818,13 +45837,15 @@ function initImageLibrary({
     card.addEventListener("dragstart", (e) => {
       card.classList.add("is-dragging");
       const altText = img.displayName || img.filename;
+      const targetPath = img.rel_path || img.url;
       const payload = {
         url: img.url,
         alt: altText,
-        filename: img.filename
+        filename: img.filename,
+        rel_path: img.rel_path
       };
       e.dataTransfer.setData("application/x-editor-image", JSON.stringify(payload));
-      e.dataTransfer.setData("text/plain", `![${altText}](${img.url})`);
+      e.dataTransfer.setData("text/plain", `![${altText}](${targetPath})`);
       e.dataTransfer.effectAllowed = "copy";
     });
     card.addEventListener("dragend", () => {
@@ -45889,6 +45910,11 @@ function initImageLibrary({
     clearSelection,
     setProject(nextProject) {
       _project = nextProject || "";
+      clearSelection();
+      return fetchImages();
+    },
+    setDoc(docPath2) {
+      _docPath = docPath2 || "";
       clearSelection();
       return fetchImages();
     },
@@ -46077,6 +46103,10 @@ function connectSSE(target = window) {
       const data2 = JSON.parse(ev.data ?? "{}");
       dispatch("sse:file:change", data2);
     });
+    es.addEventListener("document:change", (ev) => {
+      const data2 = JSON.parse(ev.data ?? "{}");
+      dispatch("sse:document:change", data2);
+    });
     es.addEventListener("file:list", (ev) => {
       const data2 = JSON.parse(ev.data ?? "{}");
       dispatch("sse:file:list", data2);
@@ -46127,17 +46157,66 @@ function useLiveSync(workspace, frame, theme2, setStatus, setPageCount) {
     const onRender = (event) => {
       const data2 = event.detail || {};
       const active = current.current;
-      if (data2.project && data2.project !== active.project || data2.filename && data2.filename !== active.filename) return;
+      if (active.docPath && data2.doc_path && active.docPath !== data2.doc_path) return;
+      if (active.target.mode === "project") {
+        if (data2.project && data2.project !== active.project || data2.filename && data2.filename !== active.filename) {
+          return;
+        }
+      }
       if (data2.project_css !== void 0) setProjectCss(data2.project_css);
       const renderedCss = data2.project_css !== void 0 ? `${data2.project_css}
 ${data2.css || ""}` : data2.css || effectiveCss();
-      updatePreview(frame.current, data2.html || "", renderedCss, theme2);
+      const token = data2.doc_token || active.docToken;
+      updatePreview(frame.current, data2.html || "", renderedCss, theme2, token);
       setStatus("connected", "Live");
       window.setTimeout(() => {
         var _a2, _b;
         const pages = ((_b = (_a2 = frame.current) == null ? void 0 : _a2.contentDocument) == null ? void 0 : _b.querySelectorAll(".pagedjs_page").length) || 0;
         setPageCount(pages ? `${pages} page${pages > 1 ? "s" : ""}` : "");
       }, 800);
+    };
+    const onDocumentChange = (event) => {
+      const data2 = event.detail || {};
+      const active = current.current;
+      const isSameDoc = active.docPath && data2.doc_path && active.docPath === data2.doc_path || active.target.mode === "project" && data2.mode === "project" && data2.project === active.project && data2.filename === active.filename;
+      if (!isSameDoc) return;
+      if (data2.action === "deleted") {
+        setDirty(true);
+        setSaveStatus("Deleted on disk");
+        return;
+      }
+      const mdChanged = data2.markdown !== void 0 && data2.markdown !== active.markdown;
+      const cssChanged = data2.css !== void 0 && data2.css !== active.css;
+      const sharedChanged = data2.shared_css !== void 0 && data2.shared_css !== active.projectCss;
+      if (!mdChanged && !cssChanged && !sharedChanged) return;
+      if (active.dirty) {
+        setConflict({
+          filename: data2.filename || active.filename,
+          markdown: data2.markdown,
+          css: data2.css,
+          project_css: data2.shared_css,
+          html: data2.html
+        });
+        return;
+      }
+      if (mdChanged) {
+        setMarkdown(data2.markdown);
+        setEditorContent(refs.markdownView.current, data2.markdown);
+      }
+      if (cssChanged) {
+        setCss(data2.css);
+        setEditorContent(refs.cssView.current, data2.css);
+      }
+      if (sharedChanged) {
+        setProjectCss(data2.shared_css || "");
+      }
+      const renderedCss = data2.shared_css ? `${data2.shared_css}
+${data2.css || ""}` : data2.css || active.css;
+      const token = data2.doc_token || active.docToken;
+      if (data2.html) {
+        updatePreview(frame.current, data2.html, renderedCss, theme2, token);
+      }
+      markClean("Synced from disk");
     };
     const onFileChange = (event) => {
       const data2 = event.detail || {};
@@ -46156,35 +46235,15 @@ ${data2.css || ""}` : data2.css || effectiveCss();
         if (data2.filename !== active.filename) return;
       }
       if (data2.filename === "project.css") {
-        if (data2.project_css !== void 0 && active.dirty) setConflict(data2);
-        else if (data2.project_css !== void 0) {
+        if (data2.project_css !== void 0 && active.dirty) {
+          setConflict(data2);
+        } else if (data2.project_css !== void 0) {
           setProjectCss(data2.project_css);
           void postRender(active.markdown, data2.project_css ? `${data2.project_css}
 ${active.css}` : active.css);
           markClean("Synced from disk");
         }
-        return;
       }
-      const mdChanged = data2.markdown !== void 0 && data2.markdown !== active.markdown;
-      const cssChanged = data2.css !== void 0 && data2.css !== active.css;
-      const projectChanged = data2.project_css !== void 0 && data2.project_css !== active.projectCss;
-      if (!mdChanged && !cssChanged && !projectChanged) return;
-      if (active.dirty) {
-        setConflict(data2);
-        return;
-      }
-      if (mdChanged) {
-        setMarkdown(data2.markdown);
-        setEditorContent(refs.markdownView.current, data2.markdown);
-      }
-      if (cssChanged) {
-        setCss(data2.css);
-        setEditorContent(refs.cssView.current, data2.css);
-      }
-      if (projectChanged) setProjectCss(data2.project_css);
-      if (data2.html) updatePreview(frame.current, data2.html, data2.project_css ? `${data2.project_css}
-${data2.css || ""}` : data2.css || active.css, theme2);
-      markClean("Synced from disk");
     };
     const onFileList = (event) => {
       var _a2;
@@ -46199,6 +46258,7 @@ ${data2.css || ""}` : data2.css || active.css, theme2);
     const onOffline = () => setStatus("idle", "Reconnecting…");
     window.addEventListener("sse:connected", onConnected);
     window.addEventListener("sse:render", onRender);
+    window.addEventListener("sse:document:change", onDocumentChange);
     window.addEventListener("sse:file:change", onFileChange);
     window.addEventListener("sse:file:list", onFileList);
     window.addEventListener("sse:error", onError);
@@ -46207,6 +46267,7 @@ ${data2.css || ""}` : data2.css || active.css, theme2);
       connection.close();
       window.removeEventListener("sse:connected", onConnected);
       window.removeEventListener("sse:render", onRender);
+      window.removeEventListener("sse:document:change", onDocumentChange);
       window.removeEventListener("sse:file:change", onFileChange);
       window.removeEventListener("sse:file:list", onFileList);
       window.removeEventListener("sse:error", onError);
@@ -46320,7 +46381,7 @@ function useProjects(workspace) {
     const nextFiles = await refreshFiles(nextProject);
     const nextFile = ((_c = nextFiles[0]) == null ? void 0 : _c.filename) || "README.md";
     setFilename(nextFile);
-    await loadDocument(nextProject, nextFile);
+    await loadDocument({ mode: "project", project: nextProject, filename: nextFile });
   }, [current, loadDocument, remember2, refreshFiles, refreshProjects, refs.imageLibrary, setFilename, setProject]);
   const switchFile = reactExports.useCallback(async (nextFilename) => {
     var _a2;
@@ -46342,14 +46403,33 @@ function useProjects(workspace) {
     }
     const active = current.current;
     if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Switch anyway?`)) return;
-    await loadDocument(active.project, nextFilename);
+    await loadDocument({ mode: "project", project: active.project, filename: nextFilename });
   }, [current, loadDocument, markDirty, refs.cssView, refs.markdownView, saveDocument, setFilename]);
+  const switchToProjects = reactExports.useCallback(async () => {
+    var _a2;
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes. Switch to project mode anyway?`)) return;
+    const available = await refreshProjects();
+    if (!available.length) return;
+    const nextProject = available.some((item) => item.name === active.project) ? active.project : available[0].name;
+    setProject(nextProject);
+    const nextFiles = await refreshFiles(nextProject);
+    const nextFile = ((_a2 = nextFiles[0]) == null ? void 0 : _a2.filename) || "README.md";
+    setFilename(nextFile);
+    await loadDocument({ mode: "project", project: nextProject, filename: nextFile });
+  }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject]);
   reactExports.useEffect(() => {
     let active = true;
     void (async () => {
       var _a2, _b;
       const available = await refreshProjects();
-      if (!active || !available.length) return;
+      if (!active) return;
+      const activeWatch = workspace.activeWatchTarget;
+      if (activeWatch && activeWatch.path) {
+        await loadDocument({ mode: "watch", path: activeWatch.path });
+        return;
+      }
+      if (!available.length) return;
       const nextProject = available.some((item) => item.name === current.current.project) ? current.current.project : available[0].name;
       setProject(nextProject);
       await ((_a2 = refs.imageLibrary.current) == null ? void 0 : _a2.setProject(nextProject));
@@ -46357,14 +46437,14 @@ function useProjects(workspace) {
       const nextFile = nextFiles.some((item) => item.filename === current.current.filename) ? current.current.filename : (_b = nextFiles[0]) == null ? void 0 : _b.filename;
       if (nextFile) {
         setFilename(nextFile);
-        await loadDocument(nextProject, nextFile);
+        await loadDocument({ mode: "project", project: nextProject, filename: nextFile });
       }
     })();
     return () => {
       active = false;
     };
-  }, [current, loadDocument, refreshFiles, refreshProjects, refs.imageLibrary, setFilename, setProject]);
-  return { project, filename, switchProject, switchFile };
+  }, [current, loadDocument, refreshFiles, refreshProjects, refs.imageLibrary, setFilename, setProject, workspace.activeWatchTarget]);
+  return { project, filename, switchProject, switchFile, switchToProjects };
 }
 const PROJECT_KEY = "css_editor_active_project";
 const FILE_KEY = "css_editor_active_file";
@@ -46383,9 +46463,18 @@ function remember(key, value) {
 }
 function useWorkspace() {
   const [projects, setProjects] = reactExports.useState([]);
+  const [workspaceProjects, setWorkspaceProjects] = reactExports.useState([]);
   const [project, setProject] = reactExports.useState(() => stored(PROJECT_KEY, ""));
   const [files, setFiles] = reactExports.useState([]);
   const [filename, setFilename] = reactExports.useState(() => stored(FILE_KEY, "document.md"));
+  const [target, setTarget] = reactExports.useState(() => ({
+    mode: "project",
+    project: stored(PROJECT_KEY, ""),
+    filename: stored(FILE_KEY, "document.md")
+  }));
+  const [activeWatchTarget, setActiveWatchTarget] = reactExports.useState(null);
+  const [docToken, setDocToken] = reactExports.useState("");
+  const [docPath, setDocPath] = reactExports.useState("");
   const [markdown2, setMarkdown] = reactExports.useState("");
   const [css2, setCss] = reactExports.useState("");
   const [projectCss, setProjectCss] = reactExports.useState("");
@@ -46400,8 +46489,28 @@ function useWorkspace() {
     imageInput: reactExports.useRef(null),
     imageLibrary: reactExports.useRef(null)
   };
-  const current = reactExports.useRef({ project, filename, markdown: markdown2, css: css2, projectCss, dirty });
-  current.current = { project, filename, markdown: markdown2, css: css2, projectCss, dirty };
+  const current = reactExports.useRef({
+    project,
+    filename,
+    markdown: markdown2,
+    css: css2,
+    projectCss,
+    dirty,
+    target,
+    docToken,
+    docPath
+  });
+  current.current = {
+    project,
+    filename,
+    markdown: markdown2,
+    css: css2,
+    projectCss,
+    dirty,
+    target,
+    docToken,
+    docPath
+  };
   const markDirty = reactExports.useCallback(() => {
     setDirty(true);
     setSaveStatus("Unsaved");
@@ -46427,7 +46536,9 @@ ${value.css}` : value.css;
           markdown: nextMarkdown,
           css: nextCss,
           project: context.project ?? value.project,
-          filename: context.filename ?? value.filename
+          filename: context.filename ?? value.filename,
+          doc_path: context.docPath ?? value.docPath,
+          doc_token: context.docToken ?? value.docToken
         })
       });
     } catch (error) {
@@ -46436,12 +46547,16 @@ ${value.css}` : value.css;
   }, []);
   const refreshProjects = reactExports.useCallback(async () => {
     try {
-      const response = await fetch("/api/projects");
+      const response = await fetch("/api/workspace");
       if (!response.ok) return [];
       const data2 = await response.json();
-      const next = data2.projects || [];
-      setProjects(next);
-      return next;
+      if (data2.active_watch_target) {
+        setActiveWatchTarget(data2.active_watch_target);
+      }
+      const nextProjects = data2.projects || [];
+      setWorkspaceProjects(nextProjects);
+      setProjects(nextProjects.map((p) => ({ name: p.name, documents: p.documents.length })));
+      return nextProjects;
     } catch (error) {
       console.error("Failed to fetch project list:", error);
       return [];
@@ -46450,68 +46565,103 @@ ${value.css}` : value.css;
   const refreshFiles = reactExports.useCallback(async (nextProject = current.current.project) => {
     if (!nextProject) return [];
     try {
-      const response = await fetch(`/api/project/documents?project=${encodeURIComponent(nextProject)}`);
+      const response = await fetch("/api/workspace");
       if (!response.ok) return [];
       const data2 = await response.json();
-      const next = data2.files || [];
-      setFiles(next);
-      return next;
+      const proj = (data2.projects || []).find((p) => p.name === nextProject);
+      const nextFiles = proj ? proj.documents : [];
+      setFiles(nextFiles);
+      return nextFiles;
     } catch (error) {
       console.error("Failed to fetch file list:", error);
       return [];
     }
   }, []);
-  const loadDocument = reactExports.useCallback(async (nextProject, nextFilename) => {
-    if (!nextProject) return;
+  const loadDocument = reactExports.useCallback(async (targetOrProject, maybeFilename) => {
+    var _a2;
+    let spec;
+    if (typeof targetOrProject === "string") {
+      spec = { mode: "project", project: targetOrProject, filename: maybeFilename || "README.md" };
+    } else {
+      spec = targetOrProject;
+    }
     try {
-      const query = `project=${encodeURIComponent(nextProject)}&filename=${encodeURIComponent(nextFilename)}`;
-      const response = await fetch(`/api/project/document?${query}`);
+      let query = `mode=${spec.mode}`;
+      if (spec.mode === "watch") {
+        query += `&path=${encodeURIComponent(spec.path)}`;
+        if (spec.customCss) query += `&custom_css=${encodeURIComponent(spec.customCss)}`;
+      } else {
+        query += `&project=${encodeURIComponent(spec.project)}&filename=${encodeURIComponent(spec.filename)}`;
+      }
+      const response = await fetch(`/api/document?${query}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data2 = await response.json();
       const nextMarkdown = data2.markdown || "";
       const nextCss = data2.css || "";
-      setProject(nextProject);
-      setFilename(data2.filename);
+      const sharedCss = data2.shared_css || "";
+      setTarget(spec);
+      setDocToken(data2.doc_token || "");
+      setDocPath(data2.doc_path || "");
       setMarkdown(nextMarkdown);
       setCss(nextCss);
-      setProjectCss(data2.project_css || "");
-      remember(PROJECT_KEY, nextProject);
-      remember(FILE_KEY, data2.filename);
+      setProjectCss(sharedCss);
+      if (spec.mode === "project") {
+        setProject(spec.project);
+        setFilename(data2.filename);
+        remember(PROJECT_KEY, spec.project);
+        remember(FILE_KEY, data2.filename);
+      } else {
+        setFilename(data2.filename);
+      }
       setEditorContent(refs.markdownView.current, nextMarkdown);
       setEditorContent(refs.cssView.current, nextCss);
+      await ((_a2 = refs.imageLibrary.current) == null ? void 0 : _a2.setDoc(data2.doc_path));
       markClean("Loaded");
-      void postRender(
-        nextMarkdown,
-        data2.project_css ? `${data2.project_css}
-${nextCss}` : nextCss,
-        { project: nextProject, filename: data2.filename }
-      );
+      const renderedCss = sharedCss ? `${sharedCss}
+${nextCss}` : nextCss;
+      void postRender(nextMarkdown, renderedCss, {
+        project: spec.mode === "project" ? spec.project : "",
+        filename: data2.filename,
+        docPath: data2.doc_path,
+        docToken: data2.doc_token
+      });
     } catch (error) {
-      console.error(`Failed to load ${nextFilename}:`, error);
+      console.error("Failed to load document:", error);
     }
-  }, [markClean, postRender, refs.cssView, refs.markdownView]);
+  }, [markClean, postRender, refs.cssView, refs.imageLibrary, refs.markdownView]);
   const saveDocument = reactExports.useCallback(async (override) => {
     const value = current.current;
-    const target = { ...value, ...override };
+    const activeTarget = value.target;
+    const mdToSave = (override == null ? void 0 : override.markdown) ?? value.markdown;
+    const cssToSave = (override == null ? void 0 : override.css) ?? value.css;
     setSaveStatus("Saving…");
     try {
-      const response = await fetch("/api/project/document", {
+      const payload = {
+        mode: activeTarget.mode,
+        markdown: mdToSave,
+        css: cssToSave
+      };
+      if (activeTarget.mode === "watch") {
+        payload.path = activeTarget.path;
+        payload.custom_css = activeTarget.customCss;
+      } else {
+        payload.project = activeTarget.project;
+        payload.filename = (override == null ? void 0 : override.filename) ?? activeTarget.filename;
+      }
+      const response = await fetch("/api/document", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project: target.project,
-          filename: target.filename,
-          markdown: target.markdown,
-          css: target.css
-        })
+        body: JSON.stringify(payload)
       });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.detail || response.status);
       }
-      remember(FILE_KEY, target.filename);
       markClean("Saved");
-      await refreshFiles(target.project);
+      if (activeTarget.mode === "project") {
+        remember(FILE_KEY, payload.filename);
+        await refreshFiles(activeTarget.project);
+      }
     } catch (error) {
       setSaveStatus("Save failed");
       window.alert(`Save failed: ${error.message}`);
@@ -46531,15 +46681,23 @@ ${value}` : value);
   }, [markDirty, postRender]);
   return {
     projects,
+    workspaceProjects,
     project,
     files,
     filename,
+    target,
+    docToken,
+    docPath,
+    activeWatchTarget,
     markdown: markdown2,
     css: css2,
     projectCss,
     dirty,
     saveStatus,
     conflict,
+    setTarget,
+    setDocToken,
+    setDocPath,
     setProject,
     setFilename,
     setMarkdown,
@@ -46584,7 +46742,7 @@ function App() {
   const [cssVisible, setCssVisible] = reactExports.useState(true);
   const [exporting, setExporting] = reactExports.useState(false);
   const preferences = usePreferences(frame);
-  const { switchProject, switchFile } = useProjects(workspace);
+  const { switchProject, switchFile, switchToProjects } = useProjects(workspace);
   const onDirectoryChanged = reactExports.useCallback(async () => {
     var _a2, _b;
     const available = await workspace.refreshProjects();
@@ -46595,7 +46753,7 @@ function App() {
       const nextFiles = await workspace.refreshFiles(nextProject);
       const nextFile = ((_b = nextFiles[0]) == null ? void 0 : _b.filename) || "README.md";
       workspace.setFilename(nextFile);
-      await workspace.loadDocument(nextProject, nextFile);
+      await workspace.loadDocument({ mode: "project", project: nextProject, filename: nextFile });
     }
   }, [workspace]);
   const {
@@ -46628,11 +46786,16 @@ function App() {
       const response = await fetch("/api/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ markdown: workspace.current.current.markdown, css: workspace.effectiveCss(), filename: "document" })
+        body: JSON.stringify({
+          markdown: workspace.current.current.markdown,
+          css: workspace.effectiveCss(),
+          filename: workspace.filename.replace(/\.md$/, "") || "document",
+          doc_path: workspace.current.current.docPath || void 0
+        })
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const url = URL.createObjectURL(await response.blob());
-      const link = Object.assign(document.createElement("a"), { href: url, download: "document.pdf" });
+      const link = Object.assign(document.createElement("a"), { href: url, download: `${workspace.filename.replace(/\.md$/, "") || "document"}.pdf` });
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -46656,7 +46819,7 @@ function App() {
     }
     if (conflict.project_css !== void 0) workspace.setProjectCss(conflict.project_css);
     if (conflict.html) updatePreview(frame.current, conflict.html, conflict.project_css ? `${conflict.project_css}
-${conflict.css || ""}` : conflict.css || "", preferences.theme);
+${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docToken);
     workspace.markClean("Reloaded from disk");
   }, [preferences.theme, workspace]);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "app", children: [
@@ -46677,6 +46840,9 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme);
         noWhitespace: preferences.noWhitespace,
         config: config2,
         onOpenConfigModal: () => setModalOpen(true),
+        mode: workspace.target.mode,
+        docPath: workspace.docPath,
+        onSwitchToProjects: switchToProjects,
         imageInput: workspace.refs.imageInput,
         onProject: (event) => void switchProject(event.target.value),
         onFile: (event) => void switchFile(event.target.value),
