@@ -36,6 +36,7 @@ export default function App() {
   const [pageCount, setPageCount] = useState('');
   const [libraryVisible, setLibraryVisible] = useState(true);
   const [cssVisible, setCssVisible] = useState(true);
+  const [activeFrame, setActiveFrame] = useState<'A' | 'B'>('A');
   const [exporting, setExporting] = useState(false);
   const preferences = usePreferences(frameA);
   const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle } = useProjects(workspace);
@@ -99,7 +100,7 @@ export default function App() {
     setStatus(next); setStatusTitle(title || next);
   }, []);
   useEditors(workspace, library);
-  usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount);
+  usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount, setActiveFrame);
   useLiveSync(workspace, frameA, preferences.theme, setAppStatus, setPageCount);
   useLayout(workspace, panes, divider, leftPane);
 
@@ -173,7 +174,7 @@ export default function App() {
     />
     <WorkspacePanes refs={workspace.refs} library={library} panes={panes} divider={divider} leftPane={leftPane}
       libraryVisible={libraryVisible} cssVisible={cssVisible} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
-      frameA={frameA} frameB={frameB} previewScroll={previewScroll} pageCount={pageCount} theme={preferences.theme} onCss={() => setCssVisible((value) => !value)} onTheme={preferences.changeTheme} />
+      frameA={frameA} frameB={frameB} activeFrame={activeFrame} previewScroll={previewScroll} pageCount={pageCount} theme={preferences.theme} onCss={() => setCssVisible((value) => !value)} onTheme={preferences.changeTheme} />
     {workspace.target.mode === 'idle' && (
       <IdleLauncher
         projects={workspace.projects}

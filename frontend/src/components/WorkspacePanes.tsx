@@ -13,6 +13,7 @@ type Props = {
   noWhitespace: boolean;
   frameA: RefObject<HTMLIFrameElement | null>;
   frameB: RefObject<HTMLIFrameElement | null>;
+  activeFrame: 'A' | 'B';
   previewScroll: RefObject<HTMLDivElement | null>;
   pageCount: string;
   theme: string;
@@ -91,8 +92,16 @@ export function WorkspacePanes(props: Props) {
           </div>
         </div>
         <div className={`preview-scroll preview-theme--${props.theme}`} ref={props.previewScroll}>
-          <iframe ref={props.frameA} className="preview-frame preview-frame--visible" title="Document preview" />
-          <iframe ref={props.frameB} className="preview-frame preview-frame--staging" title="Document preview staging" />
+          <iframe
+            ref={props.frameA}
+            className={`preview-frame ${props.activeFrame === 'A' ? 'preview-frame--visible' : 'preview-frame--staging'}`}
+            title="Document preview"
+          />
+          <iframe
+            ref={props.frameB}
+            className={`preview-frame ${props.activeFrame === 'B' ? 'preview-frame--visible' : 'preview-frame--staging'}`}
+            title="Document preview staging"
+          />
         </div>
       </div>
     </div>

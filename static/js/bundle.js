@@ -45160,6 +45160,8 @@ let _activeBlobUrls = { A: null, B: null, single: null };
 let _stagingBlobUrl = null;
 let _pendingFallbackTimer = null;
 let _onPageCountCallback = null;
+let _onSwapCallback = null;
+let _hasRendered = false;
 let _messageListenerAttached = false;
 function _ensureMessageListener() {
   if (_messageListenerAttached || typeof window === "undefined") return;
@@ -45169,7 +45171,14 @@ function _ensureMessageListener() {
       const { renderId, pageCount, height } = event.data;
       if (renderId === _currentRenderId) {
         if (_frameA && _frameB) {
-          _performSwap(renderId, pageCount, height);
+          if (_stagingBlobUrl === null && _activeFrameName === "A") {
+            if (_frameA && height > 0) _frameA.style.height = `${height}px`;
+            if (_onPageCountCallback) {
+              _onPageCountCallback(pageCount ? `${pageCount} page${pageCount > 1 ? "s" : ""}` : "");
+            }
+          } else {
+            _performSwap(renderId, pageCount, height);
+          }
         } else if (_singleFrame) {
           _performSingleFrameReady(renderId, pageCount, height);
         }
@@ -45198,7 +45207,7 @@ function setPreviewDocumentTheme(targetOrTheme, theme2) {
     }
   }
 }
-function initPreview(target, theme2 = "light", onPageCount = void 0) {
+function initPreview(target, theme2 = "light", onPageCount = void 0, onSwap = void 0) {
   _ensureMessageListener();
   _currentTheme = theme2 || "light";
   if (onPageCount) _onPageCountCallback = onPageCount;
@@ -45206,10 +45215,10 @@ function initPreview(target, theme2 = "light", onPageCount = void 0) {
     _frameA = target.frameA;
     _frameB = target.frameB;
     _scrollEl = target.scrollEl || null;
+    if (target.onSwap) _onSwapCallback = target.onSwap;
+    else if (onSwap) _onSwapCallback = onSwap;
     _activeFrameName = "A";
-    _frameA.className = "preview-frame preview-frame--visible";
-    _frameB.className = "preview-frame preview-frame--staging";
-    _renderFrameDirect(_frameA, "", "", _currentTheme, _currentDocToken, "A");
+    _hasRendered = false;
     return;
   }
   if (target && (target instanceof HTMLIFrameElement || target.tagName === "IFRAME")) {
@@ -45240,6 +45249,7 @@ function updatePreview(targetOrHtml, htmlOrCss, userCss, theme2, docToken, onPag
       _frameA = targetOrHtml.frameA;
       _frameB = targetOrHtml.frameB;
       if (targetOrHtml.scrollEl) _scrollEl = targetOrHtml.scrollEl;
+      if (targetOrHtml.onSwap) _onSwapCallback = targetOrHtml.onSwap;
     } else if (targetOrHtml && (targetOrHtml instanceof HTMLIFrameElement || targetOrHtml.tagName === "IFRAME")) {
       _singleFrame = targetOrHtml;
     }
@@ -45247,7 +45257,12 @@ function updatePreview(targetOrHtml, htmlOrCss, userCss, theme2, docToken, onPag
   _currentTheme = th || "light";
   _currentDocToken = tok || "";
   if (_frameA && _frameB) {
-    _renderDoubleBuffered(htmlBody, css2, _currentTheme, _currentDocToken);
+    if (!_hasRendered) {
+      _hasRendered = true;
+      _renderFrameDirect(_frameA, htmlBody, css2, _currentTheme, _currentDocToken, "A");
+    } else {
+      _renderDoubleBuffered(htmlBody, css2, _currentTheme, _currentDocToken);
+    }
   } else if (_singleFrame) {
     _renderSingleFrame(_singleFrame, htmlBody, css2, _currentTheme, _currentDocToken);
   }
@@ -45317,6 +45332,9 @@ function _performSwap(renderId, pageCount, height) {
   _activeBlobUrls[stagingName] = _stagingBlobUrl;
   _stagingBlobUrl = null;
   _activeFrameName = stagingName;
+  if (_onSwapCallback) {
+    _onSwapCallback(stagingName);
+  }
   let count2 = pageCount;
   if (count2 === void 0) {
     try {
@@ -46222,8 +46240,22 @@ function WorkspacePanes(props) {
         ] }) })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `preview-scroll preview-theme--${props.theme}`, ref: props.previewScroll, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("iframe", { ref: props.frameA, className: "preview-frame preview-frame--visible", title: "Document preview" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("iframe", { ref: props.frameB, className: "preview-frame preview-frame--staging", title: "Document preview staging" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "iframe",
+          {
+            ref: props.frameA,
+            className: `preview-frame ${props.activeFrame === "A" ? "preview-frame--visible" : "preview-frame--staging"}`,
+            title: "Document preview"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "iframe",
+          {
+            ref: props.frameB,
+            className: `preview-frame ${props.activeFrame === "B" ? "preview-frame--visible" : "preview-frame--staging"}`,
+            title: "Document preview staging"
+          }
+        )
       ] })
     ] })
   ] });
@@ -47128,14 +47160,20 @@ function usePreferences(frame) {
   }, []);
   return { theme: theme2, settingsOpen, noCrop, noWhitespace, setSettingsOpen, changeTheme, changeNoCrop, changeNoWhitespace };
 }
-function usePreview(frameA, frameB, previewScroll, theme2, onPageCount) {
+function usePreview(frameA, frameB, previewScroll, theme2, onPageCount, onSwap) {
   reactExports.useEffect(() => {
     initPreview(
-      { frameA: frameA.current, frameB: frameB.current, scrollEl: previewScroll.current },
+      {
+        frameA: frameA.current,
+        frameB: frameB.current,
+        scrollEl: previewScroll.current,
+        onSwap
+      },
       theme2,
-      onPageCount
+      onPageCount,
+      onSwap
     );
-  }, [frameA, frameB, previewScroll, onPageCount]);
+  }, [frameA, frameB, previewScroll, onPageCount, onSwap]);
 }
 function useProjects(workspace) {
   const {
@@ -47799,6 +47837,7 @@ function App() {
   const [pageCount, setPageCount] = reactExports.useState("");
   const [libraryVisible, setLibraryVisible] = reactExports.useState(true);
   const [cssVisible, setCssVisible] = reactExports.useState(true);
+  const [activeFrame, setActiveFrame] = reactExports.useState("A");
   const [exporting, setExporting] = reactExports.useState(false);
   const preferences = usePreferences(frameA);
   const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle } = useProjects(workspace);
@@ -47860,7 +47899,7 @@ function App() {
     setStatusTitle(title || next);
   }, []);
   useEditors(workspace, library);
-  usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount);
+  usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount, setActiveFrame);
   useLiveSync(workspace, frameA, preferences.theme, setAppStatus, setPageCount);
   useLayout(workspace, panes, divider, leftPane);
   reactExports.useEffect(() => {
@@ -47980,6 +48019,7 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         noWhitespace: preferences.noWhitespace,
         frameA,
         frameB,
+        activeFrame,
         previewScroll,
         pageCount,
         theme: preferences.theme,

@@ -29,6 +29,8 @@ let _stagingBlobUrl = null;
 
 let _pendingFallbackTimer = null;
 let _onPageCountCallback = null;
+let _onSwapCallback = null;
+let _hasRendered = false;
 let _messageListenerAttached = false;
 
 function _ensureMessageListener() {
@@ -38,7 +40,14 @@ function _ensureMessageListener() {
       const { renderId, pageCount, height } = event.data;
       if (renderId === _currentRenderId) {
         if (_frameA && _frameB) {
-          _performSwap(renderId, pageCount, height);
+          if (_stagingBlobUrl === null && _activeFrameName === 'A') {
+            if (_frameA && height > 0) _frameA.style.height = `${height}px`;
+            if (_onPageCountCallback) {
+              _onPageCountCallback(pageCount ? `${pageCount} page${pageCount > 1 ? 's' : ''}` : '');
+            }
+          } else {
+            _performSwap(renderId, pageCount, height);
+          }
         } else if (_singleFrame) {
           _performSingleFrameReady(renderId, pageCount, height);
         }
@@ -78,8 +87,9 @@ export function setPreviewDocumentTheme(targetOrTheme, theme) {
  * @param {any} target
  * @param {string} [theme]
  * @param {((count: string) => void) | null} [onPageCount]
+ * @param {((active: 'A' | 'B') => void) | null} [onSwap]
  */
-export function initPreview(target, theme = 'light', onPageCount = undefined) {
+export function initPreview(target, theme = 'light', onPageCount = undefined, onSwap = undefined) {
   _ensureMessageListener();
   _currentTheme = theme || 'light';
   if (onPageCount) _onPageCountCallback = onPageCount;
@@ -88,12 +98,10 @@ export function initPreview(target, theme = 'light', onPageCount = undefined) {
     _frameA = target.frameA;
     _frameB = target.frameB;
     _scrollEl = target.scrollEl || null;
+    if (target.onSwap) _onSwapCallback = target.onSwap;
+    else if (onSwap) _onSwapCallback = onSwap;
     _activeFrameName = 'A';
-
-    _frameA.className = 'preview-frame preview-frame--visible';
-    _frameB.className = 'preview-frame preview-frame--staging';
-
-    _renderFrameDirect(_frameA, '', '', _currentTheme, _currentDocToken, 'A');
+    _hasRendered = false;
     return;
   }
 
@@ -137,6 +145,7 @@ export function updatePreview(targetOrHtml, htmlOrCss, userCss, theme, docToken,
       _frameA = targetOrHtml.frameA;
       _frameB = targetOrHtml.frameB;
       if (targetOrHtml.scrollEl) _scrollEl = targetOrHtml.scrollEl;
+      if (targetOrHtml.onSwap) _onSwapCallback = targetOrHtml.onSwap;
     } else if (targetOrHtml && (targetOrHtml instanceof HTMLIFrameElement || targetOrHtml.tagName === 'IFRAME')) {
       _singleFrame = targetOrHtml;
     }
@@ -146,7 +155,12 @@ export function updatePreview(targetOrHtml, htmlOrCss, userCss, theme, docToken,
   _currentDocToken = tok || '';
 
   if (_frameA && _frameB) {
-    _renderDoubleBuffered(htmlBody, css, _currentTheme, _currentDocToken);
+    if (!_hasRendered) {
+      _hasRendered = true;
+      _renderFrameDirect(_frameA, htmlBody, css, _currentTheme, _currentDocToken, 'A');
+    } else {
+      _renderDoubleBuffered(htmlBody, css, _currentTheme, _currentDocToken);
+    }
   } else if (_singleFrame) {
     _renderSingleFrame(_singleFrame, htmlBody, css, _currentTheme, _currentDocToken);
   }
@@ -237,6 +251,9 @@ function _performSwap(renderId, pageCount, height) {
   _stagingBlobUrl = null;
 
   _activeFrameName = stagingName;
+  if (_onSwapCallback) {
+    _onSwapCallback(stagingName);
+  }
 
   let count = pageCount;
   if (count === undefined) {

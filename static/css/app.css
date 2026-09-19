@@ -788,7 +788,6 @@ html, body {
   opacity:         1;
   pointer-events:  auto;
   z-index:         2;
-  transition:      opacity 0.1s ease-in-out;
 }
 
 .preview-frame--staging {

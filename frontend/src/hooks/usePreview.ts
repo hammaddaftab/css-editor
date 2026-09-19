@@ -7,12 +7,19 @@ export function usePreview(
   previewScroll: RefObject<HTMLDivElement | null>,
   theme: string,
   onPageCount?: (count: string) => void,
+  onSwap?: (active: 'A' | 'B') => void,
 ): void {
   useEffect(() => {
     initPreview(
-      { frameA: frameA.current, frameB: frameB.current, scrollEl: previewScroll.current },
+      {
+        frameA: frameA.current,
+        frameB: frameB.current,
+        scrollEl: previewScroll.current,
+        onSwap,
+      },
       theme,
       onPageCount,
+      onSwap,
     );
-  }, [frameA, frameB, previewScroll, onPageCount]);
+  }, [frameA, frameB, previewScroll, onPageCount, onSwap]);
 }
