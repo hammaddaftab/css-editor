@@ -10,6 +10,7 @@ Responsibilities:
 import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -34,17 +35,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception:
         pass
 
-    # Optional: watch an explicitly configured external Markdown file
-    watch_file = settings.watch_file_path
-    if watch_file and watch_file.exists():
+    # Optional: watch an explicitly configured external Markdown file via CLI -w
+    watch_file = getattr(app.state, "initial_watch_file", None)
+    if watch_file and isinstance(watch_file, Path) and watch_file.is_file():
         try:
-            if watch_file.parent != settings.workspace_path:
-                tasks.append(
-                    asyncio.create_task(
-                        watch_markdown_file(watch_file),
-                        name="markdown-file-watcher",
-                    )
+            tasks.append(
+                asyncio.create_task(
+                    watch_markdown_file(watch_file),
+                    name="markdown-file-watcher",
                 )
+            )
         except Exception:
             pass
 

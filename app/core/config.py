@@ -1,8 +1,13 @@
-"""
-Application configuration loaded from environment variables / .env file.
+"""Application configuration and bundle path resolution.
 
-Prefix all env vars with EDITOR_ (e.g. EDITOR_WATCH_FILE=/path/to/file.md).
+Handles immutable application-level settings (such as static/template bundle directories
+and debug flags) loaded from environment variables.
+
+For mutable user preferences and project directory configurations,
+see app.services.config_manager.
 """
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
@@ -10,10 +15,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def get_bundle_dir() -> Path:
-    """
-    Return the root directory containing bundled static files and templates.
+    """Return root directory containing bundled static files and templates.
+
     When running as a compiled standalone binary (PyInstaller), returns sys._MEIPASS.
-    In standard development mode, returns the repository root.
+    In development mode, returns the repository root.
     """
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
         return Path(sys._MEIPASS).resolve()
@@ -32,36 +37,26 @@ class Settings(BaseSettings):
 
     app_name: str = "CSS Markdown Editor"
     debug: bool = False
-    workspace_root: Path = APP_ROOT
-    # Optional: path to a markdown file to watch on disk and live-reload on change
-    watch_file: Path | None = None
-
-    def _resolve_path(self, value: Path, base: Path = APP_ROOT) -> Path:
-        path = value.expanduser()
-        if not path.is_absolute():
-            path = base / path
-        return path.resolve()
-
-    @property
-    def workspace_path(self) -> Path:
-        return self._resolve_path(self.workspace_root)
-
-    @property
-    def projects_path(self) -> Path:
-        from app.services.config_manager import get_projects_root
-        return get_projects_root()
+    bundle_dir: Path = APP_ROOT
 
     @property
     def static_path(self) -> Path:
-        return self.workspace_path / "static"
+        return self.bundle_dir / "static"
 
     @property
     def templates_path(self) -> Path:
-        return self.workspace_path / "templates"
+        return self.bundle_dir / "templates"
 
     @property
-    def watch_file_path(self) -> Path | None:
-        return self._resolve_path(self.watch_file, self.workspace_path) if self.watch_file else None
+    def workspace_path(self) -> Path:
+        """Alias for bundle_dir retained for backwards compatibility."""
+        return self.bundle_dir
+
+    @property
+    def projects_path(self) -> Path:
+        """Proxy to active projects root from user config."""
+        from app.services.config_manager import get_projects_root
+        return get_projects_root()
 
 
 settings = Settings()

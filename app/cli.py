@@ -85,21 +85,24 @@ def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    watch_path: Path | None = None
     if args.watch:
         watch_path = Path(args.watch).expanduser().resolve()
         if not watch_path.exists():
             print(f"Error: Specified watch file does not exist: {watch_path}", file=sys.stderr)
             sys.exit(1)
-        os.environ["EDITOR_WATCH_FILE"] = str(watch_path)
 
     actual_port = find_available_port(host=args.host, preferred_port=args.port)
     if actual_port != args.port:
         print(f"Notice: Port {args.port} is already in use. Selected available port {actual_port}.")
 
-    # Import app and settings after environment overrides are configured
+    # Import app and settings
     from app.core.config import settings
     from app.main import app
     import uvicorn
+
+    if watch_path:
+        app.state.initial_watch_file = watch_path
 
     url = f"http://{args.host}:{actual_port}"
 

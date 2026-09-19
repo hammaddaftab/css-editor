@@ -6,24 +6,17 @@ Standard Markdown files and CSS are read and saved safely without side effects o
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from app.core.config import settings
 from app.models.context import ProjectTarget, WatchTarget
 from app.routers.assets import encode_doc_token
+from app.services.config_manager import get_projects_root
 from app.services.context_svc import resolve_document_context
 from app.services.document_svc import read_document_io, write_document_io
 
 router = APIRouter(prefix="/api", tags=["documents"])
-
-
-def get_projects_root() -> Path:
-    """Return active projects root directory."""
-    root = settings.projects_path
-    root.mkdir(parents=True, exist_ok=True)
-    return root
 
 
 # ── Request / Response Schemas ────────────────────────────────────────────────
@@ -153,7 +146,7 @@ async def save_document(req: SaveDocumentRequest) -> JSONResponse:
 
 
 @router.get("/workspace", summary="Discover workspace projects and files")
-async def get_workspace() -> JSONResponse:
+async def get_workspace(request: Request) -> JSONResponse:
     projects = []
     root = get_projects_root()
     for path in sorted(root.iterdir(), key=lambda item: item.name.lower()):
@@ -168,10 +161,11 @@ async def get_workspace() -> JSONResponse:
             })
 
     active_watch = None
-    if settings.watch_file_path and settings.watch_file_path.is_file():
+    watch_file = getattr(request.app.state, "initial_watch_file", None)
+    if watch_file and isinstance(watch_file, Path) and watch_file.is_file():
         active_watch = {
-            "path": str(settings.watch_file_path),
-            "filename": settings.watch_file_path.name,
+            "path": str(watch_file),
+            "filename": watch_file.name,
         }
 
     return JSONResponse({

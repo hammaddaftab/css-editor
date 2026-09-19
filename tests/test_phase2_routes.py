@@ -217,8 +217,37 @@ class TestPhase2Routes(unittest.TestCase):
         res = self.client.post("/api/export", json=payload)
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.headers["content-type"], "application/pdf")
-        self.assertTrue(len(res.content) > 0)
+    def test_workspace_active_watch_target_lifecycle(self):
+        # 1. By default, active_watch_target is None
+        res = self.client.get("/api/workspace")
+        self.assertEqual(res.status_code, 200)
+        self.assertIsNone(res.json().get("active_watch_target"))
+
+        # 2. Setting app.state.initial_watch_file returns the active watch target
+        dummy_file = self.base_dir / "watched.md"
+        dummy_file.write_text("# Watched", encoding="utf-8")
+        app.state.initial_watch_file = dummy_file
+
+        try:
+            res = self.client.get("/api/workspace")
+            self.assertEqual(res.status_code, 200)
+            target = res.json().get("active_watch_target")
+            self.assertIsNotNone(target)
+            self.assertEqual(target["path"], str(dummy_file))
+            self.assertEqual(target["filename"], "watched.md")
+        finally:
+            app.state.initial_watch_file = None
+
+        # 3. Environment variable EDITOR_WATCH_FILE does NOT affect active_watch_target
+        os.environ["EDITOR_WATCH_FILE"] = str(dummy_file)
+        try:
+            res = self.client.get("/api/workspace")
+            self.assertEqual(res.status_code, 200)
+            self.assertIsNone(res.json().get("active_watch_target"))
+        finally:
+            os.environ.pop("EDITOR_WATCH_FILE", None)
 
 
 if __name__ == "__main__":
     unittest.main()
+

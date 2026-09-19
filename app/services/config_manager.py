@@ -133,7 +133,12 @@ def save_user_config(config: UserConfig) -> None:
 
 
 def get_projects_root() -> Path:
-    """Resolve active projects root directory from user config."""
+    """Resolve active projects root directory from user config or environment override."""
+    env_override = os.environ.get("EDITOR_PROJECTS_DIR")
+    if env_override:
+        path = Path(env_override).expanduser().resolve()
+        path.mkdir(parents=True, exist_ok=True)
+        return path
     config, _ = load_user_config()
     path = Path(config.projects_dir).expanduser().resolve()
     path.mkdir(parents=True, exist_ok=True)
