@@ -47,7 +47,10 @@ export function useEditors(workspace: any, library: LibraryRefs): void {
           selection: { anchor: position + snippet.length } });
         markdownView.focus();
       },
-      onNameChange: (image: { url: string }, name: string) => updateImageAlt(markdownView, image.url, name),
+      onNameChange: (image: { url: string; rel_path?: string }, name: string) => {
+        if (image.rel_path) updateImageAlt(markdownView, image.rel_path, name);
+        if (image.url) updateImageAlt(markdownView, image.url, name);
+      },
     });
 
     return () => { markdownView.destroy(); cssView.destroy(); };

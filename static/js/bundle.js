@@ -44623,7 +44623,8 @@ function makeImageDragDropExtension(onDropImage) {
       const insertPos = pos !== null ? pos : view.state.selection.main.head;
       const line = view.state.doc.lineAt(insertPos);
       const altText = imgData.alt || "image";
-      const snippet2 = `![${altText}](${imgData.url})`;
+      const targetPath = imgData.rel_path || imgData.url;
+      const snippet2 = `![${altText}](${targetPath})`;
       if (line.text.trim().length === 0) {
         view.dispatch({
           changes: { from: line.from, to: line.to, insert: snippet2 },
@@ -44676,7 +44677,8 @@ ${placeholder}`;
             const data2 = await (onPasteImage == null ? void 0 : onPasteImage(file));
             if (!data2) continue;
             const altText = file.name || "image";
-            const snippet2 = `![${altText}](${data2.url})`;
+            const targetPath = data2.rel_path || data2.url;
+            const snippet2 = `![${altText}](${targetPath})`;
             const docText = view.state.doc.toString();
             const placeholderIdx = docText.indexOf(placeholder);
             if (placeholderIdx !== -1) {
@@ -45603,7 +45605,8 @@ function initImageLibrary({
   async function copySelectedImage() {
     if (!_selectedImage || !_selectedCard) return;
     const altText = _selectedImage.displayName || _selectedImage.alt || _selectedImage.filename;
-    const snippet2 = `![${altText}](${_selectedImage.url})`;
+    const targetPath = _selectedImage.rel_path || _selectedImage.url;
+    const snippet2 = `![${altText}](${targetPath})`;
     try {
       await navigator.clipboard.writeText(snippet2);
       showFeedback(`📋 Copied markdown for "${altText}"`);
@@ -45717,7 +45720,7 @@ function initImageLibrary({
       const textSpan = dropzoneEl.querySelector(".dropzone-text");
       if (textSpan) textSpan.textContent = "📥 Drop images here to upload";
     }
-    await fetchImages(projectOverride);
+    await fetchImages();
     if (uploaded.length > 0) {
       focusImage(uploaded[0].url);
     }
@@ -45786,8 +45789,9 @@ function initImageLibrary({
       if (e.target === nameInput) return;
       if (onInsert) {
         const altText = img.displayName || img.filename;
+        const targetPath = img.rel_path || img.url;
         onInsert(`
-![${altText}](${img.url})
+![${altText}](${targetPath})
 `);
         showFeedback(`＋ Inserted "${altText}" at cursor`);
       }
@@ -45974,7 +45978,10 @@ function useEditors(workspace, library) {
         });
         markdownView.focus();
       },
-      onNameChange: (image, name2) => updateImageAlt(markdownView, image.url, name2)
+      onNameChange: (image, name2) => {
+        if (image.rel_path) updateImageAlt(markdownView, image.rel_path, name2);
+        if (image.url) updateImageAlt(markdownView, image.url, name2);
+      }
     });
     return () => {
       markdownView.destroy();

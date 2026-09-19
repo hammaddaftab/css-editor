@@ -135,7 +135,8 @@ export function initImageLibrary({
   async function copySelectedImage() {
     if (!_selectedImage || !_selectedCard) return;
     const altText = _selectedImage.displayName || _selectedImage.alt || _selectedImage.filename;
-    const snippet = `![${altText}](${_selectedImage.url})`;
+    const targetPath = _selectedImage.rel_path || _selectedImage.url;
+    const snippet = `![${altText}](${targetPath})`;
 
     try {
       await navigator.clipboard.writeText(snippet);
@@ -281,7 +282,7 @@ export function initImageLibrary({
       if (textSpan) textSpan.textContent = '📥 Drop images here to upload';
     }
 
-    await fetchImages(projectOverride);
+    await fetchImages();
 
     // If new images were uploaded, focus the first new one
     if (uploaded.length > 0) {
@@ -374,7 +375,8 @@ export function initImageLibrary({
       if (e.target === nameInput) return;
       if (onInsert) {
         const altText = img.displayName || img.filename;
-        onInsert(`\n![${altText}](${img.url})\n`);
+        const targetPath = img.rel_path || img.url;
+        onInsert(`\n![${altText}](${targetPath})\n`);
         showFeedback(`＋ Inserted "${altText}" at cursor`);
       }
     });

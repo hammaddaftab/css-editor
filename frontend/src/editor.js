@@ -105,7 +105,8 @@ export function makeImageDragDropExtension(onDropImage) {
       const insertPos = pos !== null ? pos : view.state.selection.main.head;
       const line = view.state.doc.lineAt(insertPos);
       const altText = imgData.alt || 'image';
-      const snippet = `![${altText}](${imgData.url})`;
+      const targetPath = imgData.rel_path || imgData.url;
+      const snippet = `![${altText}](${targetPath})`;
 
       if (line.text.trim().length === 0) {
         // Line is blank, drop right in place
@@ -173,7 +174,8 @@ export function makeImagePasteExtension(onPasteImage) {
             const data = await onPasteImage?.(file);
             if (!data) continue;
             const altText = file.name || 'image';
-            const snippet = `![${altText}](${data.url})`;
+            const targetPath = data.rel_path || data.url;
+            const snippet = `![${altText}](${targetPath})`;
 
             // Find and replace the placeholder in the current doc
             const docText = view.state.doc.toString();
