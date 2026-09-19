@@ -45100,16 +45100,15 @@ ${htmlBody}
 </html>`;
 }
 function ConflictBanner({ conflict, onReload, onKeep }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "conflict-banner", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "conflict-banner", role: "alert", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "conflict-banner__text", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "⚠️ Disk file changed:" }),
-      " ",
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "conflict-banner__badge", children: "External Change" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: conflict.filename }),
       " was modified externally, but you have unsaved edits."
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "conflict-banner__actions", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--xs btn--primary", onClick: onReload, children: "Reload from disk" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--xs btn--ghost", onClick: onKeep, children: "Keep my edits" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--xs btn--ghost", onClick: onKeep, children: "Keep edits" })
     ] })
   ] });
 }
@@ -45225,64 +45224,193 @@ function IdleLauncher(props) {
     ] })
   ] }) });
 }
-function Toolbar(props) {
+function SettingsSideWindow(props) {
   var _a2, _b, _c, _d;
+  reactExports.useEffect(() => {
+    if (!props.isOpen) return;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        props.onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [props.isOpen, props.onClose]);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        className: `side-window-backdrop${props.isOpen ? " is-open" : ""}`,
+        onClick: props.onClose,
+        "aria-hidden": !props.isOpen
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "aside",
+      {
+        className: `side-window${props.isOpen ? " is-open" : ""}`,
+        role: "dialog",
+        "aria-label": "Settings",
+        "aria-hidden": !props.isOpen,
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "side-window__header", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "side-window__title", children: "Settings" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                className: "side-window__close",
+                onClick: props.onClose,
+                title: "Close settings (Esc)",
+                "aria-label": "Close settings",
+                children: "×"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "side-window__body", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "prefs-group", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "prefs-group__title", children: "Workspace & Storage" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "prefs-group__card", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row prefs-row--column", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "Projects Folder" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: "Local directory for documents, CSS, and images" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "prefs-path-badge", title: ((_a2 = props.config) == null ? void 0 : _a2.projects_dir) || "Loading…", children: ((_b = props.config) == null ? void 0 : _b.projects_dir) || "Loading…" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    type: "button",
+                    className: "btn btn--secondary btn--xs",
+                    style: { alignSelf: "flex-start", marginTop: "4px" },
+                    onClick: () => {
+                      props.onOpenConfigModal();
+                    },
+                    children: "Change Workspace Folder…"
+                  }
+                )
+              ] }) })
+            ] }),
+            ((_c = props.config) == null ? void 0 : _c.author_name) && /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "prefs-group", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "prefs-group__title", children: "Author" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "prefs-group__card", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "prefs-row", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: props.config.author_name }),
+                props.config.author_email && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: props.config.author_email })
+              ] }) }) })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "prefs-group", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "prefs-group__title", children: "Image Library" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-group__card", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "No-crop mode" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: "Display images contained without cropping edges" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "settings-toggle", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        type: "checkbox",
+                        className: "settings-toggle__input",
+                        checked: props.noCrop,
+                        onChange: props.onNoCrop
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__slider" })
+                  ] })
+                ] }),
+                props.noCrop && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "No white-space" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: "Collapse fixed thumbnail card height" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "settings-toggle", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        type: "checkbox",
+                        className: "settings-toggle__input",
+                        checked: props.noWhitespace,
+                        onChange: props.onNoWhitespace
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__slider" })
+                  ] })
+                ] })
+              ] })
+            ] }),
+            ((_d = props.config) == null ? void 0 : _d.config_file_path) && /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "prefs-group", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "prefs-group__title", children: "Configuration File" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "prefs-group__card", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row prefs-row--column", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "Configuration Path" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: "Persistent settings stored on local disk" })
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "prefs-path-badge", title: props.config.config_file_path, children: props.config.config_file_path })
+              ] }) })
+            ] })
+          ] })
+        ]
+      }
+    )
+  ] });
+}
+function Toolbar(props) {
   const projectOptions = props.projects.length ? props.projects.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item.name, children: item.name }, item.name)) : /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "Loading projects…" });
   const fileOptions = props.files.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item.filename, children: item.filename }, item.filename));
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "toolbar", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__brand", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "toolbar__brand-icon", children: "📄" }),
-      "CSS Markdown Editor"
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: "toolbar__brand-icon", width: "16", height: "16", viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round", strokeLinejoin: "round", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9.5 1.5H3.5a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V5.5L9.5 1.5z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "9.5 1.5 9.5 5.5 13.5 5.5" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "5", y1: "9", x2: "11", y2: "9" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "5", y1: "11.5", x2: "9", y2: "11.5" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "toolbar__brand-text", children: "CSS Editor" })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__doc", children: [
       props.mode === "idle" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--idle", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon", children: "⏸" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", style: { color: "var(--text-secondary)", fontWeight: 500 }, children: "Idle · Select a Mode" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge-idle", children: "IDLE" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--idle" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", children: "Idle" })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open an external Markdown file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "👁 Watch File…" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open an external Markdown file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Watch File…" })
       ] }) : props.mode === "watch" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--watch", title: `Watching external file: ${props.docPath}`, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon doc-icon--pulse", children: "👁" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--live", title: "Live disk watch active" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", style: { fontWeight: 600, maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: props.filename }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge-watch", children: "WATCH" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open another file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "👁 Open File…" }),
-        props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Switch back to Projects workspace", onClick: props.onSwitchToProjects, children: "📂 Projects" }),
-        props.onSwitchToIdle && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Return to mode selection launcher", onClick: props.onSwitchToIdle, children: "⏸ Launcher" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open another file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Open File…" }),
+        props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Switch to Projects workspace", onClick: props.onSwitchToProjects, children: "Projects" }),
+        props.onSwitchToIdle && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Return to mode selection launcher", onClick: props.onSwitchToIdle, children: "Launcher" })
       ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon", children: "📦" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--project" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Project directory", value: props.project, onChange: props.onProject, children: [
             projectOptions,
-            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "＋ New project…" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__watch__", children: "👁 Open / Watch file…" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "New project…" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__watch__", children: "Watch file…" })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon", children: "📁" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Files in this project", value: props.filename, onChange: props.onFile, children: [
             fileOptions,
-            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "＋ New file…" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "New file…" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open and watch an external Markdown file (Ctrl+O)", onClick: props.onOpenWatchFile, children: "👁 Watch File…" }),
-        props.activeWatchTarget && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open and watch an external Markdown file (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Watch File…" }),
+        props.activeWatchTarget && /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
           {
             className: "btn btn--ghost btn--xs",
             title: `Switch back to watching ${props.activeWatchTarget.path}`,
             onClick: props.onSwitchToWatch,
-            children: [
-              "👁 ",
-              props.activeWatchTarget.filename
-            ]
+            children: props.activeWatchTarget.filename
           }
         ),
-        props.onSwitchToIdle && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Return to mode selection launcher", onClick: props.onSwitchToIdle, children: "⏸ Launcher" })
+        props.onSwitchToIdle && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Return to mode selection launcher", onClick: props.onSwitchToIdle, children: "Launcher" })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
@@ -45292,62 +45420,25 @@ function Toolbar(props) {
           disabled: props.mode === "idle",
           style: props.mode === "idle" ? { opacity: 0.4, cursor: "not-allowed" } : void 0,
           onClick: props.onSave,
-          children: "💾 Save"
+          children: "Save"
         }
       ),
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `save-status${props.saveStatus === "Saved" ? " is-saved" : ""}`, children: props.saveStatus })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__actions", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status status--${props.status}`, title: props.statusTitle, "aria-label": "SSE status" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.libraryVisible ? " active" : ""}`, title: "Toggle Image Library", onClick: props.onLibrary, children: "🖼 Library" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.cssVisible ? " active" : ""}`, title: "Toggle CSS panel", onClick: props.onCss, children: "🎨 CSS" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-wrap", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.settingsOpen ? " active" : ""}`, title: "Settings", onClick: props.onSettings, children: "⚙ Settings" }),
-        props.settingsOpen && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-dropdown is-open", onClick: (event) => event.stopPropagation(), children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-dropdown__header", children: "Settings & Workspace" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-section", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-section__title", children: "📁 Projects Directory" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-path-display", title: (_a2 = props.config) == null ? void 0 : _a2.projects_dir, children: ((_b = props.config) == null ? void 0 : _b.projects_dir) || "Loading…" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                type: "button",
-                className: "btn btn--secondary btn--xs settings-btn-block",
-                onClick: () => {
-                  props.onOpenConfigModal();
-                },
-                children: "Change Workspace Folder…"
-              }
-            )
-          ] }),
-          ((_c = props.config) == null ? void 0 : _c.author_name) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-section", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-section__title", children: "👤 Author" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-author-display", children: [
-              props.config.author_name,
-              props.config.author_email ? ` (${props.config.author_email})` : ""
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-section", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-section__title", children: "🖼 Image Library" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "settings-toggle", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "checkbox", className: "settings-toggle__input", checked: props.noCrop, onChange: props.onNoCrop }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__slider" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__label", children: "No-crop mode" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__hint", children: "Use contain instead of cover" })
-            ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: `settings-toggle settings-toggle--nested${props.noCrop ? " is-visible" : ""}`, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "checkbox", className: "settings-toggle__input", checked: props.noWhitespace, disabled: !props.noCrop, onChange: props.onNoWhitespace }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__slider" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__label", children: "No white-space" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__hint", children: "Remove fixed thumbnail height" })
-            ] })
-          ] }),
-          ((_d = props.config) == null ? void 0 : _d.config_file_path) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "settings-footer-info", title: props.config.config_file_path, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Config: " }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: props.config.config_file_path })
-          ] })
-        ] })
-      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.libraryVisible ? " active" : ""}`, title: "Toggle Image Library", onClick: props.onLibrary, children: "Library" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.cssVisible ? " active" : ""}`, title: "Toggle CSS panel", onClick: props.onCss, children: "CSS" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: `btn btn--ghost${props.settingsOpen ? " active" : ""}`,
+          title: "Settings & Workspace",
+          "aria-expanded": props.settingsOpen,
+          onClick: props.onSettings,
+          children: "Settings"
+        }
+      ),
       /* @__PURE__ */ jsxRuntimeExports.jsx("input", { ref: props.imageInput, type: "file", accept: "image/jpeg,image/png,image/gif,image/webp,image/svg+xml", style: { display: "none" }, multiple: true }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
@@ -45356,7 +45447,7 @@ function Toolbar(props) {
           disabled: props.mode === "idle" || props.exporting,
           style: props.mode === "idle" ? { opacity: 0.4, cursor: "not-allowed" } : void 0,
           onClick: props.onExport,
-          children: props.exporting ? "⏳ Exporting…" : "⬇ Export PDF"
+          children: props.exporting ? "Exporting…" : "Export PDF"
         }
       )
     ] })
@@ -45415,19 +45506,16 @@ function WelcomeModal({
   const error = localError || initialError;
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "modal-backdrop", onClick: isFirstRun ? void 0 : onClose, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-dialog", onClick: (e) => e.stopPropagation(), role: "dialog", "aria-modal": "true", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-header", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-title-group", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "modal-icon", children: isFirstRun ? "👋" : "⚙️" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "modal-title", children: isFirstRun ? "Welcome to CSS Markdown Editor" : "Workspace & Storage Settings" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "modal-subtitle", children: isFirstRun ? "Set up where your documents, companion stylesheets, and assets will be stored locally." : "Manage your local projects directory and author information." })
-        ] })
-      ] }),
-      !isFirstRun && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "modal-close", onClick: onClose, "aria-label": "Close modal", children: "✕" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "modal-title-group", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "modal-title", children: isFirstRun ? "Welcome to CSS Markdown Editor" : "Workspace & Storage Settings" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "modal-subtitle", children: isFirstRun ? "Set up where your documents, companion stylesheets, and assets will be stored locally." : "Manage your local projects directory and author information." })
+      ] }) }),
+      !isFirstRun && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "modal-close", onClick: onClose, "aria-label": "Close modal", children: "×" })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { onSubmit: handleSubmit, className: "modal-body", children: [
       error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "modal-alert modal-alert--error", children: error }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-field", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "modal-label", htmlFor: "projects-dir-input", children: "📁 Projects Directory" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "modal-label", htmlFor: "projects-dir-input", children: "Projects Directory" }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-input-group", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             "input",
@@ -45461,7 +45549,7 @@ function WelcomeModal({
               type: "button",
               className: "preset-chip",
               onClick: () => setProjectsDir(config2.default_projects_dir),
-              children: "📁 Documents (Default)"
+              children: "Documents (Default)"
             }
           ),
           (config2 == null ? void 0 : config2.app_projects_dir) && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -45470,7 +45558,7 @@ function WelcomeModal({
               type: "button",
               className: "preset-chip",
               onClick: () => setProjectsDir(config2.app_projects_dir),
-              children: "📦 App Repo Directory"
+              children: "App Repo Directory"
             }
           )
         ] }),
@@ -45479,7 +45567,7 @@ function WelcomeModal({
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-field-row", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-field", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "modal-label", htmlFor: "author-name-input", children: [
-            "👤 Author Name ",
+            "Author Name ",
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "modal-label-opt", children: "(optional)" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -45497,7 +45585,7 @@ function WelcomeModal({
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-field", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "modal-label", htmlFor: "author-email-input", children: [
-            "✉️ Author Email ",
+            "Author Email ",
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "modal-label-opt", children: "(optional)" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -45532,13 +45620,12 @@ function WorkspacePanes(props) {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: libraryClass, ref: props.library.container, children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "image-library__header", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "image-library__title", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "image-library__icon", children: "🖼" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Library" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "image-library__count", ref: props.library.count, children: "0" })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { ref: props.library.uploadButton, id: "upload-library-btn", className: "btn btn--ghost btn--xs", title: "Upload images", children: "＋ Upload" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { ref: props.library.uploadButton, id: "upload-library-btn", className: "btn btn--ghost btn--xs", title: "Upload images", children: "Upload" })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "image-library__dropzone", ref: props.library.dropzone, children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dropzone-text", children: "📥 Drop images here" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "image-library__dropzone", ref: props.library.dropzone, children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dropzone-text", children: "Drop images here" }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "image-library__list", ref: props.library.list })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "editors-col", children: [
@@ -45549,7 +45636,16 @@ function WorkspacePanes(props) {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "editor-section", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "section-header", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Custom CSS" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "section-header__toggle", title: props.cssVisible ? "Collapse CSS panel" : "Expand CSS panel", "aria-expanded": props.cssVisible, onClick: props.onCss, children: "▼" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                className: "section-header__toggle",
+                title: props.cssVisible ? "Collapse CSS panel" : "Expand CSS panel",
+                "aria-expanded": props.cssVisible,
+                onClick: props.onCss,
+                children: props.cssVisible ? "▾" : "▸"
+              }
+            )
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cm-host", ref: props.refs.cssHost })
         ] })
@@ -45559,12 +45655,28 @@ function WorkspacePanes(props) {
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "right-pane", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "preview-toolbar", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "preview-toolbar__left", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "A4 Preview · paged.js" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Paged.js Preview" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "preview-toolbar__meta", children: props.pageCount })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "preview-toolbar__right", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "preview-theme-toggle", role: "group", "aria-label": "Preview background theme", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: `preview-theme-btn${props.theme === "light" ? " active" : ""}`, onClick: () => props.onTheme("light"), children: "☀️ Light" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: `preview-theme-btn${props.theme === "dark" ? " active" : ""}`, onClick: () => props.onTheme("dark"), children: "🌙 Dark" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              className: `preview-theme-btn${props.theme === "light" ? " active" : ""}`,
+              onClick: () => props.onTheme("light"),
+              children: "Light"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              className: `preview-theme-btn${props.theme === "dark" ? " active" : ""}`,
+              onClick: () => props.onTheme("dark"),
+              children: "Dark"
+            }
+          )
         ] }) })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `preview-scroll preview-theme--${props.theme}`, children: /* @__PURE__ */ jsxRuntimeExports.jsx("iframe", { ref: props.frame, className: "preview-frame", sandbox: "allow-scripts allow-same-origin", title: "Document preview" }) })
@@ -45764,8 +45876,8 @@ function initImageLibrary({
     const snippet2 = `![${altText}](${targetPath})`;
     try {
       await navigator.clipboard.writeText(snippet2);
-      showFeedback(`📋 Copied markdown for "${altText}"`);
-      showCardBadge(_selectedCard, "✓ Copied!");
+      showFeedback(`Copied markdown for "${altText}"`);
+      showCardBadge(_selectedCard, "Copied");
     } catch {
       const ta = document.createElement("textarea");
       ta.value = snippet2;
@@ -45773,8 +45885,8 @@ function initImageLibrary({
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-      showFeedback(`📋 Copied markdown for "${altText}"`);
-      showCardBadge(_selectedCard, "✓ Copied!");
+      showFeedback(`Copied markdown for "${altText}"`);
+      showCardBadge(_selectedCard, "Copied");
     }
   }
   async function deleteSelectedImage() {
@@ -45787,16 +45899,16 @@ function initImageLibrary({
         method: "DELETE"
       });
       if (res.ok) {
-        showFeedback(`🗑️ Deleted "${name2}" from library`);
+        showFeedback(`Deleted "${name2}" from library`);
         deleteStoredImageName(imgToDelete.filename);
         clearSelection();
         await fetchImages();
       } else {
         const errData = await res.json().catch(() => ({}));
-        showFeedback(`⚠️ Failed to delete "${name2}": ${errData.detail || res.statusText}`);
+        showFeedback(`Failed to delete "${name2}": ${errData.detail || res.statusText}`);
       }
     } catch (err) {
-      showFeedback(`⚠️ Delete error: ${err.message}`);
+      showFeedback(`Delete error: ${err.message}`);
     }
   }
   function handleKeyDown(e) {
@@ -45873,7 +45985,7 @@ function initImageLibrary({
     if (dropzoneEl) {
       dropzoneEl.classList.remove("is-uploading");
       const textSpan = dropzoneEl.querySelector(".dropzone-text");
-      if (textSpan) textSpan.textContent = "📥 Drop images here to upload";
+      if (textSpan) textSpan.textContent = "Drop images here to upload";
     }
     await fetchImages();
     if (uploaded.length > 0) {
@@ -47045,10 +47157,6 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         statusTitle,
         exporting,
         settingsOpen: preferences.settingsOpen,
-        noCrop: preferences.noCrop,
-        noWhitespace: preferences.noWhitespace,
-        config: config2,
-        onOpenConfigModal: () => setModalOpen(true),
         mode: workspace.target.mode,
         docPath: workspace.docPath,
         onSwitchToProjects: switchToProjects,
@@ -47068,12 +47176,23 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         onSettings: (event) => {
           event.stopPropagation();
           preferences.setSettingsOpen((value) => !value);
-        },
+        }
+      }
+    ),
+    workspace.conflict && /* @__PURE__ */ jsxRuntimeExports.jsx(ConflictBanner, { conflict: workspace.conflict, onReload: reloadConflict, onKeep: () => workspace.setConflict(null) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      SettingsSideWindow,
+      {
+        isOpen: preferences.settingsOpen,
+        onClose: () => preferences.setSettingsOpen(false),
+        config: config2,
+        onOpenConfigModal: () => setModalOpen(true),
+        noCrop: preferences.noCrop,
+        noWhitespace: preferences.noWhitespace,
         onNoCrop: (event) => preferences.changeNoCrop(event.target.checked),
         onNoWhitespace: (event) => preferences.changeNoWhitespace(event.target.checked)
       }
     ),
-    workspace.conflict && /* @__PURE__ */ jsxRuntimeExports.jsx(ConflictBanner, { conflict: workspace.conflict, onReload: reloadConflict, onKeep: () => workspace.setConflict(null) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       WorkspacePanes,
       {

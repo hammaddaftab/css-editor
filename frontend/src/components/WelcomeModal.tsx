@@ -81,7 +81,6 @@ export function WelcomeModal({
       <div className="modal-dialog" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="modal-header">
           <div className="modal-title-group">
-            <span className="modal-icon">{isFirstRun ? '👋' : '⚙️'}</span>
             <div>
               <h2 className="modal-title">
                 {isFirstRun ? 'Welcome to CSS Markdown Editor' : 'Workspace & Storage Settings'}
@@ -95,7 +94,7 @@ export function WelcomeModal({
           </div>
           {!isFirstRun && (
             <button className="modal-close" onClick={onClose} aria-label="Close modal">
-              ✕
+              ×
             </button>
           )}
         </div>
@@ -105,7 +104,7 @@ export function WelcomeModal({
 
           <div className="modal-field">
             <label className="modal-label" htmlFor="projects-dir-input">
-              📁 Projects Directory
+              Projects Directory
             </label>
             <div className="modal-input-group">
               <input
@@ -136,7 +135,7 @@ export function WelcomeModal({
                   className="preset-chip"
                   onClick={() => setProjectsDir(config.default_projects_dir)}
                 >
-                  📁 Documents (Default)
+                  Documents (Default)
                 </button>
               )}
               {config?.app_projects_dir && (
@@ -145,7 +144,7 @@ export function WelcomeModal({
                   className="preset-chip"
                   onClick={() => setProjectsDir(config.app_projects_dir)}
                 >
-                  📦 App Repo Directory
+                  App Repo Directory
                 </button>
               )}
             </div>
@@ -158,7 +157,7 @@ export function WelcomeModal({
           <div className="modal-field-row">
             <div className="modal-field">
               <label className="modal-label" htmlFor="author-name-input">
-                👤 Author Name <span className="modal-label-opt">(optional)</span>
+                Author Name <span className="modal-label-opt">(optional)</span>
               </label>
               <input
                 id="author-name-input"
@@ -173,7 +172,7 @@ export function WelcomeModal({
 
             <div className="modal-field">
               <label className="modal-label" htmlFor="author-email-input">
-                ✉️ Author Email <span className="modal-label-opt">(optional)</span>
+                Author Email <span className="modal-label-opt">(optional)</span>
               </label>
               <input
                 id="author-email-input"

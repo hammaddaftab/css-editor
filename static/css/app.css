@@ -12,52 +12,52 @@
 }
 
 :root {
-  /* Surfaces & Backgrounds */
-  --bg-app:           #1a1a1a;
-  --bg-toolbar:       #111111;
-  --bg-header:        #141414;
-  --bg-left:          #191919;
-  --bg-right:         #212121;
-  --bg-surface:       #1f1f21;
-  --bg-surface-hover: #27272a;
-  --bg-subtle:        #161616;
-  --bg-preview-light: #eaecf0;
-  --bg-preview-dark:  #0e0e11;
+  /* Surfaces & Backgrounds - Fedora / GNOME Adwaita Dark */
+  --bg-app:           #1e1e1e;
+  --bg-toolbar:       #242424;
+  --bg-header:        #242424;
+  --bg-left:          #1e1e1e;
+  --bg-right:         #181818;
+  --bg-surface:       #2a2a2a;
+  --bg-surface-hover: #323232;
+  --bg-subtle:        #222222;
+  --bg-preview-light: #f6f6f6;
+  --bg-preview-dark:  #111111;
 
-  /* Borders */
-  --border:           #2e2e32;
-  --border-hover:     #3f3f44;
-  --border-accent:    #2563eb;
+  /* Borders - Minimalist Hairlines */
+  --border:           rgba(255, 255, 255, 0.08);
+  --border-hover:     rgba(255, 255, 255, 0.16);
+  --border-accent:    #3584e4;
 
   /* Typography Colors */
-  --text-primary:     #f3f4f6;
-  --text-secondary:   #9ca3af;
-  --text-muted:       #6b7280;
+  --text-primary:     #ffffff;
+  --text-secondary:   #9a9996;
+  --text-muted:       #77767b;
 
-  /* Accent & States */
-  --accent:           #2563eb;
-  --accent-hover:     #1d4ed8;
-  --accent-subtle:    rgba(37, 99, 235, 0.12);
-  --accent-glow:      rgba(37, 99, 235, 0.35);
-  --accent-drop:      rgba(37, 99, 235, 0.22);
-  --danger:           #ef4444;
-  --danger-subtle:    rgba(239, 68, 68, 0.15);
-  --success:          #22c55e;
-  --warning:          #f59e0b;
+  /* Accent & States - Fedora Blue */
+  --accent:           #3584e4;
+  --accent-hover:     #1c71d8;
+  --accent-subtle:    rgba(53, 132, 228, 0.15);
+  --accent-glow:      rgba(53, 132, 228, 0.25);
+  --accent-drop:      rgba(53, 132, 228, 0.18);
+  --danger:           #e01b24;
+  --danger-subtle:    rgba(224, 27, 36, 0.15);
+  --success:          #33d17a;
+  --warning:          #f6d32d;
 
   /* Sizing & Geometry */
-  --toolbar-h:        48px;
-  --header-h:         32px;
-  --divider-w:        4px;
+  --toolbar-h:        46px;
+  --header-h:         30px;
+  --divider-w:        3px;
   --css-pane-h:       220px;
   --sidebar-w:        260px;
-  --radius:           6px;
-  --radius-sm:        4px;
+  --radius:           8px;
+  --radius-sm:        5px;
 
   /* Fonts & Animations */
-  --font-ui:          system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono:        "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
-  --transition:       150ms ease;
+  --font-ui:          Cantarell, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:        "Source Code Pro", "Fira Code", monospace;
+  --transition:       120ms ease;
 }
 
 /* --------------------------------------------------------------------------
@@ -95,17 +95,19 @@ html, body {
 }
 
 .toolbar__brand {
-  display:     flex;
-  align-items: center;
-  gap:         8px;
-  font-weight: 600;
-  font-size:   15px;
-  color:       var(--text-primary);
-  user-select: none;
+  display:        flex;
+  align-items:    center;
+  gap:            8px;
+  font-weight:    600;
+  font-size:      14px;
+  letter-spacing: -0.01em;
+  color:          var(--text-primary);
+  user-select:    none;
 }
 
 .toolbar__brand-icon {
-  font-size: 18px;
+  color:       var(--accent);
+  flex-shrink: 0;
 }
 
 /* Document file controls (local directory) */
@@ -119,26 +121,60 @@ html, body {
   display:       inline-flex;
   align-items:   center;
   gap:           6px;
-  background:    var(--bg-header);
+  background:    rgba(255, 255, 255, 0.04);
   border:        1px solid var(--border);
   border-radius: var(--radius-sm);
   padding:       2px 8px;
   height:        28px;
+  transition:    background var(--transition), border-color var(--transition);
+}
+
+.doc-pill:hover {
+  background:   rgba(255, 255, 255, 0.07);
+  border-color: var(--border-hover);
 }
 
 .doc-pill--watch {
-  border-color: rgba(37, 99, 235, 0.4);
-  background:   rgba(37, 99, 235, 0.08);
+  border-color: rgba(53, 132, 228, 0.35);
+  background:   rgba(53, 132, 228, 0.09);
+}
+
+.doc-pill--idle {
+  border-color: var(--border);
+  background:   rgba(255, 255, 255, 0.02);
+}
+
+.doc-dot {
+  width:         6px;
+  height:        6px;
+  border-radius: 50%;
+  display:       inline-block;
+  flex-shrink:   0;
+}
+
+.doc-dot--live {
+  background:  var(--accent);
+  box-shadow:  0 0 6px rgba(53, 132, 228, 0.6);
+  animation:   doc-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.doc-dot--project {
+  background: #62a0ea;
+}
+
+.doc-dot--idle {
+  background: var(--text-muted);
 }
 
 .badge-watch {
   font-size:      10px;
-  background:     #2563eb;
+  background:     var(--accent);
   color:          #ffffff;
-  border-radius:  var(--radius-sm);
-  padding:        1px 6px;
-  font-weight:    700;
+  border-radius:  4px;
+  padding:        1px 5px;
+  font-weight:    600;
   letter-spacing: 0.04em;
+  line-height:    1.2;
 }
 
 @keyframes doc-pulse {
@@ -173,7 +209,7 @@ html, body {
 
 .doc-dirty {
   color:       var(--warning);
-  font-size:   10px;
+  font-size:   8px;
   opacity:     0;
   transition:  opacity var(--transition);
   line-height: 1;
@@ -195,60 +231,82 @@ html, body {
 .toolbar__actions {
   display:     flex;
   align-items: center;
-  gap:         10px;
+  gap:         6px;
 }
 
 /* --------------------------------------------------------------------------
-   Standard Buttons & Actions (Deduplicated)
+   Standard Buttons & Actions (Adwaita Flat Minimalist)
    -------------------------------------------------------------------------- */
 .btn {
   display:         inline-flex;
   align-items:     center;
   justify-content: center;
   gap:             6px;
-  padding:         6px 14px;
-  border-radius:   var(--radius);
+  padding:         5px 12px;
+  border-radius:   var(--radius-sm);
   border:          1px solid transparent;
   font-family:     var(--font-ui);
   font-size:       13px;
   font-weight:     500;
   cursor:          pointer;
   transition:      background var(--transition), border-color var(--transition),
-                   opacity var(--transition), color var(--transition);
+                   opacity var(--transition), color var(--transition), box-shadow var(--transition);
   white-space:     nowrap;
   user-select:     none;
 }
 
-.btn:disabled  { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled  { opacity: 0.45; cursor: not-allowed; }
 
 .btn--ghost {
   background:   transparent;
-  border-color: var(--border);
+  border-color: transparent;
   color:        var(--text-secondary);
 }
 .btn--ghost:hover:not(:disabled) {
-  background:   rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.18);
+  background:   rgba(255, 255, 255, 0.08);
+  border-color: transparent;
+  color:        var(--text-primary);
+}
+.btn--ghost:active:not(:disabled) {
+  background:   rgba(255, 255, 255, 0.13);
+  border-color: transparent;
   color:        var(--text-primary);
 }
 .btn--ghost.active {
   background:   var(--accent-subtle);
-  color:        #fff;
-  border-color: var(--border-accent);
+  color:        #78aeed;
+  border-color: transparent;
 }
 
 .btn--primary {
-  background: var(--accent);
-  color:      #fff;
+  background:   var(--accent);
+  border-color: transparent;
+  color:        #ffffff;
+  font-weight:  500;
+  box-shadow:   0 1px 2px rgba(0, 0, 0, 0.2);
 }
 .btn--primary:hover:not(:disabled) {
   background: var(--accent-hover);
 }
+.btn--primary:active:not(:disabled) {
+  background: #1a5fb4;
+}
+
+.btn--secondary {
+  background:   rgba(255, 255, 255, 0.06);
+  border-color: transparent;
+  color:        var(--text-primary);
+}
+.btn--secondary:hover:not(:disabled) {
+  background:   rgba(255, 255, 255, 0.1);
+  border-color: transparent;
+}
 
 .btn--xs {
   padding:       2px 8px;
-  font-size:     11px;
+  font-size:     12px;
   border-radius: var(--radius-sm);
+  height:        26px;
 }
 
 /* --------------------------------------------------------------------------
@@ -320,13 +378,13 @@ html, body {
 }
 
 /* --------------------------------------------------------------------------
-   Segmented Preview Theme Control
+   Segmented Preview Theme Control (Adwaita Segmented Switch)
    -------------------------------------------------------------------------- */
 .preview-theme-toggle {
   display:       inline-flex;
-  background:    var(--bg-toolbar);
-  border:        1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background:    rgba(255, 255, 255, 0.06);
+  border:        none;
+  border-radius: 6px;
   padding:       2px;
   gap:           2px;
 }
@@ -334,13 +392,13 @@ html, body {
 .preview-theme-btn {
   background:     transparent;
   border:         none;
-  color:          var(--text-muted);
-  font-size:      10px;
-  font-weight:    600;
-  padding:        2px 7px;
-  border-radius:  3px;
+  color:          var(--text-secondary);
+  font-size:      11px;
+  font-weight:    500;
+  padding:        2px 9px;
+  border-radius:  4px;
   cursor:         pointer;
-  transition:     all var(--transition);
+  transition:     background var(--transition), color var(--transition), box-shadow var(--transition);
   text-transform: none;
   letter-spacing: 0;
 }
@@ -348,8 +406,9 @@ html, body {
   color: var(--text-primary);
 }
 .preview-theme-btn.active {
-  background: var(--accent);
-  color:      #fff;
+  background: rgba(255, 255, 255, 0.16);
+  color:      #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 /* --------------------------------------------------------------------------
@@ -441,10 +500,11 @@ html, body {
   height:      100%;
   font-family: var(--font-mono);
   font-size:   13px;
+  background:  var(--bg-left);
 }
 .cm-host .cm-scroller    { overflow: auto; }
 .cm-host .cm-focused     { outline: none; }
-.cm-host .cm-gutters     { background: var(--bg-subtle); border-right: 1px solid var(--border); }
+.cm-host .cm-gutters     { background: var(--bg-left); border-right: 1px solid rgba(255, 255, 255, 0.05); }
 .cm-host .cm-lineNumbers { color: var(--text-muted); }
 
 /* Realtime Drop Target Line Feedback */
@@ -502,16 +562,16 @@ html, body {
 }
 
 .image-library__dropzone {
-  margin:        10px 10px 6px;
-  padding:       12px 8px;
-  border:        1px dashed var(--border);
-  border-radius: var(--radius);
+  margin:        8px 10px 6px;
+  padding:       10px 8px;
+  border:        1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
   text-align:    center;
   font-size:     12px;
   color:         var(--text-muted);
   cursor:        pointer;
   transition:    all var(--transition);
-  background:    var(--bg-app);
+  background:    rgba(255, 255, 255, 0.02);
 }
 .image-library__dropzone:hover,
 .image-library__dropzone.drag-over {
@@ -541,11 +601,11 @@ html, body {
   color:         var(--text-secondary);
 }
 
-/* Image Card */
+/* Image Card (Adwaita Minimalist) */
 .image-card {
-  background:    var(--bg-surface);
-  border:        2px solid var(--border);
-  border-radius: var(--radius);
+  background:    #252525;
+  border:        1px solid var(--border);
+  border-radius: var(--radius-sm);
   overflow:      hidden;
   cursor:        pointer;
   transition:    border-color var(--transition), background-color var(--transition);
@@ -556,15 +616,16 @@ html, body {
 }
 .image-card:hover {
   border-color: var(--border-hover);
+  background:   #2a2a2a;
 }
 .image-card.is-selected {
   border-color: var(--accent);
-  background:   rgba(37, 99, 235, 0.08);
+  background:   rgba(53, 132, 228, 0.08);
 }
 .image-card:active,
 .image-card.is-dragging {
   cursor:       grabbing;
-  opacity:      0.5;
+  opacity:      0.6;
   border-color: var(--border-accent);
 }
 .image-card.is-focused {
@@ -576,7 +637,7 @@ html, body {
   position:   relative;
   width:      100%;
   height:     84px;
-  background: var(--bg-toolbar);
+  background: #1a1a1a;
   overflow:   hidden;
 }
 .image-card__thumb {
@@ -652,13 +713,13 @@ html, body {
   bottom:         14px;
   left:           50%;
   transform:      translateX(-50%) translateY(8px);
-  background:     #18181b;
+  background:     #242424;
   color:          var(--text-primary);
   border:         1px solid var(--border-hover);
-  border-radius:  var(--radius);
+  border-radius:  var(--radius-sm);
   padding:        6px 12px;
   font-size:      12px;
-  box-shadow:     0 6px 20px rgba(0, 0, 0, 0.6);
+  box-shadow:     0 6px 20px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   opacity:        0;
   transition:     opacity 0.2s ease, transform 0.2s ease;
@@ -707,10 +768,10 @@ html, body {
   transition: background var(--transition);
 }
 .preview-scroll.preview-theme--light {
-  background: var(--bg-preview-light);
+  background: #e8e8ea;
 }
 .preview-scroll.preview-theme--dark {
-  background: var(--bg-preview-dark);
+  background: #141414;
 }
 
 .preview-frame {
@@ -730,7 +791,7 @@ html, body {
 ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
 
 /* --------------------------------------------------------------------------
-   Conflict Banner (Disk change vs in-memory unsaved changes)
+   Conflict Banner (Adwaita Floating Notification)
    -------------------------------------------------------------------------- */
 .conflict-banner {
   position: fixed;
@@ -739,24 +800,38 @@ html, body {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   background: var(--bg-surface);
-  border: 1px solid var(--warning);
-  border-radius: var(--radius);
-  padding: 10px 18px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   z-index: 1000;
   font-size: 13px;
   color: var(--text-primary);
   animation: banner-slide-up 0.2s ease-out;
 }
 
+.conflict-banner__badge {
+  display:        inline-block;
+  font-size:      11px;
+  font-weight:    600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color:          var(--warning);
+  background:     rgba(246, 211, 45, 0.12);
+  border:         1px solid rgba(246, 211, 45, 0.25);
+  border-radius:  var(--radius-sm);
+  padding:        1px 6px;
+  margin-right:   8px;
+}
+
 .conflict-banner__text code {
-  font-family: var(--font-mono);
-  color: var(--warning);
-  background: rgba(245, 158, 11, 0.15);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  font-family:    var(--font-mono);
+  color:          #ffffff;
+  background:     rgba(255, 255, 255, 0.08);
+  padding:        2px 5px;
+  border-radius:  var(--radius-sm);
 }
 
 .conflict-banner__actions {
@@ -777,200 +852,218 @@ html, body {
 }
 
 /* --------------------------------------------------------------------------
-   Settings Dropdown
+   Settings Side-Window (Adwaita Slide-Over Panel)
    -------------------------------------------------------------------------- */
-.settings-wrap {
-  position: relative;
+.side-window-backdrop {
+  position:        fixed;
+  inset:           0;
+  background:      rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  z-index:         200;
+  opacity:         0;
+  pointer-events:  none;
+  transition:      opacity 0.22s ease;
+}
+.side-window-backdrop.is-open {
+  opacity:         1;
+  pointer-events:  auto;
 }
 
-.settings-dropdown {
-  display:        none;
-  position:       absolute;
-  top:            calc(100% + 8px);
-  right:          0;
-  width:          280px;
-  background:     var(--bg-surface);
-  border:         1px solid var(--border);
-  border-radius:  var(--radius);
-  box-shadow:     0 12px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  z-index:        200;
-  overflow:       hidden;
-  animation:      settings-drop 0.15s ease-out;
+.side-window {
+  position:        fixed;
+  top:             0;
+  right:           0;
+  bottom:          0;
+  width:           360px;
+  max-width:       calc(100vw - 32px);
+  background:      #242424;
+  border-left:     1px solid var(--border);
+  box-shadow:      -12px 0 36px rgba(0, 0, 0, 0.5);
+  z-index:         201;
+  display:         flex;
+  flex-direction:  column;
+  transform:       translateX(100%);
+  transition:      transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.side-window.is-open {
+  transform:       translateX(0);
 }
 
-.settings-dropdown.is-open {
-  display: block;
+.side-window__header {
+  height:          var(--toolbar-h);
+  padding:         0 16px;
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  border-bottom:   1px solid var(--border);
+  background:      var(--bg-toolbar);
+  flex-shrink:     0;
 }
 
-@keyframes settings-drop {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
+.side-window__title {
+  font-size:       14px;
+  font-weight:     600;
+  color:           var(--text-primary);
+  letter-spacing:  -0.01em;
 }
 
-.settings-dropdown__header {
-  padding:        10px 14px;
-  font-size:      11px;
-  font-weight:    600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color:          var(--text-muted);
-  border-bottom:  1px solid var(--border);
+.side-window__close {
+  background:      transparent;
+  border:          none;
+  color:           var(--text-muted);
+  width:           28px;
+  height:          28px;
+  border-radius:   50%;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       18px;
+  cursor:          pointer;
+  transition:      background var(--transition), color var(--transition);
+}
+.side-window__close:hover {
+  background:      rgba(255, 255, 255, 0.1);
+  color:           var(--text-primary);
 }
 
-/* -- Sections ------------------------------------------------------------ */
-.settings-section {
-  padding: 10px 14px 14px;
+.side-window__body {
+  flex:            1;
+  overflow-y:      auto;
+  padding:         18px 16px;
+  display:         flex;
+  flex-direction:  column;
+  gap:             20px;
 }
 
-.settings-section__title {
-  font-size:      12px;
-  font-weight:    600;
-  color:          var(--text-secondary);
-  margin-bottom:  10px;
+/* Adwaita Preferences Groups */
+.prefs-group {
+  display:         flex;
+  flex-direction:  column;
+  gap:             8px;
 }
 
-/* -- Toggle Switch ------------------------------------------------------- */
+.prefs-group__title {
+  font-size:       11px;
+  font-weight:     600;
+  text-transform:  uppercase;
+  letter-spacing:  0.06em;
+  color:           var(--text-muted);
+  padding:         0 4px;
+}
+
+.prefs-group__card {
+  background:      #2b2b2b;
+  border:          1px solid var(--border);
+  border-radius:   8px;
+  overflow:        hidden;
+}
+
+.prefs-row {
+  padding:         12px 14px;
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             12px;
+  border-bottom:   1px solid rgba(255, 255, 255, 0.05);
+}
+.prefs-row:last-child {
+  border-bottom:   none;
+}
+
+.prefs-row--column {
+  flex-direction:  column;
+  align-items:     flex-start;
+  gap:             8px;
+}
+
+.prefs-row__info {
+  display:         flex;
+  flex-direction:  column;
+  gap:             2px;
+  flex:            1;
+  min-width:       0;
+}
+
+.prefs-row__title {
+  font-size:       13px;
+  font-weight:     500;
+  color:           var(--text-primary);
+}
+
+.prefs-row__desc {
+  font-size:       11.5px;
+  color:           var(--text-muted);
+  line-height:     1.4;
+}
+
+.prefs-path-badge {
+  font-family:     var(--font-mono);
+  font-size:       11.5px;
+  color:           var(--text-secondary);
+  background:      rgba(0, 0, 0, 0.25);
+  border:          1px solid rgba(255, 255, 255, 0.05);
+  border-radius:   5px;
+  padding:         6px 8px;
+  width:           100%;
+  word-break:      break-all;
+  box-sizing:      border-box;
+}
+
+/* -- GNOME / Adwaita Toggle Switch --------------------------------------- */
 .settings-toggle {
-  display:               grid;
-  grid-template-columns: 36px 1fr;
-  grid-template-rows:    auto auto;
-  column-gap:            10px;
-  row-gap:               1px;
-  align-items:           center;
-  cursor:                pointer;
-  padding:               7px 0;
-  user-select:           none;
+  display:        inline-flex;
+  align-items:    center;
+  cursor:         pointer;
+  user-select:    none;
+  flex-shrink:    0;
 }
 
 .settings-toggle__input {
-  position: absolute;
-  opacity:  0;
-  width:    0;
-  height:   0;
+  position:       absolute;
+  opacity:        0;
+  width:          0;
+  height:         0;
 }
 
 .settings-toggle__slider {
-  grid-row:       1 / 3;
   width:          36px;
   height:         20px;
-  background:     #3a3a3e;
+  background:     #3c3c3e;
   border-radius:  10px;
   position:       relative;
   transition:     background var(--transition);
 }
 
 .settings-toggle__slider::after {
-  content:       '';
-  position:      absolute;
-  top:           2px;
-  left:          2px;
-  width:         16px;
-  height:        16px;
-  background:    #fff;
-  border-radius: 50%;
-  transition:    transform var(--transition);
+  content:        '';
+  position:       absolute;
+  top:            2px;
+  left:           2px;
+  width:          16px;
+  height:         16px;
+  background:     #ffffff;
+  border-radius:  50%;
+  transition:     transform var(--transition);
+  box-shadow:     0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .settings-toggle__input:checked + .settings-toggle__slider {
-  background: var(--accent);
+  background:     var(--accent);
 }
 
 .settings-toggle__input:checked + .settings-toggle__slider::after {
-  transform: translateX(16px);
-}
-
-.settings-toggle__label {
-  font-size:   13px;
-  font-weight: 500;
-  color:       var(--text-primary);
-  line-height: 1.2;
-}
-
-.settings-toggle__hint {
-  font-size:   11px;
-  color:       var(--text-muted);
-  line-height: 1.2;
-}
-
-/* Nested toggle — hidden by default, slides in when parent is active */
-.settings-toggle--nested {
-  max-height:   0;
-  overflow:     hidden;
-  opacity:      0;
-  padding:      0 0 0 18px;
-  margin-left:  18px;
-  border-left:  2px solid var(--border);
-  transition:   max-height 0.2s ease, opacity 0.2s ease, padding 0.2s ease;
-}
-
-.settings-toggle--nested.is-visible {
-  max-height: 60px;
-  opacity:    1;
-  padding:    7px 0 7px 18px;
+  transform:      translateX(16px);
 }
 
 /* --------------------------------------------------------------------------
-   Image Library — No-Crop Mode (object-fit: contain)
+   Image Library — Modes
    -------------------------------------------------------------------------- */
 .image-library.nocrop-mode .image-card__thumb {
   object-fit: contain;
 }
 
-/* --------------------------------------------------------------------------
-   Image Library — No White-Space Mode (remove fixed thumb-wrap height)
-   -------------------------------------------------------------------------- */
 .image-library.nowhitespace-mode .image-card__thumb-wrap {
   height: auto;
-}
-
-/* --------------------------------------------------------------------------
-   Settings Dropdown Extensions
-   -------------------------------------------------------------------------- */
-.settings-path-display {
-  font-family:    var(--font-mono);
-  font-size:      11px;
-  color:          var(--text-secondary);
-  background:     var(--bg-subtle);
-  border:         1px solid var(--border);
-  border-radius:  var(--radius-sm);
-  padding:        6px 8px;
-  white-space:    nowrap;
-  overflow:       hidden;
-  text-overflow:  ellipsis;
-  margin-bottom:  8px;
-}
-
-.settings-author-display {
-  font-size:      12px;
-  color:          var(--text-primary);
-  background:     var(--bg-subtle);
-  border:         1px solid var(--border);
-  border-radius:  var(--radius-sm);
-  padding:        6px 8px;
-  word-break:     break-word;
-}
-
-.settings-btn-block {
-  width:           100%;
-  justify-content: center;
-  font-size:       12px;
-  padding:         5px 10px;
-}
-
-.settings-footer-info {
-  padding:       8px 14px;
-  font-size:     10px;
-  color:         var(--text-muted);
-  background:    rgba(0, 0, 0, 0.2);
-  border-top:    1px solid var(--border);
-  white-space:   nowrap;
-  overflow:      hidden;
-  text-overflow: ellipsis;
-}
-
-.settings-footer-info code {
-  font-family:   var(--font-mono);
-  color:         var(--text-secondary);
 }
 
 /* --------------------------------------------------------------------------

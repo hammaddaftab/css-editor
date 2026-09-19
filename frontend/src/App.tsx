@@ -4,6 +4,7 @@ import { setEditorContent } from './editor.js';
 import { updatePreview } from './preview.js';
 import { ConflictBanner } from './components/ConflictBanner';
 import { IdleLauncher } from './components/IdleLauncher';
+import { SettingsSideWindow } from './components/SettingsSideWindow';
 import { Toolbar } from './components/Toolbar';
 import { WelcomeModal } from './components/WelcomeModal';
 import { WorkspacePanes } from './components/WorkspacePanes';
@@ -147,17 +148,25 @@ export default function App() {
   return <div className="app">
     <Toolbar projects={workspace.projects} project={workspace.project} files={workspace.files} filename={workspace.filename}
       dirty={workspace.dirty} saveStatus={workspace.saveStatus} status={status} statusTitle={statusTitle} exporting={exporting}
-      settingsOpen={preferences.settingsOpen} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
-      config={config} onOpenConfigModal={() => setModalOpen(true)}
+      settingsOpen={preferences.settingsOpen}
       mode={workspace.target.mode} docPath={workspace.docPath} onSwitchToProjects={switchToProjects}
       onSwitchToIdle={switchToIdle}
       activeWatchTarget={workspace.activeWatchTarget} onOpenWatchFile={() => void openWatchFile()} onSwitchToWatch={() => void switchToWatch()}
       imageInput={workspace.refs.imageInput} onProject={(event) => void switchProject(event.target.value)} onFile={(event) => void switchFile(event.target.value)}
       onSave={() => void workspace.saveDocument()} onExport={() => void exportPdf()} onLibrary={() => setLibraryVisible((value) => !value)} libraryVisible={libraryVisible}
       onCss={() => setCssVisible((value) => !value)} cssVisible={cssVisible}
-      onSettings={(event) => { event.stopPropagation(); preferences.setSettingsOpen((value) => !value); }}
-      onNoCrop={(event) => preferences.changeNoCrop(event.target.checked)} onNoWhitespace={(event) => preferences.changeNoWhitespace(event.target.checked)} />
+      onSettings={(event) => { event.stopPropagation(); preferences.setSettingsOpen((value) => !value); }} />
     {workspace.conflict && <ConflictBanner conflict={workspace.conflict} onReload={reloadConflict} onKeep={() => workspace.setConflict(null)} />}
+    <SettingsSideWindow
+      isOpen={preferences.settingsOpen}
+      onClose={() => preferences.setSettingsOpen(false)}
+      config={config}
+      onOpenConfigModal={() => setModalOpen(true)}
+      noCrop={preferences.noCrop}
+      noWhitespace={preferences.noWhitespace}
+      onNoCrop={(event) => preferences.changeNoCrop(event.target.checked)}
+      onNoWhitespace={(event) => preferences.changeNoWhitespace(event.target.checked)}
+    />
     <WorkspacePanes refs={workspace.refs} library={library} panes={panes} divider={divider} leftPane={leftPane}
       libraryVisible={libraryVisible} cssVisible={cssVisible} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
       frame={frame} pageCount={pageCount} theme={preferences.theme} onCss={() => setCssVisible((value) => !value)} onTheme={preferences.changeTheme} />

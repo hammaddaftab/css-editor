@@ -140,8 +140,8 @@ export function initImageLibrary({
 
     try {
       await navigator.clipboard.writeText(snippet);
-      showFeedback(`📋 Copied markdown for "${altText}"`);
-      showCardBadge(_selectedCard, '✓ Copied!');
+      showFeedback(`Copied markdown for "${altText}"`);
+      showCardBadge(_selectedCard, 'Copied');
     } catch {
       // Fallback
       const ta = document.createElement('textarea');
@@ -150,8 +150,8 @@ export function initImageLibrary({
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      showFeedback(`📋 Copied markdown for "${altText}"`);
-      showCardBadge(_selectedCard, '✓ Copied!');
+      showFeedback(`Copied markdown for "${altText}"`);
+      showCardBadge(_selectedCard, 'Copied');
     }
   }
 
@@ -166,16 +166,16 @@ export function initImageLibrary({
         method: 'DELETE',
       });
       if (res.ok) {
-        showFeedback(`🗑️ Deleted "${name}" from library`);
+        showFeedback(`Deleted "${name}" from library`);
         deleteStoredImageName(imgToDelete.filename);
         clearSelection();
         await fetchImages();
       } else {
         const errData = await res.json().catch(() => ({}));
-        showFeedback(`⚠️ Failed to delete "${name}": ${errData.detail || res.statusText}`);
+        showFeedback(`Failed to delete "${name}": ${errData.detail || res.statusText}`);
       }
     } catch (err) {
-      showFeedback(`⚠️ Delete error: ${err.message}`);
+      showFeedback(`Delete error: ${err.message}`);
     }
   }
 
@@ -279,7 +279,7 @@ export function initImageLibrary({
     if (dropzoneEl) {
       dropzoneEl.classList.remove('is-uploading');
       const textSpan = dropzoneEl.querySelector('.dropzone-text');
-      if (textSpan) textSpan.textContent = '📥 Drop images here to upload';
+      if (textSpan) textSpan.textContent = 'Drop images here to upload';
     }
 
     await fetchImages();
