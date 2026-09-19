@@ -247,7 +247,32 @@ class TestPhase2Routes(unittest.TestCase):
         finally:
             os.environ.pop("EDITOR_WATCH_FILE", None)
 
+    def test_get_document_project_mode_with_file_param(self):
+        proj_dir = self.projects_dir / "demo-proj-alias"
+        proj_dir.mkdir()
+        doc = proj_dir / "chapter.md"
+        doc.write_text("# Chapter Content", encoding="utf-8")
+
+        res = self.client.get("/api/document?mode=project&project=demo-proj-alias&file=chapter.md")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["mode"], "project")
+        self.assertEqual(data["markdown"], "# Chapter Content")
+
+    def test_index_serves_launcher_when_watch_file_set(self):
+        dummy_file = self.base_dir / "cli_watch.md"
+        dummy_file.write_text("# Watched", encoding="utf-8")
+
+        app.state.initial_watch_file = dummy_file
+        try:
+            res = self.client.get("/", follow_redirects=False)
+            self.assertEqual(res.status_code, 200)
+            self.assertIn("text/html", res.headers["content-type"])
+        finally:
+            app.state.initial_watch_file = None
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

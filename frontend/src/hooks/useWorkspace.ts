@@ -1,28 +1,26 @@
 import { useCallback, useRef, useState } from 'react';
 import type { Project, ProjectFile, Conflict, WorkspaceRefs, TargetSpec, WorkspaceProject } from '../app-types';
 import { setEditorContent } from '../editor.js';
-
-const PROJECT_KEY = 'css_editor_active_project';
-const FILE_KEY = 'css_editor_active_file';
-
-function stored(key: string, fallback: string): string {
-  try { return localStorage.getItem(key) || fallback; } catch { return fallback; }
-}
-
-function remember(key: string, value: string): void {
-  try { localStorage.setItem(key, value); } catch { /* optional storage */ }
-}
+import { useUrlTarget } from './useUrlTarget';
 
 export function useWorkspace() {
+  const urlTarget = useUrlTarget();
+  const { session, mode, target } = urlTarget;
+
+  const project = session.project ? session.projectName : '';
+  const filename = session.project
+    ? session.file
+    : (session.watch ? (session.path.split(/[/\\]/).pop() || '') : '');
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [workspaceProjects, setWorkspaceProjects] = useState<WorkspaceProject[]>([]);
-  const [project, setProject] = useState(() => stored(PROJECT_KEY, ''));
   const [files, setFiles] = useState<ProjectFile[]>([]);
-  const [filename, setFilename] = useState(() => stored(FILE_KEY, 'document.md'));
-  const [target, setTarget] = useState<TargetSpec>(() => ({
-    mode: 'idle',
-  }));
-  const [activeWatchTarget, setActiveWatchTarget] = useState<{ path: string; filename: string } | null>(null);
+  const [activeWatchTarget, setActiveWatchTarget] = useState<{ path: string; filename: string } | null>(() => {
+    if (session.watch) {
+      return { path: session.path, filename: session.path.split(/[/\\]/).pop() || '' };
+    }
+    return null;
+  });
   const [docToken, setDocToken] = useState('');
   const [docPath, setDocPath] = useState('');
   const [markdown, setMarkdown] = useState('');
@@ -127,7 +125,13 @@ export function useWorkspace() {
 
   const loadDocument = useCallback(async (spec: TargetSpec) => {
     if (spec.mode === 'idle') {
-      setTarget({ mode: 'idle' });
+      setMarkdown('');
+      setCss('');
+      setProjectCss('');
+      setDocToken('');
+      setDocPath('');
+      setEditorContent(refs.markdownView.current, '');
+      setEditorContent(refs.cssView.current, '');
       return;
     }
 
@@ -137,7 +141,7 @@ export function useWorkspace() {
         query += `&path=${encodeURIComponent(spec.path)}`;
         if (spec.customCss) query += `&custom_css=${encodeURIComponent(spec.customCss)}`;
       } else {
-        query += `&project=${encodeURIComponent(spec.project)}&filename=${encodeURIComponent(spec.filename)}`;
+        query += `&project=${encodeURIComponent(spec.project)}&file=${encodeURIComponent(spec.filename)}`;
       }
 
       const response = await fetch(`/api/document?${query}`);
@@ -147,20 +151,13 @@ export function useWorkspace() {
       const nextCss = data.css || '';
       const sharedCss = data.shared_css || '';
 
-      setTarget(spec);
       setDocToken(data.doc_token || '');
       setDocPath(data.doc_path || '');
       setMarkdown(nextMarkdown);
       setCss(nextCss);
       setProjectCss(sharedCss);
 
-      if (spec.mode === 'project') {
-        setProject(spec.project);
-        setFilename(data.filename);
-        remember(PROJECT_KEY, spec.project);
-        remember(FILE_KEY, data.filename);
-      } else {
-        setFilename(data.filename);
+      if (spec.mode === 'watch') {
         const nextPath = data.doc_path || spec.path;
         setActiveWatchTarget((prev) => (prev && prev.path === nextPath && prev.filename === data.filename ? prev : { path: nextPath, filename: data.filename }));
       }
@@ -218,7 +215,6 @@ export function useWorkspace() {
       }
       markClean('Saved');
       if (activeTarget.mode === 'project') {
-        remember(FILE_KEY, payload.filename);
         await refreshFiles(activeTarget.project);
       }
     } catch (error) {
@@ -237,12 +233,13 @@ export function useWorkspace() {
   }, [markDirty, postRender]);
 
   return {
-    projects, workspaceProjects, project, files, filename, target, docToken, docPath,
+    projects, workspaceProjects, project, files, filename, target, session, mode, docToken, docPath,
     activeWatchTarget, setActiveWatchTarget,
     markdown, css, projectCss, dirty, saveStatus, conflict,
-    setTarget, setDocToken, setDocPath, setProject, setFilename, setMarkdown, setCss,
+    setDocToken, setDocPath, setMarkdown, setCss,
     setProjectCss, setFiles, setDirty, setSaveStatus, setConflict,
     refs, current, effectiveCss, postRender, refreshProjects, refreshFiles,
-    loadDocument, saveDocument, updateMarkdown, updateCss, markDirty, markClean, remember,
+    loadDocument, saveDocument, updateMarkdown, updateCss, markDirty, markClean,
+    urlTarget,
   };
 }

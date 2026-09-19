@@ -45189,30 +45189,39 @@ function IdleLauncher(props) {
         /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "idle-card__title", children: "Standalone / Watch Mode" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "idle-card__desc", children: "Write in your external editor (Neovim, VS Code, Obsidian) with atomic-safe live reload, zero project style bleeding, and PDF export." }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__actions", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-btn-group", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-btn-group", children: props.activeWatchTarget ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "button",
               {
                 type: "button",
                 className: "btn btn--primary idle-btn-main",
-                onClick: props.onOpenWatchFile,
-                children: "👁 Open File to Watch…"
+                title: `Jump to watched file: ${props.activeWatchTarget.path}`,
+                onClick: props.onSwitchToWatch,
+                children: [
+                  "👁 Watch: ",
+                  props.activeWatchTarget.filename
+                ]
               }
             ),
-            props.activeWatchTarget && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
               "button",
               {
                 type: "button",
                 className: "btn btn--ghost idle-btn-sec",
-                title: `Resume watching ${props.activeWatchTarget.path}`,
-                onClick: props.onSwitchToWatch,
-                children: [
-                  "Resume: ",
-                  props.activeWatchTarget.filename
-                ]
+                title: "Open a different external Markdown file",
+                onClick: props.onOpenWatchFile,
+                children: "Open Other File…"
               }
             )
-          ] }),
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              className: "btn btn--primary idle-btn-main",
+              onClick: props.onOpenWatchFile,
+              children: "👁 Open File to Watch…"
+            }
+          ) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-shortcut-hint", children: [
             "External file picker shortcut: ",
             /* @__PURE__ */ jsxRuntimeExports.jsx("kbd", { children: "Ctrl" }),
@@ -45424,7 +45433,15 @@ function Toolbar(props) {
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open another file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Open File…" }),
-      props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Switch to Projects workspace", onClick: props.onSwitchToProjects, children: "Projects" })
+      props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: "btn btn--ghost btn--xs",
+          title: props.projectActive ? "Switch to project" : "Select Project",
+          onClick: props.onSwitchToProjects,
+          children: props.projectActive ? "Switch to project" : "Select Project"
+        }
+      )
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--project" }),
@@ -45441,14 +45458,21 @@ function Toolbar(props) {
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes (Ctrl+S or Settings)", children: "●" })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open and watch an external Markdown file (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Watch File…" }),
-      props.activeWatchTarget && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      props.watchActive ? props.onSwitchToWatch && /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
           className: "btn btn--ghost btn--xs",
-          title: `Switch back to watching ${props.activeWatchTarget.path}`,
+          title: "Switch to watch",
           onClick: props.onSwitchToWatch,
-          children: props.activeWatchTarget.filename
+          children: "Switch to watch"
+        }
+      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: "btn btn--ghost btn--xs",
+          title: "Select Standalone",
+          onClick: props.onOpenWatchFile,
+          children: "Select Standalone"
         }
       )
     ] }) }),
@@ -46576,7 +46600,7 @@ ${data2.css || ""}` : data2.css || active.css;
     theme2
   ]);
 }
-function stored$1(key, fallback) {
+function stored(key, fallback) {
   try {
     return localStorage.getItem(key) || fallback;
   } catch {
@@ -46584,10 +46608,10 @@ function stored$1(key, fallback) {
   }
 }
 function usePreferences(frame) {
-  const [theme2, setTheme] = reactExports.useState(() => stored$1("css_editor_preview_theme", "light"));
+  const [theme2, setTheme] = reactExports.useState(() => stored("css_editor_preview_theme", "light"));
   const [settingsOpen, setSettingsOpen] = reactExports.useState(false);
-  const [noCrop, setNoCrop] = reactExports.useState(() => stored$1("css_editor_nocrop", "0") === "1");
-  const [noWhitespace, setNoWhitespace] = reactExports.useState(() => stored$1("css_editor_nowhitespace", "0") === "1" && stored$1("css_editor_nocrop", "0") === "1");
+  const [noCrop, setNoCrop] = reactExports.useState(() => stored("css_editor_nocrop", "0") === "1");
+  const [noWhitespace, setNoWhitespace] = reactExports.useState(() => stored("css_editor_nowhitespace", "0") === "1" && stored("css_editor_nocrop", "0") === "1");
   const changeTheme = reactExports.useCallback((value) => {
     const next = value === "dark" ? "dark" : "light";
     setTheme(next);
@@ -46602,7 +46626,7 @@ function usePreferences(frame) {
     if (!enabled) setNoWhitespace(false);
     try {
       localStorage.setItem("css_editor_nocrop", enabled ? "1" : "0");
-      localStorage.setItem("css_editor_nowhitespace", enabled ? stored$1("css_editor_nowhitespace", "0") : "0");
+      localStorage.setItem("css_editor_nowhitespace", enabled ? stored("css_editor_nowhitespace", "0") : "0");
     } catch {
     }
   }, []);
@@ -46627,8 +46651,6 @@ function useProjects(workspace) {
     dirty,
     refs,
     current,
-    setProject,
-    setFilename,
     refreshProjects,
     refreshFiles,
     loadDocument,
@@ -46636,7 +46658,9 @@ function useProjects(workspace) {
     markDirty,
     setMarkdown,
     setCss,
-    remember: remember2
+    urlTarget,
+    session,
+    target
   } = workspace;
   const openWatchFile = reactExports.useCallback(async (initialPath) => {
     var _a2, _b;
@@ -46661,16 +46685,18 @@ function useProjects(workspace) {
       targetPath = ((_b = window.prompt("Enter path to Markdown file to watch (e.g. /home/user/notes.md):")) == null ? void 0 : _b.trim()) || null;
     }
     if (!targetPath) return;
-    await loadDocument({ mode: "watch", path: targetPath });
-  }, [current, loadDocument]);
+    urlTarget.initWatch(targetPath);
+  }, [current, urlTarget]);
   const switchToWatch = reactExports.useCallback(async () => {
     var _a2;
     const active = current.current;
     if (active.dirty && !window.confirm(`You have unsaved changes. Switch anyway?`)) return;
-    if ((_a2 = workspace.activeWatchTarget) == null ? void 0 : _a2.path) {
-      await loadDocument({ mode: "watch", path: workspace.activeWatchTarget.path });
+    if (session.watch && session.project) {
+      urlTarget.switchToWatch();
+    } else if ((_a2 = workspace.activeWatchTarget) == null ? void 0 : _a2.path) {
+      urlTarget.initWatch(workspace.activeWatchTarget.path);
     }
-  }, [current, loadDocument, workspace.activeWatchTarget]);
+  }, [current, session, urlTarget, workspace.activeWatchTarget]);
   const switchProject = reactExports.useCallback(async (nextProject) => {
     var _a2, _b;
     const active = current.current;
@@ -46695,13 +46721,14 @@ function useProjects(workspace) {
       await refreshProjects();
       nextProject = name2;
     }
-    setProject(nextProject);
-    remember2("css_editor_active_project", nextProject);
     const nextFiles = await refreshFiles(nextProject);
     const nextFile = ((_b = nextFiles[0]) == null ? void 0 : _b.filename) || "README.md";
-    setFilename(nextFile);
-    await loadDocument({ mode: "project", project: nextProject, filename: nextFile });
-  }, [current, loadDocument, openWatchFile, remember2, refreshFiles, refreshProjects, setFilename, setProject]);
+    if (session.watch) {
+      urlTarget.switchProject(nextProject, nextFile);
+    } else {
+      urlTarget.initProject(nextProject, nextFile);
+    }
+  }, [current, openWatchFile, refreshFiles, refreshProjects, session, urlTarget]);
   const switchFile = reactExports.useCallback(async (nextFilename) => {
     var _a2;
     if (nextFilename === "__new__") {
@@ -46711,76 +46738,302 @@ function useProjects(workspace) {
       const nextMarkdown = `# ${cleanName.replace(/\.md$/, "")}
 
 `;
-      setFilename(cleanName);
       setMarkdown(nextMarkdown);
       setCss("");
       setEditorContent(refs.markdownView.current, nextMarkdown);
       setEditorContent(refs.cssView.current, "");
       markDirty();
       await saveDocument({ filename: cleanName, markdown: nextMarkdown, css: "" });
+      urlTarget.switchFile(cleanName);
       return;
     }
     const active = current.current;
     if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Switch anyway?`)) return;
-    await loadDocument({ mode: "project", project: active.project, filename: nextFilename });
-  }, [current, loadDocument, markDirty, refs.cssView, refs.markdownView, saveDocument, setFilename]);
+    urlTarget.switchFile(nextFilename);
+  }, [current, markDirty, refs.cssView, refs.markdownView, saveDocument, setCss, setMarkdown, urlTarget]);
   const switchToProjects = reactExports.useCallback(async () => {
     var _a2;
     const active = current.current;
     if (active.dirty && !window.confirm(`You have unsaved changes. Switch to project mode anyway?`)) return;
+    if (session.watch && session.project) {
+      urlTarget.switchToProject();
+      return;
+    }
     const available = await refreshProjects();
     if (!available.length) return;
     const nextProject = available.some((item) => item.name === active.project) ? active.project : available[0].name;
-    setProject(nextProject);
     const nextFiles = await refreshFiles(nextProject);
     const nextFile = ((_a2 = nextFiles[0]) == null ? void 0 : _a2.filename) || "README.md";
-    setFilename(nextFile);
-    await loadDocument({ mode: "project", project: nextProject, filename: nextFile });
-  }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject]);
-  const initialized = reactExports.useRef(false);
+    urlTarget.initProject(nextProject, nextFile);
+  }, [current, refreshFiles, refreshProjects, session, urlTarget]);
+  const switchToIdle = reactExports.useCallback(() => {
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes. Return to launcher anyway?`)) return;
+    urlTarget.switchToIdle();
+  }, [current, urlTarget]);
   reactExports.useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    void refreshProjects();
+  }, [refreshProjects]);
+  reactExports.useEffect(() => {
     void (async () => {
-      await refreshProjects();
-      const activeWatch = workspace.activeWatchTarget;
-      if (activeWatch && activeWatch.path) {
-        await loadDocument({ mode: "watch", path: activeWatch.path });
+      if (target.mode === "idle") {
+        await loadDocument({ mode: "idle" });
         return;
       }
-      workspace.setTarget({ mode: "idle" });
+      if (target.mode === "project") {
+        await refreshFiles(target.project);
+      }
+      await loadDocument(target);
     })();
-  }, [loadDocument, refreshProjects, workspace]);
-  const switchToIdle = reactExports.useCallback(() => {
-    workspace.setTarget({ mode: "idle" });
-  }, [workspace]);
+  }, [loadDocument, refreshFiles, target]);
   return { project, filename, switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle };
 }
-const PROJECT_KEY = "css_editor_active_project";
-const FILE_KEY = "css_editor_active_file";
-function stored(key, fallback) {
-  try {
-    return localStorage.getItem(key) || fallback;
-  } catch {
-    return fallback;
+let cachedSearch = null;
+let cachedSession = { watch: false, project: false };
+function getSessionFromUrl() {
+  var _a2, _b, _c, _d, _e;
+  if (typeof window === "undefined") return { watch: false, project: false };
+  const search = window.location.search;
+  if (search === cachedSearch) return cachedSession;
+  cachedSearch = search;
+  const params = new URLSearchParams(search);
+  const modeParam = (_a2 = params.get("mode")) == null ? void 0 : _a2.trim();
+  const pathParam = (_b = params.get("path")) == null ? void 0 : _b.trim();
+  const projectParam = (_c = params.get("project")) == null ? void 0 : _c.trim();
+  const fileParam = (_d = params.get("file")) == null ? void 0 : _d.trim();
+  const customCssParam = ((_e = params.get("custom_css")) == null ? void 0 : _e.trim()) || void 0;
+  const hasWatch = Boolean(pathParam);
+  const hasProject = Boolean(projectParam && fileParam);
+  if (hasWatch && hasProject) {
+    const focus = modeParam === "project" ? "project" : "watch";
+    cachedSession = {
+      watch: true,
+      project: true,
+      focus,
+      path: pathParam,
+      customCss: customCssParam,
+      projectName: projectParam,
+      file: fileParam
+    };
+    return cachedSession;
+  }
+  if (hasWatch && (modeParam === "watch" || !modeParam)) {
+    cachedSession = {
+      watch: true,
+      project: false,
+      path: pathParam,
+      customCss: customCssParam
+    };
+    return cachedSession;
+  }
+  if (hasProject && (modeParam === "project" || !modeParam)) {
+    cachedSession = {
+      watch: false,
+      project: true,
+      projectName: projectParam,
+      file: fileParam
+    };
+    return cachedSession;
+  }
+  cachedSession = { watch: false, project: false };
+  return cachedSession;
+}
+function getModeFromSession(session) {
+  if (!session.watch && !session.project) {
+    return { watch: false, project: false };
+  }
+  if (session.watch && !session.project) {
+    return { watch: true, project: false };
+  }
+  if (!session.watch && session.project) {
+    return { watch: false, project: true };
+  }
+  return { watch: true, project: true, focus: session.focus };
+}
+function getTargetSpecFromSession(session) {
+  if (!session.watch && !session.project) {
+    return { mode: "idle" };
+  }
+  if (session.watch && (!session.project || session.focus === "watch")) {
+    return { mode: "watch", path: session.path, customCss: session.customCss };
+  }
+  if (session.project && (!session.watch || session.focus === "project")) {
+    return { mode: "project", project: session.projectName, filename: session.file };
+  }
+  return { mode: "idle" };
+}
+function subscribeToUrl(callback) {
+  window.addEventListener("popstate", callback);
+  window.addEventListener("urlchange", callback);
+  return () => {
+    window.removeEventListener("popstate", callback);
+    window.removeEventListener("urlchange", callback);
+  };
+}
+function updateUrlWithSession(session, options) {
+  const params = new URLSearchParams();
+  if (session.watch && session.project) {
+    params.set("mode", session.focus);
+    if (session.focus === "watch") {
+      params.set("path", session.path);
+      if (session.customCss) params.set("custom_css", session.customCss);
+      params.set("project", session.projectName);
+      params.set("file", session.file);
+    } else {
+      params.set("project", session.projectName);
+      params.set("file", session.file);
+      params.set("path", session.path);
+      if (session.customCss) params.set("custom_css", session.customCss);
+    }
+  } else if (session.watch) {
+    params.set("mode", "watch");
+    params.set("path", session.path);
+    if (session.customCss) params.set("custom_css", session.customCss);
+  } else if (session.project) {
+    params.set("mode", "project");
+    params.set("project", session.projectName);
+    params.set("file", session.file);
+  }
+  const search = params.toString();
+  const nextUrl = search ? `${window.location.pathname}?${search}` : window.location.pathname;
+  const currentUrl = `${window.location.pathname}${window.location.search}`;
+  if (nextUrl !== currentUrl) {
+    if (options == null ? void 0 : options.replace) {
+      window.history.replaceState(null, "", nextUrl);
+    } else {
+      window.history.pushState(null, "", nextUrl);
+    }
+    window.dispatchEvent(new Event("urlchange"));
   }
 }
-function remember(key, value) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-  }
+function useUrlTarget() {
+  const session = reactExports.useSyncExternalStore(subscribeToUrl, getSessionFromUrl, () => ({ watch: false, project: false }));
+  const mode = getModeFromSession(session);
+  const target = getTargetSpecFromSession(session);
+  const initWatch = (path, customCss, options) => {
+    if (session.project) {
+      updateUrlWithSession({
+        watch: true,
+        project: true,
+        focus: "watch",
+        path,
+        customCss,
+        projectName: session.projectName,
+        file: session.file
+      }, options);
+    } else {
+      updateUrlWithSession({
+        watch: true,
+        project: false,
+        path,
+        customCss
+      }, options);
+    }
+  };
+  const initProject = (project, file, options) => {
+    if (session.watch) {
+      updateUrlWithSession({
+        watch: true,
+        project: true,
+        focus: "project",
+        path: session.path,
+        customCss: session.customCss,
+        projectName: project,
+        file
+      }, options);
+    } else {
+      updateUrlWithSession({
+        watch: false,
+        project: true,
+        projectName: project,
+        file
+      }, options);
+    }
+  };
+  const switchToProject = (options) => {
+    if (session.watch && session.project) {
+      updateUrlWithSession({
+        ...session,
+        focus: "project"
+      }, options);
+    }
+  };
+  const switchToWatch = (options) => {
+    if (session.watch && session.project) {
+      updateUrlWithSession({
+        ...session,
+        focus: "watch"
+      }, options);
+    }
+  };
+  const switchFile = (nextFile, options) => {
+    if (session.project) {
+      if (session.watch) {
+        updateUrlWithSession({
+          ...session,
+          file: nextFile,
+          focus: "project"
+        }, options);
+      } else {
+        updateUrlWithSession({
+          watch: false,
+          project: true,
+          projectName: session.projectName,
+          file: nextFile
+        }, options);
+      }
+    }
+  };
+  const switchProject = (nextProject, nextFile, options) => {
+    if (session.watch) {
+      updateUrlWithSession({
+        watch: true,
+        project: true,
+        focus: "project",
+        path: session.path,
+        customCss: session.customCss,
+        projectName: nextProject,
+        file: nextFile
+      }, options);
+    } else {
+      updateUrlWithSession({
+        watch: false,
+        project: true,
+        projectName: nextProject,
+        file: nextFile
+      }, options);
+    }
+  };
+  const switchToIdle = (options) => {
+    updateUrlWithSession({ watch: false, project: false }, options);
+  };
+  return {
+    session,
+    mode,
+    target,
+    initWatch,
+    initProject,
+    switchToProject,
+    switchToWatch,
+    switchFile,
+    switchProject,
+    switchToIdle
+  };
 }
 function useWorkspace() {
+  const urlTarget = useUrlTarget();
+  const { session, mode, target } = urlTarget;
+  const project = session.project ? session.projectName : "";
+  const filename = session.project ? session.file : session.watch ? session.path.split(/[/\\]/).pop() || "" : "";
   const [projects, setProjects] = reactExports.useState([]);
   const [workspaceProjects, setWorkspaceProjects] = reactExports.useState([]);
-  const [project, setProject] = reactExports.useState(() => stored(PROJECT_KEY, ""));
   const [files, setFiles] = reactExports.useState([]);
-  const [filename, setFilename] = reactExports.useState(() => stored(FILE_KEY, "document.md"));
-  const [target, setTarget] = reactExports.useState(() => ({
-    mode: "idle"
-  }));
-  const [activeWatchTarget, setActiveWatchTarget] = reactExports.useState(null);
+  const [activeWatchTarget, setActiveWatchTarget] = reactExports.useState(() => {
+    if (session.watch) {
+      return { path: session.path, filename: session.path.split(/[/\\]/).pop() || "" };
+    }
+    return null;
+  });
   const [docToken, setDocToken] = reactExports.useState("");
   const [docPath, setDocPath] = reactExports.useState("");
   const [markdown2, setMarkdown] = reactExports.useState("");
@@ -46888,7 +47141,13 @@ ${value.css}` : value.css;
   const loadDocument = reactExports.useCallback(async (spec) => {
     var _a2;
     if (spec.mode === "idle") {
-      setTarget({ mode: "idle" });
+      setMarkdown("");
+      setCss("");
+      setProjectCss("");
+      setDocToken("");
+      setDocPath("");
+      setEditorContent(refs.markdownView.current, "");
+      setEditorContent(refs.cssView.current, "");
       return;
     }
     try {
@@ -46897,7 +47156,7 @@ ${value.css}` : value.css;
         query += `&path=${encodeURIComponent(spec.path)}`;
         if (spec.customCss) query += `&custom_css=${encodeURIComponent(spec.customCss)}`;
       } else {
-        query += `&project=${encodeURIComponent(spec.project)}&filename=${encodeURIComponent(spec.filename)}`;
+        query += `&project=${encodeURIComponent(spec.project)}&file=${encodeURIComponent(spec.filename)}`;
       }
       const response = await fetch(`/api/document?${query}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -46905,19 +47164,12 @@ ${value.css}` : value.css;
       const nextMarkdown = data2.markdown || "";
       const nextCss = data2.css || "";
       const sharedCss = data2.shared_css || "";
-      setTarget(spec);
       setDocToken(data2.doc_token || "");
       setDocPath(data2.doc_path || "");
       setMarkdown(nextMarkdown);
       setCss(nextCss);
       setProjectCss(sharedCss);
-      if (spec.mode === "project") {
-        setProject(spec.project);
-        setFilename(data2.filename);
-        remember(PROJECT_KEY, spec.project);
-        remember(FILE_KEY, data2.filename);
-      } else {
-        setFilename(data2.filename);
+      if (spec.mode === "watch") {
         const nextPath = data2.doc_path || spec.path;
         setActiveWatchTarget((prev) => prev && prev.path === nextPath && prev.filename === data2.filename ? prev : { path: nextPath, filename: data2.filename });
       }
@@ -46970,7 +47222,6 @@ ${nextCss}` : nextCss;
       }
       markClean("Saved");
       if (activeTarget.mode === "project") {
-        remember(FILE_KEY, payload.filename);
         await refreshFiles(activeTarget.project);
       }
     } catch (error) {
@@ -46997,6 +47248,8 @@ ${value}` : value);
     files,
     filename,
     target,
+    session,
+    mode,
     docToken,
     docPath,
     activeWatchTarget,
@@ -47007,11 +47260,8 @@ ${value}` : value);
     dirty,
     saveStatus,
     conflict,
-    setTarget,
     setDocToken,
     setDocPath,
-    setProject,
-    setFilename,
     setMarkdown,
     setCss,
     setProjectCss,
@@ -47031,7 +47281,7 @@ ${value}` : value);
     updateCss,
     markDirty,
     markClean,
-    remember
+    urlTarget
   };
 }
 function App() {
@@ -47070,22 +47320,16 @@ function App() {
     const available = await workspace.refreshProjects();
     if (available.length && workspace.target.mode !== "idle") {
       const nextProject = available[0].name;
-      workspace.setProject(nextProject);
       const nextFiles = await workspace.refreshFiles(nextProject);
       const nextFile = ((_a2 = nextFiles[0]) == null ? void 0 : _a2.filename) || "README.md";
-      workspace.setFilename(nextFile);
-      await workspace.loadDocument({ mode: "project", project: nextProject, filename: nextFile });
+      workspace.urlTarget.switchProject(nextProject, nextFile);
     }
   }, [workspace]);
   const handleSelectProject = reactExports.useCallback(async (projectName) => {
     var _a2;
     const nextFiles = await workspace.refreshFiles(projectName);
     const nextFile = ((_a2 = nextFiles[0]) == null ? void 0 : _a2.filename) || "README.md";
-    workspace.setProject(projectName);
-    workspace.setFilename(nextFile);
-    workspace.remember("css_editor_active_project", projectName);
-    workspace.remember("css_editor_active_file", nextFile);
-    await workspace.loadDocument({ mode: "project", project: projectName, filename: nextFile });
+    workspace.urlTarget.initProject(projectName, nextFile);
   }, [workspace]);
   const handleCreateProject = reactExports.useCallback(async () => {
     var _a2;
@@ -47184,6 +47428,8 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         exporting,
         settingsOpen: preferences.settingsOpen,
         mode: workspace.target.mode,
+        watchActive: Boolean(workspace.session.watch),
+        projectActive: Boolean(workspace.session.project),
         docPath: workspace.docPath,
         onSwitchToProjects: switchToProjects,
         activeWatchTarget: workspace.activeWatchTarget,

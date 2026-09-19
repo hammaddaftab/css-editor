@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import { setEditorContent } from '../editor.js';
 
 export function useProjects(workspace: any) {
   const {
-    project, filename, dirty, refs, current, setProject, setFilename,
-    refreshProjects, refreshFiles, loadDocument, saveDocument, markDirty, setMarkdown, setCss, remember,
+    project, filename, dirty, refs, current,
+    refreshProjects, refreshFiles, loadDocument, saveDocument, markDirty, setMarkdown, setCss,
+    urlTarget, session, target,
   } = workspace;
 
   const openWatchFile = useCallback(async (initialPath?: string) => {
@@ -31,16 +32,18 @@ export function useProjects(workspace: any) {
     }
 
     if (!targetPath) return;
-    await loadDocument({ mode: 'watch', path: targetPath });
-  }, [current, loadDocument]);
+    urlTarget.initWatch(targetPath);
+  }, [current, urlTarget]);
 
   const switchToWatch = useCallback(async () => {
     const active = current.current;
     if (active.dirty && !window.confirm(`You have unsaved changes. Switch anyway?`)) return;
-    if (workspace.activeWatchTarget?.path) {
-      await loadDocument({ mode: 'watch', path: workspace.activeWatchTarget.path });
+    if (session.watch && session.project) {
+      urlTarget.switchToWatch();
+    } else if (workspace.activeWatchTarget?.path) {
+      urlTarget.initWatch(workspace.activeWatchTarget.path);
     }
-  }, [current, loadDocument, workspace.activeWatchTarget]);
+  }, [current, session, urlTarget, workspace.activeWatchTarget]);
 
   const switchProject = useCallback(async (nextProject: string) => {
     const active = current.current;
@@ -65,13 +68,14 @@ export function useProjects(workspace: any) {
       await refreshProjects();
       nextProject = name;
     }
-    setProject(nextProject);
-    remember('css_editor_active_project', nextProject);
     const nextFiles = await refreshFiles(nextProject);
     const nextFile = nextFiles[0]?.filename || 'README.md';
-    setFilename(nextFile);
-    await loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
-  }, [current, loadDocument, openWatchFile, remember, refreshFiles, refreshProjects, setFilename, setProject]);
+    if (session.watch) {
+      urlTarget.switchProject(nextProject, nextFile);
+    } else {
+      urlTarget.initProject(nextProject, nextFile);
+    }
+  }, [current, openWatchFile, refreshFiles, refreshProjects, session, urlTarget]);
 
   const switchFile = useCallback(async (nextFilename: string) => {
     if (nextFilename === '__new__') {
@@ -79,59 +83,60 @@ export function useProjects(workspace: any) {
       if (!name) return;
       const cleanName = name.endsWith('.md') ? name : `${name}.md`;
       const nextMarkdown = `# ${cleanName.replace(/\.md$/, '')}\n\n`;
-      setFilename(cleanName);
       setMarkdown(nextMarkdown);
       setCss('');
       setEditorContent(refs.markdownView.current, nextMarkdown);
       setEditorContent(refs.cssView.current, '');
       markDirty();
       await saveDocument({ filename: cleanName, markdown: nextMarkdown, css: '' });
+      urlTarget.switchFile(cleanName);
       return;
     }
     const active = current.current;
     if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Switch anyway?`)) return;
-    await loadDocument({ mode: 'project', project: active.project, filename: nextFilename });
-  }, [current, loadDocument, markDirty, refs.cssView, refs.markdownView, saveDocument, setFilename]);
+    urlTarget.switchFile(nextFilename);
+  }, [current, markDirty, refs.cssView, refs.markdownView, saveDocument, setCss, setMarkdown, urlTarget]);
 
   const switchToProjects = useCallback(async () => {
     const active = current.current;
     if (active.dirty && !window.confirm(`You have unsaved changes. Switch to project mode anyway?`)) return;
+    if (session.watch && session.project) {
+      urlTarget.switchToProject();
+      return;
+    }
     const available = await refreshProjects();
     if (!available.length) return;
     const nextProject = available.some((item: { name: string }) => item.name === active.project)
       ? active.project : available[0].name;
-    setProject(nextProject);
     const nextFiles = await refreshFiles(nextProject);
     const nextFile = nextFiles[0]?.filename || 'README.md';
-    setFilename(nextFile);
-    await loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
-  }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject]);
-
-  const initialized = useRef(false);
-
-  useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-
-    void (async () => {
-      await refreshProjects();
-
-      // If CLI seeded a watch file:
-      const activeWatch = workspace.activeWatchTarget;
-      if (activeWatch && activeWatch.path) {
-        await loadDocument({ mode: 'watch', path: activeWatch.path });
-        return;
-      }
-
-      // Explicitly stay in idle mode when watch mode condition fails:
-      // The user will be prompted with the mode selection cards.
-      workspace.setTarget({ mode: 'idle' });
-    })();
-  }, [loadDocument, refreshProjects, workspace]);
+    urlTarget.initProject(nextProject, nextFile);
+  }, [current, refreshFiles, refreshProjects, session, urlTarget]);
 
   const switchToIdle = useCallback(() => {
-    workspace.setTarget({ mode: 'idle' });
-  }, [workspace]);
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes. Return to launcher anyway?`)) return;
+    urlTarget.switchToIdle();
+  }, [current, urlTarget]);
+
+  // Initial load: fetch project metadata
+  useEffect(() => {
+    void refreshProjects();
+  }, [refreshProjects]);
+
+  // Reactive document loading whenever target changes
+  useEffect(() => {
+    void (async () => {
+      if (target.mode === 'idle') {
+        await loadDocument({ mode: 'idle' });
+        return;
+      }
+      if (target.mode === 'project') {
+        await refreshFiles(target.project);
+      }
+      await loadDocument(target);
+    })();
+  }, [loadDocument, refreshFiles, target]);
 
   return { project, filename, switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle };
 }

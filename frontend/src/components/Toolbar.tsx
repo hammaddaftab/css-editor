@@ -12,6 +12,8 @@ type Props = {
   exporting: boolean;
   settingsOpen: boolean;
   mode?: 'idle' | 'watch' | 'project';
+  watchActive?: boolean;
+  projectActive?: boolean;
   docPath?: string;
   activeWatchTarget?: { path: string; filename: string } | null;
   onOpenWatchFile: () => void;
@@ -71,8 +73,12 @@ export function Toolbar(props: Props) {
               Open File…
             </button>
             {props.onSwitchToProjects && (
-              <button className="btn btn--ghost btn--xs" title="Switch to Projects workspace" onClick={props.onSwitchToProjects}>
-                Projects
+              <button
+                className="btn btn--ghost btn--xs"
+                title={props.projectActive ? "Switch to project" : "Select Project"}
+                onClick={props.onSwitchToProjects}
+              >
+                {props.projectActive ? "Switch to project" : "Select Project"}
               </button>
             )}
           </>
@@ -93,16 +99,23 @@ export function Toolbar(props: Props) {
               </select>
               <span className={`doc-dirty${props.dirty ? ' is-dirty' : ''}`} title="Unsaved changes (Ctrl+S or Settings)">●</span>
             </div>
-            <button className="btn btn--ghost btn--xs" title="Open and watch an external Markdown file (Ctrl+O)" onClick={props.onOpenWatchFile}>
-              Watch File…
-            </button>
-            {props.activeWatchTarget && (
+            {props.watchActive ? (
+              props.onSwitchToWatch && (
+                <button
+                  className="btn btn--ghost btn--xs"
+                  title="Switch to watch"
+                  onClick={props.onSwitchToWatch}
+                >
+                  Switch to watch
+                </button>
+              )
+            ) : (
               <button
                 className="btn btn--ghost btn--xs"
-                title={`Switch back to watching ${props.activeWatchTarget.path}`}
-                onClick={props.onSwitchToWatch}
+                title="Select Standalone"
+                onClick={props.onOpenWatchFile}
               >
-                {props.activeWatchTarget.filename}
+                Select Standalone
               </button>
             )}
           </>

@@ -92,6 +92,42 @@ Neither handler relies on callers to manage task cancellation. Each handler's `s
 4. Resets internal references to `None`.
 5. Is completely idempotent (safe to call multiple times).
 
+### 6. Watch / Project Mode State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> NoneActive
+
+    NoneActive --> WatchOnly : init_watch (select file)
+    NoneActive --> ProjectOnly : init_project (select project)
+
+    WatchOnly --> Both_projectFocus : init_project (select project)
+    ProjectOnly --> Both_watchFocus : init_watch (select file)
+
+    Both_watchFocus --> Both_projectFocus : switch_to_project
+    Both_projectFocus --> Both_watchFocus : switch_to_watch
+```
+
+The app can be in one of four modes with respect to Watch (standalone file) and Project selection: neither active, only one active, or both active with one in focus.
+
+**States**
+
+- `NoneActive` — initial state; neither Watch nor Project mode is active.
+- `WatchOnly` — a file has been selected via Watch mode; Project mode is inactive.
+- `ProjectOnly` — a project has been selected; Watch mode is inactive.
+- `Both_watchFocus` — both modes are active; Watch is currently in focus (visible).
+- `Both_projectFocus` — both modes are active; Project is currently in focus (visible).
+
+**Transitions**
+
+- `init_watch` (Select Standalone) — from `NoneActive` activates Watch mode (`WatchOnly`). From `ProjectOnly`, it activates Watch *in addition to* Project, and shifts focus to Watch (`Both_watchFocus`).
+- `init_project` (Select Project) — from `NoneActive` activates Project mode (`ProjectOnly`). From `WatchOnly`, it activates Project *in addition to* Watch, and shifts focus to Project (`Both_projectFocus`).
+- `switch_to_watch` / `switch_to_project` — only available once both modes are active; toggles which mode is currently focused without deactivating either.
+
+**Key rule: once both modes are active, neither can be deactivated.** There is no transition back to `WatchOnly`, `ProjectOnly`, or `NoneActive` from either `Both_*` state. Selecting a file or project while already in a `Both_*` state does not create a new mode — it's a no-op with respect to activation, since both are already on.
+
+**Focus-follows-activation:** activating the second mode always brings it into focus immediately (you see what you just selected), rather than requiring a separate manual switch to reveal it. Once both are active, focus is controlled explicitly via `switch_to_watch` / `switch_to_project`.
+
 ---
 
 ## Consequences

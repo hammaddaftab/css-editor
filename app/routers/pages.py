@@ -72,9 +72,4 @@ def serve_index_with_conditional_cache(request: Request) -> Response:
 @router.get("/", include_in_schema=False)
 @router.get("/index.html", include_in_schema=False)
 async def index(request: Request) -> Response:
-    watch_file = getattr(request.app.state, "initial_watch_file", None)
-    if not request.url.query and watch_file and isinstance(watch_file, Path) and watch_file.is_file():
-        from urllib.parse import quote
-        from starlette.responses import RedirectResponse
-        return RedirectResponse(f"/?mode=watch&path={quote(str(watch_file))}", status_code=307)
     return serve_index_with_conditional_cache(request)

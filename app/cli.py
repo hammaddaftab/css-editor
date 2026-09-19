@@ -102,13 +102,10 @@ def main(argv: list[str] | None = None) -> None:
     from app.services.config_manager import get_projects_root
     import uvicorn
 
-    from urllib.parse import quote
-
     if watch_path:
         app.state.initial_watch_file = watch_path
-        url = f"http://{args.host}:{actual_port}/?mode=watch&path={quote(str(watch_path))}"
-    else:
-        url = f"http://{args.host}:{actual_port}/"
+
+    url = f"http://{args.host}:{actual_port}/"
 
     if not args.no_browser:
         browser_thread = threading.Thread(

@@ -53,22 +53,16 @@ export default function App() {
     const available = await workspace.refreshProjects();
     if (available.length && workspace.target.mode !== 'idle') {
       const nextProject = available[0].name;
-      workspace.setProject(nextProject);
       const nextFiles = await workspace.refreshFiles(nextProject);
       const nextFile = nextFiles[0]?.filename || 'README.md';
-      workspace.setFilename(nextFile);
-      await workspace.loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
+      workspace.urlTarget.switchProject(nextProject, nextFile);
     }
   }, [workspace]);
 
   const handleSelectProject = useCallback(async (projectName: string) => {
     const nextFiles = await workspace.refreshFiles(projectName);
     const nextFile = nextFiles[0]?.filename || 'README.md';
-    workspace.setProject(projectName);
-    workspace.setFilename(nextFile);
-    workspace.remember('css_editor_active_project', projectName);
-    workspace.remember('css_editor_active_file', nextFile);
-    await workspace.loadDocument({ mode: 'project', project: projectName, filename: nextFile });
+    workspace.urlTarget.initProject(projectName, nextFile);
   }, [workspace]);
 
   const handleCreateProject = useCallback(async () => {
@@ -149,7 +143,10 @@ export default function App() {
     <Toolbar projects={workspace.projects} project={workspace.project} files={workspace.files} filename={workspace.filename}
       dirty={workspace.dirty} status={status} statusTitle={statusTitle} exporting={exporting}
       settingsOpen={preferences.settingsOpen}
-      mode={workspace.target.mode} docPath={workspace.docPath} onSwitchToProjects={switchToProjects}
+      mode={workspace.target.mode}
+      watchActive={Boolean(workspace.session.watch)}
+      projectActive={Boolean(workspace.session.project)}
+      docPath={workspace.docPath} onSwitchToProjects={switchToProjects}
       activeWatchTarget={workspace.activeWatchTarget} onOpenWatchFile={() => void openWatchFile()} onSwitchToWatch={() => void switchToWatch()}
       imageInput={workspace.refs.imageInput} onProject={(event) => void switchProject(event.target.value)} onFile={(event) => void switchFile(event.target.value)}
       onExport={() => void exportPdf()} onLibrary={() => setLibraryVisible((value) => !value)} libraryVisible={libraryVisible}

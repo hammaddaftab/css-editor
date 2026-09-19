@@ -101,21 +101,32 @@ export function IdleLauncher(props: Props) {
 
             <div className="idle-card__actions">
               <div className="idle-btn-group">
-                <button
-                  type="button"
-                  className="btn btn--primary idle-btn-main"
-                  onClick={props.onOpenWatchFile}
-                >
-                  👁 Open File to Watch…
-                </button>
-                {props.activeWatchTarget && (
+                {props.activeWatchTarget ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn--primary idle-btn-main"
+                      title={`Jump to watched file: ${props.activeWatchTarget.path}`}
+                      onClick={props.onSwitchToWatch}
+                    >
+                      👁 Watch: {props.activeWatchTarget.filename}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost idle-btn-sec"
+                      title="Open a different external Markdown file"
+                      onClick={props.onOpenWatchFile}
+                    >
+                      Open Other File…
+                    </button>
+                  </>
+                ) : (
                   <button
                     type="button"
-                    className="btn btn--ghost idle-btn-sec"
-                    title={`Resume watching ${props.activeWatchTarget.path}`}
-                    onClick={props.onSwitchToWatch}
+                    className="btn btn--primary idle-btn-main"
+                    onClick={props.onOpenWatchFile}
                   >
-                    Resume: {props.activeWatchTarget.filename}
+                    👁 Open File to Watch…
                   </button>
                 )}
               </div>
