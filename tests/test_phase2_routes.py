@@ -24,6 +24,10 @@ class TestPhase2Routes(unittest.TestCase):
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
 
+        self.patcher_images = patch("app.routers.images.get_projects_root", return_value=self.projects_dir)
+        self.patcher_images.start()
+        self.addCleanup(self.patcher_images.stop)
+
         self.client = TestClient(app)
 
     def tearDown(self):
@@ -188,6 +192,18 @@ class TestPhase2Routes(unittest.TestCase):
         filenames = {item["filename"] for item in data}
         self.assertIn("plot.png", filenames)
         self.assertIn("banner.jpg", filenames)
+
+    def test_serve_project_image(self):
+        proj_dir = self.projects_dir / "my-photo-proj"
+        proj_dir.mkdir()
+        img_dir = proj_dir / "images"
+        img_dir.mkdir()
+        img_path = img_dir / "pic.png"
+        img_path.write_bytes(b"\x89PNG\r\n\x1a\nPhotoBytes")
+
+        res = self.client.get("/api/images/pic.png?project=my-photo-proj")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.content, b"\x89PNG\r\n\x1a\nPhotoBytes")
 
     # ── 4. Workspace Discovery & PDF Export ─────────────────────────────────────
 

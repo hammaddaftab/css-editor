@@ -2,16 +2,19 @@ import { useSyncExternalStore } from 'react';
 import type { Mode, WorkspaceSession, TargetSpec } from '../app-types';
 
 let cachedSearch: string | null = null;
-let cachedSession: WorkspaceSession = { watch: false, project: false };
+let cachedResult = {
+  session: { watch: false, project: false } as WorkspaceSession,
+  mode: { watch: false, project: false } as Mode,
+  target: { mode: 'idle' } as TargetSpec,
+};
 
 /**
  * Strict parser for URL query parameters based on the 2-bit model:
  * watchActive, projectActive, plus focus ('watch' | 'project') when both are active.
+ * Caches all derived objects so references remain 100% stable unless search actually changes.
  */
-export function getSessionFromUrl(): WorkspaceSession {
-  if (typeof window === 'undefined') return { watch: false, project: false };
-  const search = window.location.search;
-  if (search === cachedSearch) return cachedSession;
+export function parseUrlSearch(search: string): { session: WorkspaceSession; mode: Mode; target: TargetSpec } {
+  if (search === cachedSearch) return cachedResult;
 
   cachedSearch = search;
   const params = new URLSearchParams(search);
@@ -27,7 +30,7 @@ export function getSessionFromUrl(): WorkspaceSession {
 
   if (hasWatch && hasProject) {
     const focus = modeParam === 'project' ? 'project' : 'watch';
-    cachedSession = {
+    const session: WorkspaceSession = {
       watch: true,
       project: true,
       focus,
@@ -36,58 +39,50 @@ export function getSessionFromUrl(): WorkspaceSession {
       projectName: projectParam!,
       file: fileParam!,
     };
-    return cachedSession;
+    const mode: Mode = { watch: true, project: true, focus };
+    const target: TargetSpec = focus === 'project'
+      ? { mode: 'project', project: projectParam!, filename: fileParam! }
+      : { mode: 'watch', path: pathParam!, customCss: customCssParam };
+
+    cachedResult = { session, mode, target };
+    return cachedResult;
   }
 
   if (hasWatch && (modeParam === 'watch' || !modeParam)) {
-    cachedSession = {
+    const session: WorkspaceSession = {
       watch: true,
       project: false,
       path: pathParam!,
       customCss: customCssParam,
     };
-    return cachedSession;
+    const mode: Mode = { watch: true, project: false };
+    const target: TargetSpec = { mode: 'watch', path: pathParam!, customCss: customCssParam };
+
+    cachedResult = { session, mode, target };
+    return cachedResult;
   }
 
   if (hasProject && (modeParam === 'project' || !modeParam)) {
-    cachedSession = {
+    const session: WorkspaceSession = {
       watch: false,
       project: true,
       projectName: projectParam!,
       file: fileParam!,
     };
-    return cachedSession;
+    const mode: Mode = { watch: false, project: true };
+    const target: TargetSpec = { mode: 'project', project: projectParam!, filename: fileParam! };
+
+    cachedResult = { session, mode, target };
+    return cachedResult;
   }
 
   // Strict fallback: NoneActive
-  cachedSession = { watch: false, project: false };
-  return cachedSession;
-}
-
-export function getModeFromSession(session: WorkspaceSession): Mode {
-  if (!session.watch && !session.project) {
-    return { watch: false, project: false };
-  }
-  if (session.watch && !session.project) {
-    return { watch: true, project: false };
-  }
-  if (!session.watch && session.project) {
-    return { watch: false, project: true };
-  }
-  return { watch: true, project: true, focus: session.focus };
-}
-
-export function getTargetSpecFromSession(session: WorkspaceSession): TargetSpec {
-  if (!session.watch && !session.project) {
-    return { mode: 'idle' };
-  }
-  if (session.watch && (!session.project || session.focus === 'watch')) {
-    return { mode: 'watch', path: session.path, customCss: session.customCss };
-  }
-  if (session.project && (!session.watch || session.focus === 'project')) {
-    return { mode: 'project', project: session.projectName, filename: session.file };
-  }
-  return { mode: 'idle' };
+  cachedResult = {
+    session: { watch: false, project: false },
+    mode: { watch: false, project: false },
+    target: { mode: 'idle' },
+  };
+  return cachedResult;
 }
 
 function subscribeToUrl(callback: () => void): () => void {
@@ -144,9 +139,15 @@ export function updateUrlWithSession(session: WorkspaceSession, options?: { repl
  * Provides the session, mode, targetSpec, and state-machine transitions.
  */
 export function useUrlTarget() {
-  const session = useSyncExternalStore(subscribeToUrl, getSessionFromUrl, () => ({ watch: false, project: false } as WorkspaceSession));
-  const mode = getModeFromSession(session);
-  const target = getTargetSpecFromSession(session);
+  const getSnapshot = () => parseUrlSearch(typeof window === 'undefined' ? '' : window.location.search);
+  const getServerSnapshot = () => ({
+    session: { watch: false, project: false } as WorkspaceSession,
+    mode: { watch: false, project: false } as Mode,
+    target: { mode: 'idle' } as TargetSpec,
+  });
+
+  const parsed = useSyncExternalStore(subscribeToUrl, getSnapshot, getServerSnapshot);
+  const { session, mode, target } = parsed;
 
   const initWatch = (path: string, customCss?: string, options?: { replace?: boolean }) => {
     if (session.project) {

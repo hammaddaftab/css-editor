@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { setEditorContent } from '../editor.js';
 
 export function useProjects(workspace: any) {
@@ -7,6 +7,14 @@ export function useProjects(workspace: any) {
     refreshProjects, refreshFiles, loadDocument, saveDocument, markDirty, setMarkdown, setCss,
     urlTarget, session, target,
   } = workspace;
+
+  const lastLoadedKeyRef = useRef<string | null>(null);
+
+  const targetKey = target.mode === 'idle'
+    ? 'idle'
+    : target.mode === 'watch'
+    ? `watch:${target.path}:${target.customCss || ''}`
+    : `project:${target.project}:${target.filename}`;
 
   const openWatchFile = useCallback(async (initialPath?: string) => {
     const active = current.current;
@@ -126,6 +134,11 @@ export function useProjects(workspace: any) {
 
   // Reactive document loading whenever target changes
   useEffect(() => {
+    if (lastLoadedKeyRef.current === targetKey) {
+      return;
+    }
+    lastLoadedKeyRef.current = targetKey;
+
     void (async () => {
       if (target.mode === 'idle') {
         await loadDocument({ mode: 'idle' });
@@ -136,7 +149,7 @@ export function useProjects(workspace: any) {
       }
       await loadDocument(target);
     })();
-  }, [loadDocument, refreshFiles, target]);
+  }, [loadDocument, refreshFiles, target, targetKey]);
 
   return { project, filename, switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle };
 }

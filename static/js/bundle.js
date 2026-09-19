@@ -45122,16 +45122,12 @@ function IdleLauncher(props) {
   }, [props.projects, selectedProject]);
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-overlay", role: "dialog", "aria-modal": "true", "aria-label": "Select an editing mode", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-container", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-header", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-badge", children: "CSS MARKDOWN EDITOR" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "idle-title", children: "Select an Editing Mode" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "idle-subtitle", children: "Choose your workflow to begin. No default mode is forced." })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "idle-subtitle", children: "Choose your workflow to begin. You can switch modes at any time in Settings." })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-cards", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card idle-card--project", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__header", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "idle-card__icon", children: "📦" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "idle-card__badge", children: "Managed Publication" })
-        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__header", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__icon", "aria-hidden": "true", children: /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round", className: "idle-card__icon-svg", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" }) }) }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "idle-card__title", children: "Project Workspace" }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "idle-card__desc", children: [
           "Draft multi-page publications, reports, or books with shared ",
@@ -45166,26 +45162,26 @@ function IdleLauncher(props) {
                 type: "button",
                 className: "btn btn--primary idle-btn-main",
                 onClick: () => props.onSelectProject(selectedProject || props.projects[0].name),
-                children: "📦 Open Project"
+                children: "Open Project"
               }
             ),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               "button",
               {
                 type: "button",
-                className: `btn ${props.projects.length === 0 ? "btn--primary" : "btn--ghost"} idle-btn-sec`,
+                className: `btn ${props.projects.length === 0 ? "btn--primary" : "btn--secondary"} idle-btn-sec`,
                 onClick: props.onCreateProject,
-                children: "＋ New Project…"
+                children: "New Project…"
               }
             )
           ] })
         ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card idle-card--watch", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__header", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "idle-card__icon", children: "👁" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "idle-card__badge idle-card__badge--watch", children: "Live Companion" })
-        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__header", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__icon", "aria-hidden": "true", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round", className: "idle-card__icon-svg", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "3" })
+        ] }) }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "idle-card__title", children: "Standalone / Watch Mode" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "idle-card__desc", children: "Write in your external editor (Neovim, VS Code, Obsidian) with atomic-safe live reload, zero project style bleeding, and PDF export." }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__actions", children: [
@@ -45198,7 +45194,7 @@ function IdleLauncher(props) {
                 title: `Jump to watched file: ${props.activeWatchTarget.path}`,
                 onClick: props.onSwitchToWatch,
                 children: [
-                  "👁 Watch: ",
+                  "Watch: ",
                   props.activeWatchTarget.filename
                 ]
               }
@@ -45207,7 +45203,7 @@ function IdleLauncher(props) {
               "button",
               {
                 type: "button",
-                className: "btn btn--ghost idle-btn-sec",
+                className: "btn btn--secondary idle-btn-sec",
                 title: "Open a different external Markdown file",
                 onClick: props.onOpenWatchFile,
                 children: "Open Other File…"
@@ -45219,7 +45215,7 @@ function IdleLauncher(props) {
               type: "button",
               className: "btn btn--primary idle-btn-main",
               onClick: props.onOpenWatchFile,
-              children: "👁 Open File to Watch…"
+              children: "Open File to Watch…"
             }
           ) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-shortcut-hint", children: [
@@ -46662,6 +46658,8 @@ function useProjects(workspace) {
     session,
     target
   } = workspace;
+  const lastLoadedKeyRef = reactExports.useRef(null);
+  const targetKey = target.mode === "idle" ? "idle" : target.mode === "watch" ? `watch:${target.path}:${target.customCss || ""}` : `project:${target.project}:${target.filename}`;
   const openWatchFile = reactExports.useCallback(async (initialPath) => {
     var _a2, _b;
     const active = current.current;
@@ -46775,6 +46773,10 @@ function useProjects(workspace) {
     void refreshProjects();
   }, [refreshProjects]);
   reactExports.useEffect(() => {
+    if (lastLoadedKeyRef.current === targetKey) {
+      return;
+    }
+    lastLoadedKeyRef.current = targetKey;
     void (async () => {
       if (target.mode === "idle") {
         await loadDocument({ mode: "idle" });
@@ -46785,16 +46787,18 @@ function useProjects(workspace) {
       }
       await loadDocument(target);
     })();
-  }, [loadDocument, refreshFiles, target]);
+  }, [loadDocument, refreshFiles, target, targetKey]);
   return { project, filename, switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle };
 }
 let cachedSearch = null;
-let cachedSession = { watch: false, project: false };
-function getSessionFromUrl() {
+let cachedResult = {
+  session: { watch: false, project: false },
+  mode: { watch: false, project: false },
+  target: { mode: "idle" }
+};
+function parseUrlSearch(search) {
   var _a2, _b, _c, _d, _e;
-  if (typeof window === "undefined") return { watch: false, project: false };
-  const search = window.location.search;
-  if (search === cachedSearch) return cachedSession;
+  if (search === cachedSearch) return cachedResult;
   cachedSearch = search;
   const params = new URLSearchParams(search);
   const modeParam = (_a2 = params.get("mode")) == null ? void 0 : _a2.trim();
@@ -46806,7 +46810,7 @@ function getSessionFromUrl() {
   const hasProject = Boolean(projectParam && fileParam);
   if (hasWatch && hasProject) {
     const focus = modeParam === "project" ? "project" : "watch";
-    cachedSession = {
+    const session = {
       watch: true,
       project: true,
       focus,
@@ -46815,52 +46819,41 @@ function getSessionFromUrl() {
       projectName: projectParam,
       file: fileParam
     };
-    return cachedSession;
+    const mode = { watch: true, project: true, focus };
+    const target = focus === "project" ? { mode: "project", project: projectParam, filename: fileParam } : { mode: "watch", path: pathParam, customCss: customCssParam };
+    cachedResult = { session, mode, target };
+    return cachedResult;
   }
   if (hasWatch && (modeParam === "watch" || !modeParam)) {
-    cachedSession = {
+    const session = {
       watch: true,
       project: false,
       path: pathParam,
       customCss: customCssParam
     };
-    return cachedSession;
+    const mode = { watch: true, project: false };
+    const target = { mode: "watch", path: pathParam, customCss: customCssParam };
+    cachedResult = { session, mode, target };
+    return cachedResult;
   }
   if (hasProject && (modeParam === "project" || !modeParam)) {
-    cachedSession = {
+    const session = {
       watch: false,
       project: true,
       projectName: projectParam,
       file: fileParam
     };
-    return cachedSession;
+    const mode = { watch: false, project: true };
+    const target = { mode: "project", project: projectParam, filename: fileParam };
+    cachedResult = { session, mode, target };
+    return cachedResult;
   }
-  cachedSession = { watch: false, project: false };
-  return cachedSession;
-}
-function getModeFromSession(session) {
-  if (!session.watch && !session.project) {
-    return { watch: false, project: false };
-  }
-  if (session.watch && !session.project) {
-    return { watch: true, project: false };
-  }
-  if (!session.watch && session.project) {
-    return { watch: false, project: true };
-  }
-  return { watch: true, project: true, focus: session.focus };
-}
-function getTargetSpecFromSession(session) {
-  if (!session.watch && !session.project) {
-    return { mode: "idle" };
-  }
-  if (session.watch && (!session.project || session.focus === "watch")) {
-    return { mode: "watch", path: session.path, customCss: session.customCss };
-  }
-  if (session.project && (!session.watch || session.focus === "project")) {
-    return { mode: "project", project: session.projectName, filename: session.file };
-  }
-  return { mode: "idle" };
+  cachedResult = {
+    session: { watch: false, project: false },
+    mode: { watch: false, project: false },
+    target: { mode: "idle" }
+  };
+  return cachedResult;
 }
 function subscribeToUrl(callback) {
   window.addEventListener("popstate", callback);
@@ -46907,9 +46900,14 @@ function updateUrlWithSession(session, options) {
   }
 }
 function useUrlTarget() {
-  const session = reactExports.useSyncExternalStore(subscribeToUrl, getSessionFromUrl, () => ({ watch: false, project: false }));
-  const mode = getModeFromSession(session);
-  const target = getTargetSpecFromSession(session);
+  const getSnapshot = () => parseUrlSearch(typeof window === "undefined" ? "" : window.location.search);
+  const getServerSnapshot = () => ({
+    session: { watch: false, project: false },
+    mode: { watch: false, project: false },
+    target: { mode: "idle" }
+  });
+  const parsed = reactExports.useSyncExternalStore(subscribeToUrl, getSnapshot, getServerSnapshot);
+  const { session, mode, target } = parsed;
   const initWatch = (path, customCss, options) => {
     if (session.project) {
       updateUrlWithSession({
