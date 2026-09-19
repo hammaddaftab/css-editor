@@ -32,9 +32,6 @@ class SaveDocumentRequest(BaseModel):
     css: str = Field(default="", description="CSS text")
 
 
-SaveUnifiedDocumentRequest = SaveDocumentRequest
-
-
 class CreateProjectRequest(BaseModel):
     name: str = Field(description="Project directory name")
 

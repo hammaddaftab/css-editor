@@ -70,18 +70,9 @@ async def _publish_project_document_change(
     document_path: Path,
     action: str,
 ) -> None:
-    """Publish both legacy and unified events for a project file change."""
+    """Publish unified document:change event for a project file change."""
     data = _read_project_document(project_path, document_path)
-    legacy_payload = {
-        "project": project,
-        "filename": filename,
-        "action": action,
-        **data,
-    }
-    await broadcaster.publish("file:change", legacy_payload)
-    await broadcaster.publish("render", legacy_payload)
 
-    # Publish unified document:change event
     unified_payload = {
         "event": "document:change",
         "doc_path": str(document_path),
@@ -93,6 +84,7 @@ async def _publish_project_document_change(
         "shared_css": data["project_css"] or None,
         "doc_token": encode_doc_token(document_path.parent),
         "html": data["html"],
+        "project": project,
     }
     await broadcaster.publish("document:change", unified_payload)
 
@@ -116,18 +108,33 @@ async def watch_directory(projects_root: Path) -> None:
 
                     if change_type == Change.deleted:
                         if filename == "project.css":
-                            await broadcaster.publish("file:change", {
-                                "project": project,
-                                "filename": filename,
+                            await broadcaster.publish("document:change", {
+                                "event": "document:change",
+                                "doc_path": str(project_path / "project.css"),
+                                "filename": "project.css",
+                                "mode": "project",
                                 "action": "deleted",
-                                "project_css": "",
+                                "project": project,
+                                "markdown": None,
+                                "css": None,
+                                "shared_css": "",
+                                "doc_token": encode_doc_token(project_path),
+                                "html": None,
                             })
                             continue
                         if path.suffix.lower() == ".md":
-                            await broadcaster.publish("file:change", {
-                                "project": project,
+                            await broadcaster.publish("document:change", {
+                                "event": "document:change",
+                                "doc_path": str(path),
                                 "filename": filename,
+                                "mode": "project",
                                 "action": "deleted",
+                                "project": project,
+                                "markdown": None,
+                                "css": None,
+                                "shared_css": None,
+                                "doc_token": encode_doc_token(project_path),
+                                "html": None,
                             })
                         elif path.suffix.lower() == ".css":
                             document_path = path.with_suffix(".md")
@@ -221,10 +228,6 @@ async def watch_document(context: DocumentContext) -> None:
                         "html": "",
                     }
                     await broadcaster.publish("document:change", del_payload)
-                    await broadcaster.publish("file:change", {
-                        "filename": doc_path.name,
-                        "action": "deleted",
-                    })
                     continue
 
                 if not doc_path.is_file():
@@ -238,9 +241,6 @@ async def watch_document(context: DocumentContext) -> None:
                 if context.mode == "project" and context.project_css_path and context.project_css_path.is_file():
                     shared_css = context.project_css_path.read_text(encoding="utf-8")
 
-                effective_css = compute_effective_css(context, css)
-
-                # 1. Unified Event
                 unified_payload = {
                     "event": "document:change",
                     "doc_path": str(doc_path),
@@ -254,22 +254,6 @@ async def watch_document(context: DocumentContext) -> None:
                     "html": html,
                 }
                 await broadcaster.publish("document:change", unified_payload)
-
-                # 2. Legacy Events for backward compatibility
-                legacy_payload = {
-                    "filename": doc_path.name,
-                    "action": "modified",
-                    "markdown": markdown,
-                    "css": css,
-                    "project_css": shared_css or "",
-                    "html": html,
-                }
-                await broadcaster.publish("file:change", legacy_payload)
-                await broadcaster.publish("render", {
-                    "filename": doc_path.name,
-                    "css": effective_css,
-                    "html": html,
-                })
 
             except Exception as exc:  # noqa: BLE001
                 logger.exception("Error processing watched document change: %s", exc)

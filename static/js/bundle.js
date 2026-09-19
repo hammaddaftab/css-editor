@@ -45546,19 +45546,16 @@ function initImageLibrary({
   uploadBtnEl,
   onInsert,
   onNameChange,
-  project = "",
   docPath = ""
 }) {
   let _images = [];
-  let _project = project;
   let _docPath = docPath;
   let _focusedUrl = null;
   let _selectedImage = null;
   let _selectedCard = null;
   let _selectedFilename = null;
-  function getQuery(projectOverride = _project) {
-    if (_docPath) return `?doc=${encodeURIComponent(_docPath)}`;
-    return projectOverride ? `?project=${encodeURIComponent(projectOverride)}` : "";
+  function getQuery() {
+    return _docPath ? `?doc=${encodeURIComponent(_docPath)}` : "";
   }
   let toastEl = container == null ? void 0 : container.querySelector(".image-library__toast");
   if (container && !toastEl) {
@@ -45674,9 +45671,14 @@ function initImageLibrary({
       clearSelection();
     }
   });
-  async function fetchImages(projectOverride = _project) {
+  async function fetchImages() {
+    const query = getQuery();
+    if (!query) {
+      _images = [];
+      renderList();
+      return;
+    }
     try {
-      const query = getQuery(projectOverride);
       const res = await fetch(`/api/images${query}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       _images = await res.json();
@@ -45685,7 +45687,7 @@ function initImageLibrary({
       console.error("Failed to fetch images:", err);
     }
   }
-  async function uploadFiles(files, projectOverride = _project) {
+  async function uploadFiles(files) {
     if (!files || !files.length) return [];
     if (dropzoneEl) {
       dropzoneEl.classList.add("is-uploading");
@@ -45697,7 +45699,7 @@ function initImageLibrary({
       const form = new FormData();
       form.append("file", file);
       try {
-        const query = getQuery(projectOverride);
+        const query = getQuery();
         const res = await fetch(`/api/images${query}`, { method: "POST", body: form });
         if (res.ok) {
           const data2 = await res.json();
@@ -45908,11 +45910,6 @@ function initImageLibrary({
     focusImage,
     selectCard,
     clearSelection,
-    setProject(nextProject) {
-      _project = nextProject || "";
-      clearSelection();
-      return fetchImages();
-    },
     setDoc(docPath2) {
       _docPath = docPath2 || "";
       clearSelection();
@@ -45954,7 +45951,7 @@ function useEditors(workspace, library) {
       },
       onPasteImage: async (file) => {
         var _a2;
-        const uploaded = await ((_a2 = refs.imageLibrary.current) == null ? void 0 : _a2.uploadFiles([file], workspace.current.current.project));
+        const uploaded = await ((_a2 = refs.imageLibrary.current) == null ? void 0 : _a2.uploadFiles([file]));
         return uploaded == null ? void 0 : uploaded[0];
       }
     });
@@ -45968,7 +45965,7 @@ function useEditors(workspace, library) {
       fileInputEl: refs.imageInput.current,
       countEl: library.count.current,
       uploadBtnEl: library.uploadButton.current,
-      project: workspace.current.current.project,
+      docPath: workspace.current.current.docPath,
       onInsert: (snippet2) => {
         const position = markdownView.state.selection.main.head;
         markdownView.dispatch({
@@ -46199,6 +46196,20 @@ ${data2.css || ""}` : data2.css || effectiveCss();
         });
         return;
       }
+      if (data2.filename === "project.css") {
+        if (data2.shared_css !== void 0 && active.dirty) {
+          setConflict(data2);
+        } else if (data2.shared_css !== void 0) {
+          setProjectCss(data2.shared_css);
+          void postRender(active.markdown, data2.shared_css ? `${data2.shared_css}
+${active.css}` : active.css);
+          markClean("Synced from disk");
+        }
+        return;
+      }
+      if (active.target.mode === "project" && data2.mode === "project" && data2.project === active.project) {
+        void refreshFiles(active.project);
+      }
       if (mdChanged) {
         setMarkdown(data2.markdown);
         setEditorContent(refs.markdownView.current, data2.markdown);
@@ -46218,33 +46229,6 @@ ${data2.css || ""}` : data2.css || active.css;
       }
       markClean("Synced from disk");
     };
-    const onFileChange = (event) => {
-      const data2 = event.detail || {};
-      const active = current.current;
-      if (!data2.filename || data2.project && data2.project !== active.project) return;
-      if (data2.action === "deleted") {
-        if (data2.filename === active.filename) {
-          setDirty(true);
-          setSaveStatus("Deleted on disk");
-        }
-        void refreshFiles(active.project);
-        return;
-      }
-      if (data2.action === "added" || data2.filename !== active.filename) {
-        void refreshFiles(active.project);
-        if (data2.filename !== active.filename) return;
-      }
-      if (data2.filename === "project.css") {
-        if (data2.project_css !== void 0 && active.dirty) {
-          setConflict(data2);
-        } else if (data2.project_css !== void 0) {
-          setProjectCss(data2.project_css);
-          void postRender(active.markdown, data2.project_css ? `${data2.project_css}
-${active.css}` : active.css);
-          markClean("Synced from disk");
-        }
-      }
-    };
     const onFileList = (event) => {
       var _a2;
       const files = (_a2 = event.detail) == null ? void 0 : _a2.files;
@@ -46259,7 +46243,6 @@ ${active.css}` : active.css);
     window.addEventListener("sse:connected", onConnected);
     window.addEventListener("sse:render", onRender);
     window.addEventListener("sse:document:change", onDocumentChange);
-    window.addEventListener("sse:file:change", onFileChange);
     window.addEventListener("sse:file:list", onFileList);
     window.addEventListener("sse:error", onError);
     window.addEventListener("sse:offline", onOffline);
@@ -46268,7 +46251,6 @@ ${active.css}` : active.css);
       window.removeEventListener("sse:connected", onConnected);
       window.removeEventListener("sse:render", onRender);
       window.removeEventListener("sse:document:change", onDocumentChange);
-      window.removeEventListener("sse:file:change", onFileChange);
       window.removeEventListener("sse:file:list", onFileList);
       window.removeEventListener("sse:error", onError);
       window.removeEventListener("sse:offline", onOffline);
@@ -46356,7 +46338,7 @@ function useProjects(workspace) {
     remember: remember2
   } = workspace;
   const switchProject = reactExports.useCallback(async (nextProject) => {
-    var _a2, _b, _c;
+    var _a2, _b;
     const active = current.current;
     if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Switch project anyway?`)) return;
     if (nextProject === "__new__") {
@@ -46377,12 +46359,11 @@ function useProjects(workspace) {
     }
     setProject(nextProject);
     remember2("css_editor_active_project", nextProject);
-    await ((_b = refs.imageLibrary.current) == null ? void 0 : _b.setProject(nextProject));
     const nextFiles = await refreshFiles(nextProject);
-    const nextFile = ((_c = nextFiles[0]) == null ? void 0 : _c.filename) || "README.md";
+    const nextFile = ((_b = nextFiles[0]) == null ? void 0 : _b.filename) || "README.md";
     setFilename(nextFile);
     await loadDocument({ mode: "project", project: nextProject, filename: nextFile });
-  }, [current, loadDocument, remember2, refreshFiles, refreshProjects, refs.imageLibrary, setFilename, setProject]);
+  }, [current, loadDocument, remember2, refreshFiles, refreshProjects, setFilename, setProject]);
   const switchFile = reactExports.useCallback(async (nextFilename) => {
     var _a2;
     if (nextFilename === "__new__") {
@@ -46421,7 +46402,7 @@ function useProjects(workspace) {
   reactExports.useEffect(() => {
     let active = true;
     void (async () => {
-      var _a2, _b;
+      var _a2;
       const available = await refreshProjects();
       if (!active) return;
       const activeWatch = workspace.activeWatchTarget;
@@ -46432,9 +46413,8 @@ function useProjects(workspace) {
       if (!available.length) return;
       const nextProject = available.some((item) => item.name === current.current.project) ? current.current.project : available[0].name;
       setProject(nextProject);
-      await ((_a2 = refs.imageLibrary.current) == null ? void 0 : _a2.setProject(nextProject));
       const nextFiles = await refreshFiles(nextProject);
-      const nextFile = nextFiles.some((item) => item.filename === current.current.filename) ? current.current.filename : (_b = nextFiles[0]) == null ? void 0 : _b.filename;
+      const nextFile = nextFiles.some((item) => item.filename === current.current.filename) ? current.current.filename : (_a2 = nextFiles[0]) == null ? void 0 : _a2.filename;
       if (nextFile) {
         setFilename(nextFile);
         await loadDocument({ mode: "project", project: nextProject, filename: nextFile });
@@ -46443,7 +46423,7 @@ function useProjects(workspace) {
     return () => {
       active = false;
     };
-  }, [current, loadDocument, refreshFiles, refreshProjects, refs.imageLibrary, setFilename, setProject, workspace.activeWatchTarget]);
+  }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject, workspace.activeWatchTarget]);
   return { project, filename, switchProject, switchFile, switchToProjects };
 }
 const PROJECT_KEY = "css_editor_active_project";
@@ -46577,14 +46557,8 @@ ${value.css}` : value.css;
       return [];
     }
   }, []);
-  const loadDocument = reactExports.useCallback(async (targetOrProject, maybeFilename) => {
+  const loadDocument = reactExports.useCallback(async (spec) => {
     var _a2;
-    let spec;
-    if (typeof targetOrProject === "string") {
-      spec = { mode: "project", project: targetOrProject, filename: maybeFilename || "README.md" };
-    } else {
-      spec = targetOrProject;
-    }
     try {
       let query = `mode=${spec.mode}`;
       if (spec.mode === "watch") {
@@ -46744,14 +46718,13 @@ function App() {
   const preferences = usePreferences(frame);
   const { switchProject, switchFile, switchToProjects } = useProjects(workspace);
   const onDirectoryChanged = reactExports.useCallback(async () => {
-    var _a2, _b;
+    var _a2;
     const available = await workspace.refreshProjects();
     if (available.length) {
       const nextProject = available[0].name;
       workspace.setProject(nextProject);
-      await ((_a2 = workspace.refs.imageLibrary.current) == null ? void 0 : _a2.setProject(nextProject));
       const nextFiles = await workspace.refreshFiles(nextProject);
-      const nextFile = ((_b = nextFiles[0]) == null ? void 0 : _b.filename) || "README.md";
+      const nextFile = ((_a2 = nextFiles[0]) == null ? void 0 : _a2.filename) || "README.md";
       workspace.setFilename(nextFile);
       await workspace.loadDocument({ mode: "project", project: nextProject, filename: nextFile });
     }

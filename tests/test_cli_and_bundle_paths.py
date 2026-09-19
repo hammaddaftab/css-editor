@@ -64,59 +64,53 @@ class TestCliAndBundlePaths(unittest.TestCase):
         args_short = parser.parse_args(["-w", "notes.md"])
         self.assertEqual(args_short.watch, "notes.md")
 
-    def test_images_endpoint_requires_project(self):
+    def test_images_endpoint_document_scoped(self):
         import io
-        import uuid
         import tempfile
-        import os
         from starlette.testclient import TestClient
 
         temp_dir = tempfile.TemporaryDirectory()
-        os.environ["EDITOR_PROJECTS_DIR"] = str(temp_dir.name)
-        proj_name = f"test-img-{uuid.uuid4().hex[:8]}"
+        doc_path = Path(temp_dir.name) / "document.md"
+        doc_path.write_text("# Doc", encoding="utf-8")
+
         try:
             from app.main import app
             client = TestClient(app)
 
-            # 1. Missing project param -> 422
+            # 1. Missing doc param -> 422
             res = client.get("/api/images")
             self.assertEqual(res.status_code, 422)
 
-            # 2. Create project
-            proj_res = client.post("/api/projects", json={"name": proj_name})
-            self.assertEqual(proj_res.status_code, 201)
-
-            # 3. Upload image to project
+            # 2. Upload image to document
             fake_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4"
             upload_res = client.post(
-                f"/api/images?project={proj_name}",
+                f"/api/images?doc={doc_path}",
                 files={"file": ("test.png", io.BytesIO(fake_png), "image/png")},
             )
             self.assertEqual(upload_res.status_code, 200)
             data = upload_res.json()
             filename = data["filename"]
-            self.assertIn(f"?project={proj_name}", data["url"])
+            self.assertIn("/api/assets/", data["url"])
 
-            # 4. List images in project
-            list_res = client.get(f"/api/images?project={proj_name}")
+            # 3. List images for document
+            list_res = client.get(f"/api/images?doc={doc_path}")
             self.assertEqual(list_res.status_code, 200)
             self.assertEqual(len(list_res.json()), 1)
             self.assertEqual(list_res.json()[0]["filename"], filename)
 
-            # 5. Serve image
-            serve_res = client.get(f"/api/images/{filename}?project={proj_name}")
+            # 4. Serve image
+            serve_res = client.get(f"/api/images/{filename}?doc={doc_path}")
             self.assertEqual(serve_res.status_code, 200)
             self.assertEqual(serve_res.content, fake_png)
 
-            # 6. Delete image
-            del_res = client.delete(f"/api/images/{filename}?project={proj_name}")
+            # 5. Delete image
+            del_res = client.delete(f"/api/images/{filename}?doc={doc_path}")
             self.assertEqual(del_res.status_code, 200)
 
-            # 7. List again should be empty
-            list_empty = client.get(f"/api/images?project={proj_name}")
+            # 6. List again should be empty
+            list_empty = client.get(f"/api/images?doc={doc_path}")
             self.assertEqual(len(list_empty.json()), 0)
         finally:
-            os.environ.pop("EDITOR_PROJECTS_DIR", None)
             temp_dir.cleanup()
 
     def test_pages_conditional_get_lifecycle(self):

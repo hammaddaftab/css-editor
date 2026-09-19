@@ -28,12 +28,11 @@ export function useProjects(workspace: any) {
     }
     setProject(nextProject);
     remember('css_editor_active_project', nextProject);
-    await refs.imageLibrary.current?.setProject(nextProject);
     const nextFiles = await refreshFiles(nextProject);
     const nextFile = nextFiles[0]?.filename || 'README.md';
     setFilename(nextFile);
     await loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
-  }, [current, loadDocument, remember, refreshFiles, refreshProjects, refs.imageLibrary, setFilename, setProject]);
+  }, [current, loadDocument, remember, refreshFiles, refreshProjects, setFilename, setProject]);
 
   const switchFile = useCallback(async (nextFilename: string) => {
     if (nextFilename === '__new__') {
@@ -86,7 +85,6 @@ export function useProjects(workspace: any) {
       const nextProject = available.some((item: { name: string }) => item.name === current.current.project)
         ? current.current.project : available[0].name;
       setProject(nextProject);
-      await refs.imageLibrary.current?.setProject(nextProject);
       const nextFiles = await refreshFiles(nextProject);
       const nextFile = nextFiles.some((item: { filename: string }) => item.filename === current.current.filename)
         ? current.current.filename : nextFiles[0]?.filename;
@@ -96,7 +94,7 @@ export function useProjects(workspace: any) {
       }
     })();
     return () => { active = false; };
-  }, [current, loadDocument, refreshFiles, refreshProjects, refs.imageLibrary, setFilename, setProject, workspace.activeWatchTarget]);
+  }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject, workspace.activeWatchTarget]);
 
   return { project, filename, switchProject, switchFile, switchToProjects };
 }

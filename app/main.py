@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.routers import assets, documents, export, images, pages, render, settings as settings_router, sse, telemetry
+from app.services.config_manager import get_projects_root
 from app.services.watcher import watch_markdown_file, watcher_manager
 
 
@@ -23,7 +24,7 @@ from app.services.watcher import watch_markdown_file, watcher_manager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Start background tasks on startup; cancel them cleanly on shutdown."""
     tasks: list[asyncio.Task] = []
-    projects_root = settings.projects_path
+    projects_root = get_projects_root()
     projects_root.mkdir(parents=True, exist_ok=True)
 
     # Start project directory watcher using manager so it can be dynamically switched

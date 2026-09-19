@@ -28,7 +28,7 @@ export function useEditors(workspace: any, library: LibraryRefs): void {
       onImageVicinity: (url: string) => refs.imageLibrary.current?.focusImage(url),
       onDropImage: (image: { url: string }) => refs.imageLibrary.current?.focusImage(image.url),
       onPasteImage: async (file: File) => {
-        const uploaded = await refs.imageLibrary.current?.uploadFiles([file], workspace.current.current.project);
+        const uploaded = await refs.imageLibrary.current?.uploadFiles([file]);
         return uploaded?.[0];
       },
     });
@@ -40,7 +40,7 @@ export function useEditors(workspace: any, library: LibraryRefs): void {
       container: library.container.current, listEl: library.list.current,
       dropzoneEl: library.dropzone.current, fileInputEl: refs.imageInput.current,
       countEl: library.count.current, uploadBtnEl: library.uploadButton.current,
-      project: workspace.current.current.project,
+      docPath: workspace.current.current.docPath,
       onInsert: (snippet: string) => {
         const position = markdownView.state.selection.main.head;
         markdownView.dispatch({ changes: { from: position, insert: snippet },

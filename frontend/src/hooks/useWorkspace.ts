@@ -127,13 +127,7 @@ export function useWorkspace() {
     } catch (error) { console.error('Failed to fetch file list:', error); return []; }
   }, []);
 
-  const loadDocument = useCallback(async (targetOrProject: TargetSpec | string, maybeFilename?: string) => {
-    let spec: TargetSpec;
-    if (typeof targetOrProject === 'string') {
-      spec = { mode: 'project', project: targetOrProject, filename: maybeFilename || 'README.md' };
-    } else {
-      spec = targetOrProject;
-    }
+  const loadDocument = useCallback(async (spec: TargetSpec) => {
 
     try {
       let query = `mode=${spec.mode}`;

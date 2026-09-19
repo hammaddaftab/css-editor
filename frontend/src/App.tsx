@@ -41,7 +41,6 @@ export default function App() {
     if (available.length) {
       const nextProject = available[0].name;
       workspace.setProject(nextProject);
-      await workspace.refs.imageLibrary.current?.setProject(nextProject);
       const nextFiles = await workspace.refreshFiles(nextProject);
       const nextFile = nextFiles[0]?.filename || 'README.md';
       workspace.setFilename(nextFile);

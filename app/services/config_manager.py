@@ -78,13 +78,28 @@ def get_app_projects_dir() -> Path:
     return (APP_ROOT / "projects").resolve()
 
 
-def load_user_config() -> tuple[UserConfig, bool]:
-    """
-    Load user configuration from disk.
+_cached_config: UserConfig | None = None
+_cached_config_path: Path | None = None
+
+
+def clear_config_cache() -> None:
+    """Clear in-memory cached user config."""
+    global _cached_config, _cached_config_path
+    _cached_config = None
+    _cached_config_path = None
+
+
+def load_user_config(force_reload: bool = False) -> tuple[UserConfig, bool]:
+    """Load user configuration from memory cache or disk.
+
     Returns (UserConfig, exists_on_disk).
     """
+    global _cached_config, _cached_config_path
     config_path = get_config_file_path()
     default_dir = get_default_projects_dir()
+
+    if not force_reload and _cached_config is not None and _cached_config_path == config_path:
+        return _cached_config, True
 
     if not config_path.exists():
         initial = UserConfig(
@@ -93,6 +108,8 @@ def load_user_config() -> tuple[UserConfig, bool]:
         )
         try:
             save_user_config(initial)
+            _cached_config = initial
+            _cached_config_path = config_path
             return initial, True
         except Exception as exc:
             logger.warning("Could not persist initial user config to %s (%s).", config_path, exc)
@@ -110,14 +127,20 @@ def load_user_config() -> tuple[UserConfig, bool]:
         config = UserConfig(**raw)
         if needs_save:
             save_user_config(config)
+        _cached_config = config
+        _cached_config_path = config_path
         return config, True
     except Exception as exc:
         logger.warning("Could not read user config from %s (%s). Using defaults.", config_path, exc)
-        return UserConfig(projects_dir=str(default_dir), first_run_completed=False), False
+        fallback = UserConfig(projects_dir=str(default_dir), first_run_completed=False)
+        _cached_config = fallback
+        _cached_config_path = config_path
+        return fallback, False
 
 
 def save_user_config(config: UserConfig) -> None:
-    """Save user configuration atomically to disk."""
+    """Save user configuration atomically to disk and update in-memory cache."""
+    global _cached_config, _cached_config_path
     config_dir = get_user_config_dir()
     config_dir.mkdir(parents=True, exist_ok=True)
     config_path = get_config_file_path()
@@ -127,6 +150,8 @@ def save_user_config(config: UserConfig) -> None:
     try:
         temp_file.write_text(config.model_dump_json(indent=2), encoding="utf-8")
         temp_file.replace(config_path)
+        _cached_config = config
+        _cached_config_path = config_path
     finally:
         if temp_file.exists():
             temp_file.unlink(missing_ok=True)

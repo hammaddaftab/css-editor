@@ -96,9 +96,10 @@ def main(argv: list[str] | None = None) -> None:
     if actual_port != args.port:
         print(f"Notice: Port {args.port} is already in use. Selected available port {actual_port}.")
 
-    # Import app and settings
+    # Import app, config manager, and settings
     from app.core.config import settings
     from app.main import app
+    from app.services.config_manager import get_projects_root
     import uvicorn
 
     if watch_path:
@@ -118,7 +119,7 @@ def main(argv: list[str] | None = None) -> None:
     print("=" * 60)
     print(f"  🚀 CSS Markdown Editor v{__version__}")
     print(f"  🌐 URL:      {url}")
-    print(f"  📁 Projects: {settings.projects_path}")
+    print(f"  📁 Projects: {get_projects_root()}")
     print("  ⌨️  Press Ctrl+C to stop the server.")
     print("=" * 60)
 

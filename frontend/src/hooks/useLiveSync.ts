@@ -84,6 +84,22 @@ export function useLiveSync(
         return;
       }
 
+      if (data.filename === 'project.css') {
+        if (data.shared_css !== undefined && active.dirty) {
+          setConflict(data);
+        } else if (data.shared_css !== undefined) {
+          setProjectCss(data.shared_css);
+          void postRender(active.markdown, data.shared_css ? `${data.shared_css}\n${active.css}` : active.css);
+          markClean('Synced from disk');
+        }
+        return;
+      }
+
+      // If document in active project changed/deleted, refresh file list
+      if (active.target.mode === 'project' && data.mode === 'project' && data.project === active.project) {
+        void refreshFiles(active.project);
+      }
+
       if (mdChanged) {
         setMarkdown(data.markdown);
         setEditorContent(refs.markdownView.current, data.markdown);
@@ -107,36 +123,6 @@ export function useLiveSync(
       markClean('Synced from disk');
     };
 
-    const onFileChange = (event: Event) => {
-      const data = (event as CustomEvent).detail || {};
-      const active = current.current;
-      if (!data.filename || (data.project && data.project !== active.project)) return;
-
-      if (data.action === 'deleted') {
-        if (data.filename === active.filename) {
-          setDirty(true);
-          setSaveStatus('Deleted on disk');
-        }
-        void refreshFiles(active.project);
-        return;
-      }
-
-      if (data.action === 'added' || data.filename !== active.filename) {
-        void refreshFiles(active.project);
-        if (data.filename !== active.filename) return;
-      }
-
-      if (data.filename === 'project.css') {
-        if (data.project_css !== undefined && active.dirty) {
-          setConflict(data);
-        } else if (data.project_css !== undefined) {
-          setProjectCss(data.project_css);
-          void postRender(active.markdown, data.project_css ? `${data.project_css}\n${active.css}` : active.css);
-          markClean('Synced from disk');
-        }
-      }
-    };
-
     const onFileList = (event: Event) => {
       const files = (event as CustomEvent).detail?.files;
       if (Array.isArray(files)) setFiles(files);
@@ -149,7 +135,6 @@ export function useLiveSync(
     window.addEventListener('sse:connected', onConnected);
     window.addEventListener('sse:render', onRender);
     window.addEventListener('sse:document:change', onDocumentChange);
-    window.addEventListener('sse:file:change', onFileChange);
     window.addEventListener('sse:file:list', onFileList);
     window.addEventListener('sse:error', onError);
     window.addEventListener('sse:offline', onOffline);
@@ -159,7 +144,6 @@ export function useLiveSync(
       window.removeEventListener('sse:connected', onConnected);
       window.removeEventListener('sse:render', onRender);
       window.removeEventListener('sse:document:change', onDocumentChange);
-      window.removeEventListener('sse:file:change', onFileChange);
       window.removeEventListener('sse:file:list', onFileList);
       window.removeEventListener('sse:error', onError);
       window.removeEventListener('sse:offline', onOffline);

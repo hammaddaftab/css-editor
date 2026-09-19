@@ -47,16 +47,5 @@ class Settings(BaseSettings):
     def templates_path(self) -> Path:
         return self.bundle_dir / "templates"
 
-    @property
-    def workspace_path(self) -> Path:
-        """Alias for bundle_dir retained for backwards compatibility."""
-        return self.bundle_dir
-
-    @property
-    def projects_path(self) -> Path:
-        """Proxy to active projects root from user config."""
-        from app.services.config_manager import get_projects_root
-        return get_projects_root()
-
 
 settings = Settings()

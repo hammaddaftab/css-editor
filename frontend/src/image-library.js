@@ -62,20 +62,17 @@ export function initImageLibrary({
   uploadBtnEl,
   onInsert,
   onNameChange,
-  project = '',
   docPath = '',
 }) {
   let _images = [];
-  let _project = project;
   let _docPath = docPath;
   let _focusedUrl = null;
   let _selectedImage = null;
   let _selectedCard = null;
   let _selectedFilename = null;
 
-  function getQuery(projectOverride = _project) {
-    if (_docPath) return `?doc=${encodeURIComponent(_docPath)}`;
-    return projectOverride ? `?project=${encodeURIComponent(projectOverride)}` : '';
+  function getQuery() {
+    return _docPath ? `?doc=${encodeURIComponent(_docPath)}` : '';
   }
 
   // ---------------------------------------------------------------------------
@@ -233,9 +230,14 @@ export function initImageLibrary({
   // ---------------------------------------------------------------------------
   // API Calls
   // ---------------------------------------------------------------------------
-  async function fetchImages(projectOverride = _project) {
+  async function fetchImages() {
+    const query = getQuery();
+    if (!query) {
+      _images = [];
+      renderList();
+      return;
+    }
     try {
-      const query = getQuery(projectOverride);
       const res = await fetch(`/api/images${query}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       _images = await res.json();
@@ -245,7 +247,7 @@ export function initImageLibrary({
     }
   }
 
-  async function uploadFiles(files, projectOverride = _project) {
+  async function uploadFiles(files) {
     if (!files || !files.length) return [];
 
     if (dropzoneEl) {
@@ -259,7 +261,7 @@ export function initImageLibrary({
       const form = new FormData();
       form.append('file', file);
       try {
-        const query = getQuery(projectOverride);
+        const query = getQuery();
         const res = await fetch(`/api/images${query}`, { method: 'POST', body: form });
         if (res.ok) {
           const data = await res.json();
@@ -533,11 +535,6 @@ export function initImageLibrary({
     focusImage,
     selectCard,
     clearSelection,
-    setProject(nextProject) {
-      _project = nextProject || '';
-      clearSelection();
-      return fetchImages();
-    },
     setDoc(docPath) {
       _docPath = docPath || '';
       clearSelection();
