@@ -76,7 +76,15 @@ Watches **only the active respective project directory**:
 - **Elimination of Path Heuristics**: Resolves paths directly relative to the project directory (`path.relative_to(project_dir)`), eliminating the 25-line `_project_file` heuristic tree parser.
 - **Self-Contained Cleanup**: Encapsulates its own `_task: asyncio.Task | None`. Calling `stop()` cancels the task, awaits completion, and nullifies state.
 
-### 4. Self-Contained Cleanup Guarantee
+### 4. Frontend Idle Mode & Two-Card Selection
+When no watch file is seeded via CLI (`-w`), the frontend does **not** fall back to auto-opening any default project. Instead:
+- It explicitly initializes in `mode: 'idle'`.
+- It renders an interactive launcher overlay presenting two workflow cards:
+  1. **📦 Project Workspace Card**: Browse available projects or create a new project. Selecting an option shifts the application into `mode: 'project'`.
+  2. **👁 Standalone / Watch Mode Card**: Browse and pick any external Markdown file on disk (or resume the last watched target). Selecting an option shifts the application into `mode: 'watch'`.
+- The user can return to the mode selection launcher at any time via the `⏸ Launcher` button in the toolbar.
+
+### 5. Self-Contained Cleanup Guarantee
 Neither handler relies on callers to manage task cancellation. Each handler's `stop()` method:
 1. Checks if `self._task and not self._task.done()`.
 2. Cancels `self._task`.
