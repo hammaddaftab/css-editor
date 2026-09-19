@@ -17,18 +17,15 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.routers import assets, documents, export, images, pages, render, settings as settings_router, sse, telemetry
 from app.services.config_manager import get_projects_root
-from app.services.watcher import watch_markdown_file, watcher_manager
+from app.services.watcher import watch_orchestrator
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Start background tasks on startup; cancel them cleanly on shutdown."""
-    tasks: list[asyncio.Task] = []
     projects_root = get_projects_root()
     projects_root.mkdir(parents=True, exist_ok=True)
-
-    # Start project directory watcher using manager so it can be dynamically switched
-    watcher_manager.start(projects_root)
+    watch_orchestrator.start(projects_root)
 
     # Track app_opened event on application launch
     try:
@@ -36,28 +33,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception:
         pass
 
-    # Optional: watch an explicitly configured external Markdown file via CLI -w
+    # Orchestrator detects whether watch mode was activated via CLI flag (-w / --watch)
     watch_file = getattr(app.state, "initial_watch_file", None)
-    if watch_file and isinstance(watch_file, Path) and watch_file.is_file():
-        try:
-            tasks.append(
-                asyncio.create_task(
-                    watch_markdown_file(watch_file),
-                    name="markdown-file-watcher",
-                )
-            )
-        except Exception:
-            pass
+    if watch_file:
+        await watch_orchestrator.detect_cli_watch(watch_file)
 
     yield  # application runs here
 
-    await watcher_manager.stop()
-    for task in tasks:
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+    # Both WatchModeHandler and ProjectWatcherHandler clean up contained in themselves!
+    await watch_orchestrator.shutdown()
 
 
 app = FastAPI(

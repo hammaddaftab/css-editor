@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { setEditorContent } from '../editor.js';
 
 export function useProjects(workspace: any) {
@@ -7,9 +7,48 @@ export function useProjects(workspace: any) {
     refreshProjects, refreshFiles, loadDocument, saveDocument, markDirty, setMarkdown, setCss, remember,
   } = workspace;
 
+  const openWatchFile = useCallback(async (initialPath?: string) => {
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Open another file anyway?`)) return;
+
+    let targetPath: string | null = null;
+    try {
+      const res = await fetch('/api/system/browse-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initial_path: initialPath || active.docPath || '' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.path) {
+          targetPath = data.path;
+        } else if (data.cancelled && data.reason && !data.reason.includes('cancelled')) {
+          targetPath = window.prompt('Enter path to Markdown file to watch (e.g. /home/user/notes.md):')?.trim() || null;
+        }
+      }
+    } catch {
+      targetPath = window.prompt('Enter path to Markdown file to watch (e.g. /home/user/notes.md):')?.trim() || null;
+    }
+
+    if (!targetPath) return;
+    await loadDocument({ mode: 'watch', path: targetPath });
+  }, [current, loadDocument]);
+
+  const switchToWatch = useCallback(async () => {
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes. Switch anyway?`)) return;
+    if (workspace.activeWatchTarget?.path) {
+      await loadDocument({ mode: 'watch', path: workspace.activeWatchTarget.path });
+    }
+  }, [current, loadDocument, workspace.activeWatchTarget]);
+
   const switchProject = useCallback(async (nextProject: string) => {
     const active = current.current;
     if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Switch project anyway?`)) return;
+    if (nextProject === '__watch__') {
+      await openWatchFile();
+      return;
+    }
     if (nextProject === '__new__') {
       const name = window.prompt('New project directory name (e.g. dsa-2):')?.trim();
       if (!name) return;
@@ -32,7 +71,7 @@ export function useProjects(workspace: any) {
     const nextFile = nextFiles[0]?.filename || 'README.md';
     setFilename(nextFile);
     await loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
-  }, [current, loadDocument, remember, refreshFiles, refreshProjects, setFilename, setProject]);
+  }, [current, loadDocument, openWatchFile, remember, refreshFiles, refreshProjects, setFilename, setProject]);
 
   const switchFile = useCallback(async (nextFilename: string) => {
     if (nextFilename === '__new__') {
@@ -68,13 +107,16 @@ export function useProjects(workspace: any) {
     await loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
   }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject]);
 
+  const initialized = useRef(false);
+
   useEffect(() => {
-    let active = true;
+    if (initialized.current) return;
+    initialized.current = true;
+
     void (async () => {
       const available = await refreshProjects();
-      if (!active) return;
 
-      // If CLI seeded a watch file and we don't have an active user project override:
+      // If CLI seeded a watch file:
       const activeWatch = workspace.activeWatchTarget;
       if (activeWatch && activeWatch.path) {
         await loadDocument({ mode: 'watch', path: activeWatch.path });
@@ -93,8 +135,7 @@ export function useProjects(workspace: any) {
         await loadDocument({ mode: 'project', project: nextProject, filename: nextFile });
       }
     })();
-    return () => { active = false; };
   }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject, workspace.activeWatchTarget]);
 
-  return { project, filename, switchProject, switchFile, switchToProjects };
+  return { project, filename, switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch };
 }

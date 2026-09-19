@@ -15,6 +15,7 @@ from app.routers.assets import encode_doc_token
 from app.services.config_manager import get_projects_root
 from app.services.context_svc import resolve_document_context
 from app.services.document_svc import read_document_io, write_document_io
+from app.services.watcher import watcher_manager
 
 router = APIRouter(prefix="/api", tags=["documents"])
 
@@ -94,6 +95,10 @@ async def load_document(
         shared_css = context.project_css_path.read_text(encoding="utf-8")
 
     doc_token = encode_doc_token(context.doc_path.parent)
+    if context.mode == "watch":
+        watcher_manager.watch_document(context)
+    else:
+        watcher_manager.stop_document_watcher()
 
     return JSONResponse({
         "doc_path": str(context.doc_path),

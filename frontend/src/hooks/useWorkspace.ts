@@ -159,6 +159,8 @@ export function useWorkspace() {
         remember(FILE_KEY, data.filename);
       } else {
         setFilename(data.filename);
+        const nextPath = data.doc_path || spec.path;
+        setActiveWatchTarget((prev) => (prev && prev.path === nextPath && prev.filename === data.filename ? prev : { path: nextPath, filename: data.filename }));
       }
 
       setEditorContent(refs.markdownView.current, nextMarkdown);
@@ -231,7 +233,7 @@ export function useWorkspace() {
 
   return {
     projects, workspaceProjects, project, files, filename, target, docToken, docPath,
-    activeWatchTarget,
+    activeWatchTarget, setActiveWatchTarget,
     markdown, css, projectCss, dirty, saveStatus, conflict,
     setTarget, setDocToken, setDocPath, setProject, setFilename, setMarkdown, setCss,
     setProjectCss, setFiles, setDirty, setSaveStatus, setConflict,

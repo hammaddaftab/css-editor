@@ -126,6 +126,30 @@ html, body {
   height:        28px;
 }
 
+.doc-pill--watch {
+  border-color: rgba(37, 99, 235, 0.4);
+  background:   rgba(37, 99, 235, 0.08);
+}
+
+.badge-watch {
+  font-size:      10px;
+  background:     #2563eb;
+  color:          #ffffff;
+  border-radius:  var(--radius-sm);
+  padding:        1px 6px;
+  font-weight:    700;
+  letter-spacing: 0.04em;
+}
+
+@keyframes doc-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+.doc-icon--pulse {
+  animation: doc-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 .doc-icon {
   font-size:   13px;
   line-height: 1;

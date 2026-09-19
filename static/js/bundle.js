@@ -45127,16 +45127,18 @@ function Toolbar(props) {
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--watch", title: `Watching external file: ${props.docPath}`, children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon doc-icon--pulse", children: "👁" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", style: { fontWeight: 600, maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: props.filename }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge-watch", style: { fontSize: "10px", background: "#2563eb", color: "#fff", borderRadius: "4px", padding: "1px 6px", marginLeft: "6px", fontWeight: "bold" }, children: "WATCH" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge-watch", children: "WATCH" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
         ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open another file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "👁 Open File…" }),
         props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Switch back to Projects workspace", onClick: props.onSwitchToProjects, children: "📂 Projects" })
       ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-icon", children: "📦" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Project directory", value: props.project, onChange: props.onProject, children: [
             projectOptions,
-            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "＋ New project…" })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "＋ New project…" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__watch__", children: "👁 Open / Watch file…" })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
@@ -45146,7 +45148,20 @@ function Toolbar(props) {
             /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "＋ New file…" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `doc-dirty${props.dirty ? " is-dirty" : ""}`, title: "Unsaved changes", children: "●" })
-        ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open and watch an external Markdown file (Ctrl+O)", onClick: props.onOpenWatchFile, children: "👁 Watch File…" }),
+        props.activeWatchTarget && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            className: "btn btn--ghost btn--xs",
+            title: `Switch back to watching ${props.activeWatchTarget.path}`,
+            onClick: props.onSwitchToWatch,
+            children: [
+              "👁 ",
+              props.activeWatchTarget.filename
+            ]
+          }
+        )
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Save document (Ctrl+S)", onClick: props.onSave, children: "💾 Save" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `save-status${props.saveStatus === "Saved" ? " is-saved" : ""}`, children: props.saveStatus })
@@ -46344,10 +46359,47 @@ function useProjects(workspace) {
     setCss,
     remember: remember2
   } = workspace;
+  const openWatchFile = reactExports.useCallback(async (initialPath) => {
+    var _a2, _b;
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Open another file anyway?`)) return;
+    let targetPath = null;
+    try {
+      const res = await fetch("/api/system/browse-file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initial_path: initialPath || active.docPath || "" })
+      });
+      if (res.ok) {
+        const data2 = await res.json();
+        if (data2.path) {
+          targetPath = data2.path;
+        } else if (data2.cancelled && data2.reason && !data2.reason.includes("cancelled")) {
+          targetPath = ((_a2 = window.prompt("Enter path to Markdown file to watch (e.g. /home/user/notes.md):")) == null ? void 0 : _a2.trim()) || null;
+        }
+      }
+    } catch {
+      targetPath = ((_b = window.prompt("Enter path to Markdown file to watch (e.g. /home/user/notes.md):")) == null ? void 0 : _b.trim()) || null;
+    }
+    if (!targetPath) return;
+    await loadDocument({ mode: "watch", path: targetPath });
+  }, [current, loadDocument]);
+  const switchToWatch = reactExports.useCallback(async () => {
+    var _a2;
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes. Switch anyway?`)) return;
+    if ((_a2 = workspace.activeWatchTarget) == null ? void 0 : _a2.path) {
+      await loadDocument({ mode: "watch", path: workspace.activeWatchTarget.path });
+    }
+  }, [current, loadDocument, workspace.activeWatchTarget]);
   const switchProject = reactExports.useCallback(async (nextProject) => {
     var _a2, _b;
     const active = current.current;
     if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Switch project anyway?`)) return;
+    if (nextProject === "__watch__") {
+      await openWatchFile();
+      return;
+    }
     if (nextProject === "__new__") {
       const name2 = (_a2 = window.prompt("New project directory name (e.g. dsa-2):")) == null ? void 0 : _a2.trim();
       if (!name2) return;
@@ -46370,7 +46422,7 @@ function useProjects(workspace) {
     const nextFile = ((_b = nextFiles[0]) == null ? void 0 : _b.filename) || "README.md";
     setFilename(nextFile);
     await loadDocument({ mode: "project", project: nextProject, filename: nextFile });
-  }, [current, loadDocument, remember2, refreshFiles, refreshProjects, setFilename, setProject]);
+  }, [current, loadDocument, openWatchFile, remember2, refreshFiles, refreshProjects, setFilename, setProject]);
   const switchFile = reactExports.useCallback(async (nextFilename) => {
     var _a2;
     if (nextFilename === "__new__") {
@@ -46406,12 +46458,13 @@ function useProjects(workspace) {
     setFilename(nextFile);
     await loadDocument({ mode: "project", project: nextProject, filename: nextFile });
   }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject]);
+  const initialized = reactExports.useRef(false);
   reactExports.useEffect(() => {
-    let active = true;
+    if (initialized.current) return;
+    initialized.current = true;
     void (async () => {
       var _a2;
       const available = await refreshProjects();
-      if (!active) return;
       const activeWatch = workspace.activeWatchTarget;
       if (activeWatch && activeWatch.path) {
         await loadDocument({ mode: "watch", path: activeWatch.path });
@@ -46427,11 +46480,8 @@ function useProjects(workspace) {
         await loadDocument({ mode: "project", project: nextProject, filename: nextFile });
       }
     })();
-    return () => {
-      active = false;
-    };
   }, [current, loadDocument, refreshFiles, refreshProjects, setFilename, setProject, workspace.activeWatchTarget]);
-  return { project, filename, switchProject, switchFile, switchToProjects };
+  return { project, filename, switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch };
 }
 const PROJECT_KEY = "css_editor_active_project";
 const FILE_KEY = "css_editor_active_file";
@@ -46593,6 +46643,8 @@ ${value.css}` : value.css;
         remember(FILE_KEY, data2.filename);
       } else {
         setFilename(data2.filename);
+        const nextPath = data2.doc_path || spec.path;
+        setActiveWatchTarget((prev) => prev && prev.path === nextPath && prev.filename === data2.filename ? prev : { path: nextPath, filename: data2.filename });
       }
       setEditorContent(refs.markdownView.current, nextMarkdown);
       setEditorContent(refs.cssView.current, nextCss);
@@ -46670,6 +46722,7 @@ ${value}` : value);
     docToken,
     docPath,
     activeWatchTarget,
+    setActiveWatchTarget,
     markdown: markdown2,
     css: css2,
     projectCss,
@@ -46723,7 +46776,17 @@ function App() {
   const [cssVisible, setCssVisible] = reactExports.useState(true);
   const [exporting, setExporting] = reactExports.useState(false);
   const preferences = usePreferences(frame);
-  const { switchProject, switchFile, switchToProjects } = useProjects(workspace);
+  const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch } = useProjects(workspace);
+  reactExports.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "o") {
+        e.preventDefault();
+        void openWatchFile();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [openWatchFile]);
   const onDirectoryChanged = reactExports.useCallback(async () => {
     var _a2;
     const available = await workspace.refreshProjects();
@@ -46823,6 +46886,9 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         mode: workspace.target.mode,
         docPath: workspace.docPath,
         onSwitchToProjects: switchToProjects,
+        activeWatchTarget: workspace.activeWatchTarget,
+        onOpenWatchFile: () => void openWatchFile(),
+        onSwitchToWatch: () => void switchToWatch(),
         imageInput: workspace.refs.imageInput,
         onProject: (event) => void switchProject(event.target.value),
         onFile: (event) => void switchFile(event.target.value),

@@ -15,7 +15,7 @@ from app.services.config_manager import (
     save_user_config,
     seed_welcome_project,
 )
-from app.services.system_dialog import is_dialog_supported, pick_directory
+from app.services.system_dialog import is_dialog_supported, pick_directory, pick_file
 from app.services.watcher import watcher_manager
 
 router = APIRouter(prefix="/api", tags=["settings"])
@@ -98,6 +98,21 @@ class BrowseDirectoryRequest(BaseModel):
 async def browse_directory(req: BrowseDirectoryRequest | None = None) -> JSONResponse:
     initial = req.initial_dir if req else None
     path, reason = await pick_directory(initial)
+    return JSONResponse({
+        "path": path,
+        "cancelled": path is None,
+        "reason": reason,
+    })
+
+
+class BrowseFileRequest(BaseModel):
+    initial_path: str | None = Field(default=None, description="Initial file path or directory to open dialog in")
+
+
+@router.post("/system/browse-file", summary="Open native OS file picker dialog for Markdown files")
+async def browse_file(req: BrowseFileRequest | None = None) -> JSONResponse:
+    initial = req.initial_path if req else None
+    path, reason = await pick_file(initial)
     return JSONResponse({
         "path": path,
         "cancelled": path is None,

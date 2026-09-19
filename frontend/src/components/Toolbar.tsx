@@ -17,6 +17,9 @@ type Props = {
   config: UserConfig | null;
   mode?: 'watch' | 'project';
   docPath?: string;
+  activeWatchTarget?: { path: string; filename: string } | null;
+  onOpenWatchFile: () => void;
+  onSwitchToWatch?: () => void;
   onSwitchToProjects?: () => void;
   onOpenConfigModal: () => void;
   imageInput: RefObject<HTMLInputElement | null>;
@@ -46,11 +49,14 @@ export function Toolbar(props: Props) {
             <span className="doc-name" style={{ fontWeight: 600, maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {props.filename}
             </span>
-            <span className="badge-watch" style={{ fontSize: '10px', background: '#2563eb', color: '#fff', borderRadius: '4px', padding: '1px 6px', marginLeft: '6px', fontWeight: 'bold' }}>
+            <span className="badge-watch">
               WATCH
             </span>
             <span className={`doc-dirty${props.dirty ? ' is-dirty' : ''}`} title="Unsaved changes">●</span>
           </div>
+          <button className="btn btn--ghost btn--xs" title="Open another file to watch (Ctrl+O)" onClick={props.onOpenWatchFile}>
+            👁 Open File…
+          </button>
           {props.onSwitchToProjects && (
             <button className="btn btn--ghost btn--xs" title="Switch back to Projects workspace" onClick={props.onSwitchToProjects}>
               📂 Projects
@@ -59,8 +65,34 @@ export function Toolbar(props: Props) {
         </>
       ) : (
         <>
-          <div className="doc-pill"><span className="doc-icon">📦</span><select className="doc-select" title="Project directory" value={props.project} onChange={props.onProject}>{projectOptions}<option value="__new__">＋ New project…</option></select></div>
-          <div className="doc-pill"><span className="doc-icon">📁</span><select className="doc-select" title="Files in this project" value={props.filename} onChange={props.onFile}>{fileOptions}<option value="__new__">＋ New file…</option></select><span className={`doc-dirty${props.dirty ? ' is-dirty' : ''}`} title="Unsaved changes">●</span></div>
+          <div className="doc-pill">
+            <span className="doc-icon">📦</span>
+            <select className="doc-select" title="Project directory" value={props.project} onChange={props.onProject}>
+              {projectOptions}
+              <option value="__new__">＋ New project…</option>
+              <option value="__watch__">👁 Open / Watch file…</option>
+            </select>
+          </div>
+          <div className="doc-pill">
+            <span className="doc-icon">📁</span>
+            <select className="doc-select" title="Files in this project" value={props.filename} onChange={props.onFile}>
+              {fileOptions}
+              <option value="__new__">＋ New file…</option>
+            </select>
+            <span className={`doc-dirty${props.dirty ? ' is-dirty' : ''}`} title="Unsaved changes">●</span>
+          </div>
+          <button className="btn btn--ghost btn--xs" title="Open and watch an external Markdown file (Ctrl+O)" onClick={props.onOpenWatchFile}>
+            👁 Watch File…
+          </button>
+          {props.activeWatchTarget && (
+            <button
+              className="btn btn--ghost btn--xs"
+              title={`Switch back to watching ${props.activeWatchTarget.path}`}
+              onClick={props.onSwitchToWatch}
+            >
+              👁 {props.activeWatchTarget.filename}
+            </button>
+          )}
         </>
       )}
       <button className="btn btn--ghost btn--xs" title="Save document (Ctrl+S)" onClick={props.onSave}>💾 Save</button><span className={`save-status${props.saveStatus === 'Saved' ? ' is-saved' : ''}`}>{props.saveStatus}</span>

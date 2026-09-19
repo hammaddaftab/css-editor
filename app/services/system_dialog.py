@@ -93,6 +93,86 @@ async def pick_directory(initial_dir: str | None = None) -> tuple[str | None, st
     return await asyncio.to_thread(_pick_directory_sync, initial_dir)
 
 
+def _pick_file_sync(initial_path: str | None = None) -> tuple[str | None, str | None]:
+    """Synchronous native file picker for Markdown files."""
+    initial = str(Path(initial_path).expanduser().resolve()) if initial_path else ""
+
+    if sys.platform.startswith("linux"):
+        has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+        if not has_display:
+            return None, "No graphical display detected (running headlessly)."
+
+        zenity = shutil.which("zenity")
+        if zenity:
+            cmd = [
+                zenity,
+                "--file-selection",
+                "--title=Select Markdown File to Watch",
+                "--file-filter=Markdown files (*.md *.markdown) | *.md *.markdown",
+                "--file-filter=All files | *",
+            ]
+            if initial and Path(initial).exists():
+                cmd.append(f"--filename={initial}")
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+                if result.returncode == 0:
+                    chosen = result.stdout.strip()
+                    if chosen:
+                        return chosen, None
+                return None, "File selection cancelled."
+            except subprocess.TimeoutExpired:
+                return None, "File picker timed out."
+            except Exception as exc:
+                logger.debug("Zenity error: %s", exc)
+                return None, str(exc)
+
+        return None, "Zenity not found on system."
+
+    elif sys.platform.startswith("darwin"):
+        script = 'POSIX path of (choose file of type {"public.plain-text", "md", "markdown"} with prompt "Select Markdown File to Watch")'
+        try:
+            result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=120)
+            if result.returncode == 0:
+                chosen = result.stdout.strip()
+                if chosen:
+                    return chosen, None
+            return None, "File selection cancelled."
+        except Exception as exc:
+            logger.debug("macOS dialog error: %s", exc)
+            return None, str(exc)
+
+    elif sys.platform.startswith("win"):
+        ps_cmd = (
+            "Add-Type -AssemblyName System.Windows.Forms; "
+            "$f = New-Object System.Windows.Forms.OpenFileDialog; "
+            "$f.Filter = 'Markdown files (*.md;*.markdown)|*.md;*.markdown|All files (*.*)|*.*'; "
+            "$f.Title = 'Select Markdown File to Watch'; "
+            "if ($f.ShowDialog() -eq 'OK') { Write-Output $f.FileName }"
+        )
+        try:
+            result = subprocess.run(
+                ["powershell", "-NoProfile", "-Command", ps_cmd],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if result.returncode == 0:
+                chosen = result.stdout.strip()
+                if chosen:
+                    return chosen, None
+            return None, "File selection cancelled."
+        except Exception as exc:
+            logger.debug("Windows dialog error: %s", exc)
+            return None, str(exc)
+
+    return None, "Platform not supported for native file selection."
+
+
+async def pick_file(initial_path: str | None = None) -> tuple[str | None, str | None]:
+    """Asynchronous wrapper for native file picker."""
+    return await asyncio.to_thread(_pick_file_sync, initial_path)
+
+
 def is_dialog_supported() -> bool:
     """Check if native dialog can likely be launched in current environment."""
     if sys.platform.startswith("linux"):

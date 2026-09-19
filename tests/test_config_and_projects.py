@@ -117,6 +117,32 @@ class TestConfigAndProjects(unittest.TestCase):
         self.assertEqual(export_res.headers["content-type"], "application/pdf")
         self.assertGreater(len(export_res.content), 100)
 
+    def test_browse_file_dialog_endpoint(self):
+        with patch("app.routers.settings.pick_file", return_value=("/tmp/example.md", None)):
+            res = self.client.post("/api/system/browse-file", json={"initial_path": "/tmp"})
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertEqual(data["path"], "/tmp/example.md")
+            self.assertFalse(data["cancelled"])
+
+    def test_watch_document_dynamic_lifecycle(self):
+        from app.services.watcher import watcher_manager
+
+        external_file = self.base_path / "standalone.md"
+        external_file.write_text("# Standalone\n\nContent", encoding="utf-8")
+
+        # Load document in watch mode
+        res = self.client.get(f"/api/document?mode=watch&path={external_file}")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()["filename"], "standalone.md")
+        self.assertEqual(watcher_manager._current_doc, external_file.resolve())
+
+        # Switch back to project mode
+        self.client.post("/api/config", json={"first_run_completed": True})
+        proj_res = self.client.get("/api/document?mode=project&project=welcome&filename=README.md")
+        self.assertEqual(proj_res.status_code, 200)
+        self.assertIsNone(watcher_manager._current_doc)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -34,7 +34,18 @@ export default function App() {
   const [cssVisible, setCssVisible] = useState(true);
   const [exporting, setExporting] = useState(false);
   const preferences = usePreferences(frame);
-  const { switchProject, switchFile, switchToProjects } = useProjects(workspace);
+  const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch } = useProjects(workspace);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        void openWatchFile();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [openWatchFile]);
 
   const onDirectoryChanged = useCallback(async () => {
     const available = await workspace.refreshProjects();
@@ -111,6 +122,7 @@ export default function App() {
       settingsOpen={preferences.settingsOpen} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
       config={config} onOpenConfigModal={() => setModalOpen(true)}
       mode={workspace.target.mode} docPath={workspace.docPath} onSwitchToProjects={switchToProjects}
+      activeWatchTarget={workspace.activeWatchTarget} onOpenWatchFile={() => void openWatchFile()} onSwitchToWatch={() => void switchToWatch()}
       imageInput={workspace.refs.imageInput} onProject={(event) => void switchProject(event.target.value)} onFile={(event) => void switchFile(event.target.value)}
       onSave={() => void workspace.saveDocument()} onExport={() => void exportPdf()} onLibrary={() => setLibraryVisible((value) => !value)} libraryVisible={libraryVisible}
       onCss={() => setCssVisible((value) => !value)} cssVisible={cssVisible}
