@@ -565,16 +565,16 @@ ${printCssText}
       max-height: var(--pagedjs-height, 297mm) !important;
       flex-shrink: 0 !important;
       transform-origin: top center;
-      transform: scale(var(--page-scale, 1));
       box-sizing: border-box;
       background: #ffffff !important;
       color: var(--color-text, #1a1a1a);
       transition: background 150ms ease, color 150ms ease;
     }
 
-    /* When page is inside page-wrapper, shadow is carried by wrapper */
+    /* When page is inside page-wrapper, scale is applied and shadow is carried by wrapper */
     .page-wrapper > .page,
     .page-wrapper > .pagedjs_page {
+      transform: scale(var(--page-scale, 1));
       box-shadow: none !important;
       margin: 0 !important;
     }

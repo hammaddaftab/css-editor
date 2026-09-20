@@ -2235,14 +2235,15 @@
 
 
 			let size = area.getBoundingClientRect();
+			let unscaledWidth = area.offsetWidth || Math.round(size.width);
+			let unscaledHeight = area.offsetHeight || Math.round(size.height);
 
-
-			area.style.columnWidth = Math.round(size.width) + "px";
+			area.style.columnWidth = unscaledWidth + "px";
 			area.style.columnGap = "calc(var(--pagedjs-margin-right) + var(--pagedjs-margin-left) + var(--pagedjs-bleed-right) + var(--pagedjs-bleed-left) + var(--pagedjs-column-gap-offset))";
 			// area.style.overflow = "scroll";
 
-			this.width = Math.round(size.width);
-			this.height = Math.round(size.height);
+			this.width = unscaledWidth;
+			this.height = unscaledHeight;
 
 			this.element = page;
 			this.pagebox = pagebox;

@@ -45609,16 +45609,16 @@ ${printCssText}
       max-height: var(--pagedjs-height, 297mm) !important;
       flex-shrink: 0 !important;
       transform-origin: top center;
-      transform: scale(var(--page-scale, 1));
       box-sizing: border-box;
       background: #ffffff !important;
       color: var(--color-text, #1a1a1a);
       transition: background 150ms ease, color 150ms ease;
     }
 
-    /* When page is inside page-wrapper, shadow is carried by wrapper */
+    /* When page is inside page-wrapper, scale is applied and shadow is carried by wrapper */
     .page-wrapper > .page,
     .page-wrapper > .pagedjs_page {
+      transform: scale(var(--page-scale, 1));
       box-shadow: none !important;
       margin: 0 !important;
     }
@@ -46201,6 +46201,24 @@ function SettingsSideWindow(props) {
                     ),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__slider" })
                   ] })
+                ] }),
+                props.onPreviewToggle && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "prefs-row__info", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__title", children: "Preview Panel" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "prefs-row__desc", children: "Show or collapse the document preview panel" })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "settings-toggle", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        type: "checkbox",
+                        className: "settings-toggle__input",
+                        checked: props.previewVisible ?? true,
+                        onChange: props.onPreviewToggle
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "settings-toggle__slider" })
+                  ] })
                 ] })
               ] })
             ] }),
@@ -46310,6 +46328,7 @@ function Toolbar(props) {
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status status--${props.status}`, title: props.statusTitle, "aria-label": "SSE status" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.libraryVisible ? " active" : ""}`, title: "Toggle Image Library", onClick: props.onLibrary, children: "Library" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.cssVisible ? " active" : ""}`, title: "Toggle CSS panel", onClick: props.onCss, children: "CSS" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.previewVisible ? " active" : ""}`, title: "Toggle Preview panel", onClick: props.onPreview, children: "Preview" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
@@ -46494,9 +46513,10 @@ function WelcomeModal({
   ] }) });
 }
 function WorkspacePanes(props) {
+  const panesClass = `panes${props.previewVisible ? "" : " preview-collapsed"}`;
   const leftClass = `left-pane${props.libraryVisible ? "" : " library-collapsed"}${props.cssVisible ? "" : " css-collapsed"}`;
   const libraryClass = `image-library${props.noCrop ? " nocrop-mode" : ""}${props.noWhitespace ? " nowhitespace-mode" : ""}`;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "panes", ref: props.panes, children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: panesClass, ref: props.panes, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: leftClass, ref: props.leftPane, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: libraryClass, ref: props.library.container, children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "image-library__header", children: [
@@ -47231,8 +47251,22 @@ function useEditors(workspace, library) {
     workspace.current
   ]);
 }
-function useLayout(workspace, panes, divider, leftPane) {
+function useLayout(workspace, panes, divider, leftPane, previewVisible) {
   const { refs, saveDocument } = workspace;
+  reactExports.useEffect(() => {
+    if (previewVisible && panes.current) {
+      const style2 = panes.current.style.gridTemplateColumns;
+      if (style2 && style2.includes("px")) {
+        const total = panes.current.clientWidth - 4;
+        const left = parseFloat(style2.split(" ")[0]);
+        if (left >= total - 100 || left <= 100) {
+          panes.current.style.gridTemplateColumns = "";
+        } else {
+          panes.current.style.gridTemplateColumns = `${left}px 4px ${total - left}px`;
+        }
+      }
+    }
+  }, [previewVisible, panes]);
   reactExports.useEffect(() => {
     const onKeyDown = (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
@@ -47543,6 +47577,7 @@ function usePreferences(frame, config2) {
   const [settingsOpen, setSettingsOpen] = reactExports.useState(false);
   const [libraryVisible, setLibraryVisible] = reactExports.useState(() => stored("css_editor_library_open", "1") !== "0");
   const [cssVisible, setCssVisible] = reactExports.useState(() => stored("css_editor_css_open", "1") !== "0");
+  const [previewVisible, setPreviewVisible] = reactExports.useState(() => stored("css_editor_preview_open", "1") !== "0");
   const [noCrop, setNoCrop] = reactExports.useState(() => stored("css_editor_nocrop", "0") === "1");
   const [noWhitespace, setNoWhitespace] = reactExports.useState(() => stored("css_editor_nowhitespace", "0") === "1" && stored("css_editor_nocrop", "0") === "1");
   const [autosave, setAutosave] = reactExports.useState(() => stored("css_editor_autosave", "1") !== "0");
@@ -47592,6 +47627,18 @@ function usePreferences(frame, config2) {
       patchNeeded = patchNeeded || {};
       patchNeeded.css_open = cssVisible;
     }
+    if (typeof config2.preview_open === "boolean") {
+      if (config2.preview_open !== previewVisible) {
+        setPreviewVisible(config2.preview_open);
+        try {
+          localStorage.setItem("css_editor_preview_open", config2.preview_open ? "1" : "0");
+        } catch {
+        }
+      }
+    } else if (!previewVisible) {
+      patchNeeded = patchNeeded || {};
+      patchNeeded.preview_open = previewVisible;
+    }
     if (typeof config2.no_crop === "boolean") {
       if (config2.no_crop !== noCrop) {
         setNoCrop(config2.no_crop);
@@ -47619,7 +47666,7 @@ function usePreferences(frame, config2) {
     if (patchNeeded) {
       void persistPreferences(patchNeeded);
     }
-  }, [config2, theme2, libraryVisible, cssVisible, noCrop, noWhitespace, frame]);
+  }, [config2, theme2, libraryVisible, cssVisible, previewVisible, noCrop, noWhitespace, frame]);
   const changeTheme = reactExports.useCallback((value) => {
     const next = value === "dark" ? "dark" : "light";
     setTheme(next);
@@ -47649,6 +47696,17 @@ function usePreferences(frame, config2) {
       } catch {
       }
       void persistPreferences({ css_open: next });
+      return next;
+    });
+  }, []);
+  const togglePreview = reactExports.useCallback((override) => {
+    setPreviewVisible((prev) => {
+      const next = typeof override === "boolean" ? override : !prev;
+      try {
+        localStorage.setItem("css_editor_preview_open", next ? "1" : "0");
+      } catch {
+      }
+      void persistPreferences({ preview_open: next });
       return next;
     });
   }, []);
@@ -47690,6 +47748,7 @@ function usePreferences(frame, config2) {
     settingsOpen,
     libraryVisible,
     cssVisible,
+    previewVisible,
     noCrop,
     noWhitespace,
     autosave,
@@ -47698,8 +47757,10 @@ function usePreferences(frame, config2) {
     changeTheme,
     toggleLibrary,
     toggleCss,
+    togglePreview,
     setLibraryVisible,
     setCssVisible,
+    setPreviewVisible,
     changeNoCrop,
     changeNoWhitespace,
     changeAutosave,
@@ -48473,7 +48534,7 @@ function App() {
   usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount, setActiveFrame);
   useLiveSync(workspace, frameA, preferences.theme, setAppStatus, setPageCount);
   useAutosave(workspace, preferences.autosave, preferences.autosaveDelay);
-  useLayout(workspace, panes, divider, leftPane);
+  useLayout(workspace, panes, divider, leftPane, preferences.previewVisible);
   reactExports.useEffect(() => {
     const closeSettings = () => preferences.setSettingsOpen(false);
     document.addEventListener("click", closeSettings);
@@ -48553,6 +48614,8 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         libraryVisible: preferences.libraryVisible,
         onCss: preferences.toggleCss,
         cssVisible: preferences.cssVisible,
+        onPreview: preferences.togglePreview,
+        previewVisible: preferences.previewVisible,
         onSettings: (event) => {
           event.stopPropagation();
           preferences.setSettingsOpen((value) => !value);
@@ -48579,6 +48642,8 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         onLibraryToggle: preferences.toggleLibrary,
         cssVisible: preferences.cssVisible,
         onCssToggle: preferences.toggleCss,
+        previewVisible: preferences.previewVisible,
+        onPreviewToggle: preferences.togglePreview,
         mode: workspace.target.mode,
         filename: workspace.filename,
         dirty: workspace.dirty,
@@ -48597,6 +48662,7 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         leftPane,
         libraryVisible: preferences.libraryVisible,
         cssVisible: preferences.cssVisible,
+        previewVisible: preferences.previewVisible,
         noCrop: preferences.noCrop,
         noWhitespace: preferences.noWhitespace,
         frameA,

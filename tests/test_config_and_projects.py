@@ -153,6 +153,7 @@ class TestConfigAndProjects(unittest.TestCase):
         self.assertEqual(data["preview_theme"], "light")
         self.assertTrue(data["library_open"])
         self.assertTrue(data["css_open"])
+        self.assertTrue(data["preview_open"])
         self.assertFalse(data["no_crop"])
         self.assertFalse(data["no_whitespace"])
 
@@ -161,6 +162,7 @@ class TestConfigAndProjects(unittest.TestCase):
             "preview_theme": "dark",
             "library_open": False,
             "css_open": False,
+            "preview_open": False,
             "no_crop": True,
             "no_whitespace": True,
         }
@@ -170,6 +172,7 @@ class TestConfigAndProjects(unittest.TestCase):
         self.assertEqual(updated["preview_theme"], "dark")
         self.assertFalse(updated["library_open"])
         self.assertFalse(updated["css_open"])
+        self.assertFalse(updated["preview_open"])
         self.assertTrue(updated["no_crop"])
         self.assertTrue(updated["no_whitespace"])
 
@@ -179,12 +182,14 @@ class TestConfigAndProjects(unittest.TestCase):
         self.assertEqual(get_res.json()["preview_theme"], "dark")
         self.assertFalse(get_res.json()["library_open"])
         self.assertFalse(get_res.json()["css_open"])
+        self.assertFalse(get_res.json()["preview_open"])
 
         loaded_config, exists = load_user_config(force_reload=True)
         self.assertTrue(exists)
         self.assertEqual(loaded_config.preview_theme, "dark")
         self.assertFalse(loaded_config.library_open)
         self.assertFalse(loaded_config.css_open)
+        self.assertFalse(loaded_config.preview_open)
 
 
 if __name__ == "__main__":

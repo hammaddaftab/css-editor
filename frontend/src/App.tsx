@@ -103,7 +103,7 @@ export default function App() {
   usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount, setActiveFrame);
   useLiveSync(workspace, frameA, preferences.theme, setAppStatus, setPageCount);
   useAutosave(workspace, preferences.autosave, preferences.autosaveDelay);
-  useLayout(workspace, panes, divider, leftPane);
+  useLayout(workspace, panes, divider, leftPane, preferences.previewVisible);
 
   useEffect(() => {
     const closeSettings = () => preferences.setSettingsOpen(false);
@@ -156,6 +156,7 @@ export default function App() {
       imageInput={workspace.refs.imageInput} onProject={(event) => void switchProject(event.target.value)} onFile={(event) => void switchFile(event.target.value)}
       onExport={() => void exportPdf()} onLibrary={preferences.toggleLibrary} libraryVisible={preferences.libraryVisible}
       onCss={preferences.toggleCss} cssVisible={preferences.cssVisible}
+      onPreview={preferences.togglePreview} previewVisible={preferences.previewVisible}
       onSettings={(event) => { event.stopPropagation(); preferences.setSettingsOpen((value) => !value); }} />
     {workspace.conflict && <ConflictBanner conflict={workspace.conflict} onReload={reloadConflict} onKeep={() => workspace.setConflict(null)} />}
     <SettingsSideWindow
@@ -175,6 +176,8 @@ export default function App() {
       onLibraryToggle={preferences.toggleLibrary}
       cssVisible={preferences.cssVisible}
       onCssToggle={preferences.toggleCss}
+      previewVisible={preferences.previewVisible}
+      onPreviewToggle={preferences.togglePreview}
       mode={workspace.target.mode}
       filename={workspace.filename}
       dirty={workspace.dirty}
@@ -183,7 +186,7 @@ export default function App() {
       onSwitchToIdle={switchToIdle}
     />
     <WorkspacePanes refs={workspace.refs} library={library} panes={panes} divider={divider} leftPane={leftPane}
-      libraryVisible={preferences.libraryVisible} cssVisible={preferences.cssVisible} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
+      libraryVisible={preferences.libraryVisible} cssVisible={preferences.cssVisible} previewVisible={preferences.previewVisible} noCrop={preferences.noCrop} noWhitespace={preferences.noWhitespace}
       frameA={frameA} frameB={frameB} activeFrame={activeFrame} previewScroll={previewScroll} pageCount={pageCount} theme={preferences.theme} onCss={preferences.toggleCss} onTheme={preferences.changeTheme} />
     {workspace.target.mode === 'idle' && (
       <IdleLauncher

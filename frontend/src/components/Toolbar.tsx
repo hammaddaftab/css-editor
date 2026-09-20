@@ -29,6 +29,8 @@ type Props = {
   libraryVisible: boolean;
   onCss: () => void;
   cssVisible: boolean;
+  onPreview: () => void;
+  previewVisible: boolean;
   onSettings: (event: React.MouseEvent<HTMLButtonElement>) => void;
 };
 
@@ -147,6 +149,9 @@ export function Toolbar(props: Props) {
         </button>
         <button className={`btn btn--ghost${props.cssVisible ? ' active' : ''}`} title="Toggle CSS panel" onClick={props.onCss}>
           CSS
+        </button>
+        <button className={`btn btn--ghost${props.previewVisible ? ' active' : ''}`} title="Toggle Preview panel" onClick={props.onPreview}>
+          Preview
         </button>
         <button
           className={`btn btn--ghost${props.settingsOpen ? ' active' : ''}`}

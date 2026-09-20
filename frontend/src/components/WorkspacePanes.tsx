@@ -9,6 +9,7 @@ type Props = {
   leftPane: RefObject<HTMLDivElement | null>;
   libraryVisible: boolean;
   cssVisible: boolean;
+  previewVisible: boolean;
   noCrop: boolean;
   noWhitespace: boolean;
   frameA: RefObject<HTMLIFrameElement | null>;
@@ -22,10 +23,11 @@ type Props = {
 };
 
 export function WorkspacePanes(props: Props) {
+  const panesClass = `panes${props.previewVisible ? '' : ' preview-collapsed'}`;
   const leftClass = `left-pane${props.libraryVisible ? '' : ' library-collapsed'}${props.cssVisible ? '' : ' css-collapsed'}`;
   const libraryClass = `image-library${props.noCrop ? ' nocrop-mode' : ''}${props.noWhitespace ? ' nowhitespace-mode' : ''}`;
   return (
-    <div className="panes" ref={props.panes}>
+    <div className={panesClass} ref={props.panes}>
       <div className={leftClass} ref={props.leftPane}>
         <aside className={libraryClass} ref={props.library.container}>
           <div className="image-library__header">

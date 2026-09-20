@@ -10,6 +10,7 @@ async function persistPreferences(patch: {
   preview_theme?: string;
   library_open?: boolean;
   css_open?: boolean;
+  preview_open?: boolean;
   no_crop?: boolean;
   no_whitespace?: boolean;
 }) {
@@ -32,6 +33,7 @@ export function usePreferences(
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [libraryVisible, setLibraryVisible] = useState(() => stored('css_editor_library_open', '1') !== '0');
   const [cssVisible, setCssVisible] = useState(() => stored('css_editor_css_open', '1') !== '0');
+  const [previewVisible, setPreviewVisible] = useState(() => stored('css_editor_preview_open', '1') !== '0');
   const [noCrop, setNoCrop] = useState(() => stored('css_editor_nocrop', '0') === '1');
   const [noWhitespace, setNoWhitespace] = useState(() => stored('css_editor_nowhitespace', '0') === '1' && stored('css_editor_nocrop', '0') === '1');
   const [autosave, setAutosave] = useState(() => stored('css_editor_autosave', '1') !== '0');
@@ -82,6 +84,17 @@ export function usePreferences(
       patchNeeded.css_open = cssVisible;
     }
 
+    // Preview tab sync
+    if (typeof config.preview_open === 'boolean') {
+      if (config.preview_open !== previewVisible) {
+        setPreviewVisible(config.preview_open);
+        try { localStorage.setItem('css_editor_preview_open', config.preview_open ? '1' : '0'); } catch { /* optional */ }
+      }
+    } else if (!previewVisible) {
+      patchNeeded = patchNeeded || {};
+      patchNeeded.preview_open = previewVisible;
+    }
+
     // No-crop sync
     if (typeof config.no_crop === 'boolean') {
       if (config.no_crop !== noCrop) {
@@ -107,7 +120,7 @@ export function usePreferences(
     if (patchNeeded) {
       void persistPreferences(patchNeeded);
     }
-  }, [config, theme, libraryVisible, cssVisible, noCrop, noWhitespace, frame]);
+  }, [config, theme, libraryVisible, cssVisible, previewVisible, noCrop, noWhitespace, frame]);
 
   const changeTheme = useCallback((value: string) => {
     const next = value === 'dark' ? 'dark' : 'light';
@@ -131,6 +144,15 @@ export function usePreferences(
       const next = typeof override === 'boolean' ? override : !prev;
       try { localStorage.setItem('css_editor_css_open', next ? '1' : '0'); } catch { /* optional */ }
       void persistPreferences({ css_open: next });
+      return next;
+    });
+  }, []);
+
+  const togglePreview = useCallback((override?: boolean | unknown) => {
+    setPreviewVisible((prev) => {
+      const next = typeof override === 'boolean' ? override : !prev;
+      try { localStorage.setItem('css_editor_preview_open', next ? '1' : '0'); } catch { /* optional */ }
+      void persistPreferences({ preview_open: next });
       return next;
     });
   }, []);
@@ -167,6 +189,7 @@ export function usePreferences(
     settingsOpen,
     libraryVisible,
     cssVisible,
+    previewVisible,
     noCrop,
     noWhitespace,
     autosave,
@@ -175,8 +198,10 @@ export function usePreferences(
     changeTheme,
     toggleLibrary,
     toggleCss,
+    togglePreview,
     setLibraryVisible,
     setCssVisible,
+    setPreviewVisible,
     changeNoCrop,
     changeNoWhitespace,
     changeAutosave,

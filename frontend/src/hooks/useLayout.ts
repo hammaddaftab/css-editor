@@ -5,8 +5,24 @@ export function useLayout(
   panes: RefObject<HTMLDivElement | null>,
   divider: RefObject<HTMLDivElement | null>,
   leftPane: RefObject<HTMLDivElement | null>,
+  previewVisible?: boolean,
 ): void {
   const { refs, saveDocument } = workspace;
+
+  useEffect(() => {
+    if (previewVisible && panes.current) {
+      const style = panes.current.style.gridTemplateColumns;
+      if (style && style.includes('px')) {
+        const total = panes.current.clientWidth - 4;
+        const left = parseFloat(style.split(' ')[0]);
+        if (left >= total - 100 || left <= 100) {
+          panes.current.style.gridTemplateColumns = '';
+        } else {
+          panes.current.style.gridTemplateColumns = `${left}px 4px ${total - left}px`;
+        }
+      }
+    }
+  }, [previewVisible, panes]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

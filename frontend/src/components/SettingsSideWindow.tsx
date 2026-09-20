@@ -18,6 +18,8 @@ type Props = {
   onLibraryToggle?: () => void;
   cssVisible?: boolean;
   onCssToggle?: () => void;
+  previewVisible?: boolean;
+  onPreviewToggle?: () => void;
   mode?: 'idle' | 'watch' | 'project';
   filename?: string;
   dirty?: boolean;
@@ -287,6 +289,24 @@ export function SettingsSideWindow(props: Props) {
                       className="settings-toggle__input"
                       checked={props.libraryVisible ?? true}
                       onChange={props.onLibraryToggle}
+                    />
+                    <span className="settings-toggle__slider" />
+                  </label>
+                </div>
+              )}
+
+              {props.onPreviewToggle && (
+                <div className="prefs-row">
+                  <div className="prefs-row__info">
+                    <span className="prefs-row__title">Preview Panel</span>
+                    <span className="prefs-row__desc">Show or collapse the document preview panel</span>
+                  </div>
+                  <label className="settings-toggle">
+                    <input
+                      type="checkbox"
+                      className="settings-toggle__input"
+                      checked={props.previewVisible ?? true}
+                      onChange={props.onPreviewToggle}
                     />
                     <span className="settings-toggle__slider" />
                   </label>

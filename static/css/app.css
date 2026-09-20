@@ -442,6 +442,15 @@ html, body {
   height:                100%;
 }
 
+.panes.preview-collapsed {
+  grid-template-columns: 1fr !important;
+}
+
+.panes.preview-collapsed .pane-divider,
+.panes.preview-collapsed .right-pane {
+  display: none !important;
+}
+
 .left-pane {
   display:        flex;
   flex-direction: row;

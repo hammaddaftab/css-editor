@@ -95,6 +95,7 @@ export type UserConfig = {
   preview_theme?: 'light' | 'dark';
   library_open?: boolean;
   css_open?: boolean;
+  preview_open?: boolean;
   no_crop?: boolean;
   no_whitespace?: boolean;
 };

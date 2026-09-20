@@ -29,6 +29,7 @@ class UpdateConfigRequest(BaseModel):
     preview_theme: str | None = Field(default=None, description="Preview theme: 'light' or 'dark'")
     library_open: bool | None = Field(default=None, description="Whether image library panel is expanded")
     css_open: bool | None = Field(default=None, description="Whether custom CSS panel is expanded")
+    preview_open: bool | None = Field(default=None, description="Whether preview panel is expanded")
     no_crop: bool | None = Field(default=None, description="Image library no-crop mode")
     no_whitespace: bool | None = Field(default=None, description="Image library no-whitespace mode")
 
@@ -51,6 +52,7 @@ def serialize_config(config: UserConfig) -> dict:
         "preview_theme": config.preview_theme,
         "library_open": config.library_open,
         "css_open": config.css_open,
+        "preview_open": config.preview_open,
         "no_crop": config.no_crop,
         "no_whitespace": config.no_whitespace,
     }
@@ -97,6 +99,9 @@ async def update_config(req: UpdateConfigRequest) -> JSONResponse:
 
     if req.css_open is not None:
         config.css_open = req.css_open
+
+    if req.preview_open is not None:
+        config.preview_open = req.preview_open
 
     if req.no_crop is not None:
         config.no_crop = req.no_crop

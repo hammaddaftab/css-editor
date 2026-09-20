@@ -43,6 +43,7 @@ class UserConfig(BaseModel):
     preview_theme: str = Field(default="light", description="Preview background theme: 'light' or 'dark'")
     library_open: bool = Field(default=True, description="Whether the Image Library tab/panel is expanded")
     css_open: bool = Field(default=True, description="Whether the Custom CSS tab/panel is expanded")
+    preview_open: bool = Field(default=True, description="Whether the Preview tab/panel is expanded")
     no_crop: bool = Field(default=False, description="Whether Image Library is in no-crop mode")
     no_whitespace: bool = Field(default=False, description="Whether Image Library is in no-whitespace mode")
 
