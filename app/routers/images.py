@@ -5,13 +5,19 @@ Supports:
 - Discovered and referenced document images listing (GET /api/images?doc=...).
 - Serving and deleting document images (GET/DELETE /api/images/{filename}?doc=...).
 """
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
 
 from app.routers.assets import encode_doc_token
-from app.services.asset_svc import list_document_images, save_or_match_image
+from app.services.asset_svc import (
+    _ALLOWED_IMAGE_EXTS,
+    list_document_images,
+    save_or_match_image,
+)
 from app.services.config_manager import get_projects_root
 
 router = APIRouter(prefix="/api", tags=["images"])
@@ -138,3 +144,75 @@ async def delete_image(
 
     path.unlink()
     return JSONResponse({"deleted": filename})
+
+
+class RenameImageRequest(BaseModel):
+    new_filename: str
+
+
+@router.patch("/images/{filename}", summary="Rename an uploaded image")
+@router.post("/images/{filename}/rename", summary="Rename an uploaded image")
+async def rename_image(
+    filename: str,
+    req: RenameImageRequest,
+    doc: str | None = Query(default=None, description="Document path"),
+    project: str | None = Query(default=None, description="Project name"),
+) -> JSONResponse:
+    if "/" in filename or "\\" in filename or filename.startswith("."):
+        raise HTTPException(400, detail="Invalid source filename.")
+
+    new_filename = req.new_filename.strip()
+    if not new_filename or "/" in new_filename or "\\" in new_filename or new_filename.startswith("."):
+        raise HTTPException(400, detail="Invalid target filename.")
+
+    # Preserve or validate extension
+    old_ext = Path(filename).suffix.lower()
+    new_ext = Path(new_filename).suffix.lower()
+    if not new_ext:
+        new_filename = f"{new_filename}{old_ext}"
+        new_ext = old_ext
+
+    if new_ext not in _ALLOWED_IMAGE_EXTS:
+        raise HTTPException(400, detail=f"Unsupported file extension '{new_ext}'.")
+
+    directory = _resolve_document_images_dir(doc=doc, project=project)
+    src_path = directory / filename
+    if not src_path.is_file():
+        if doc and doc.strip():
+            doc_parent = Path(doc.strip()).resolve().parent
+            alt_src = doc_parent / filename
+            if alt_src.is_file():
+                src_path = alt_src
+                directory = doc_parent
+
+    if not src_path.is_file():
+        raise HTTPException(404, detail="Image not found.")
+
+    dest_path = directory / new_filename
+    if dest_path.resolve() != src_path.resolve() and dest_path.exists():
+        raise HTTPException(409, detail=f"File '{new_filename}' already exists.")
+
+    if dest_path.resolve() != src_path.resolve():
+        src_path.rename(dest_path)
+
+    if doc and doc.strip():
+        doc_dir = Path(doc.strip()).resolve().parent
+    elif project and project.strip():
+        doc_dir = get_projects_root() / project.strip()
+    else:
+        doc_dir = directory.parent
+
+    token = encode_doc_token(doc_dir)
+    rel = os.path.relpath(dest_path, doc_dir).replace("\\", "/")
+    if not rel.startswith("."):
+        rel = f"./{rel}"
+    clean_url_rel = rel.lstrip("./")
+    new_url = f"/api/assets/{token}/{clean_url_rel}"
+
+    return JSONResponse({
+        "old_filename": filename,
+        "filename": new_filename,
+        "rel_path": rel,
+        "url": new_url,
+    })
+

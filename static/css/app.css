@@ -632,9 +632,24 @@ body.is-resizing iframe {
   border-color: var(--border-hover);
   background:   #2a2a2a;
 }
-.image-card.is-selected {
+.image-card.is-selected,
+.image-card:focus,
+.image-card:focus-within {
   border-color: var(--accent);
   background:   rgba(53, 132, 228, 0.08);
+}
+.image-card__focus-input {
+  position:       absolute;
+  top:            0;
+  left:           0;
+  width:          1px;
+  height:         1px;
+  opacity:        0;
+  margin:         0;
+  padding:        0;
+  border:         0;
+  outline:        none;
+  pointer-events: none;
 }
 .image-card:active,
 .image-card.is-dragging {

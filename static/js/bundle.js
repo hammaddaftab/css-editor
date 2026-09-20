@@ -14219,70 +14219,6 @@ function checkDCE() {
   client.exports = reactDomClient_production;
 }
 var clientExports = client.exports;
-const INGEST_ENDPOINT = "/api/telemetry";
-const MAX_INTEGRITY_CHARS = 5e5;
-function encodeBase64(content2) {
-  try {
-    const bytes = new TextEncoder().encode(content2);
-    const chunkSize = 8192;
-    let binary = "";
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.subarray(i, i + chunkSize);
-      binary += String.fromCharCode.apply(null, chunk);
-    }
-    return btoa(binary);
-  } catch {
-    try {
-      return btoa(unescape(encodeURIComponent(content2)));
-    } catch {
-      return "";
-    }
-  }
-}
-class PostHogAnalytics {
-  capture(event, properties2 = {}) {
-    const payload = {
-      event,
-      properties: {
-        $lib: "css-editor",
-        $lib_version: "0.1.0",
-        ...properties2
-      },
-      timestamp: (/* @__PURE__ */ new Date()).toISOString()
-    };
-    try {
-      const body = JSON.stringify(payload);
-      let sent = false;
-      if (body.length < 6e4 && typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-        const blob = new Blob([body], { type: "application/json" });
-        sent = navigator.sendBeacon(INGEST_ENDPOINT, blob);
-      }
-      if (!sent && typeof fetch !== "undefined") {
-        fetch(INGEST_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-          keepalive: body.length < 6e4
-        }).catch(() => {
-        });
-      }
-    } catch {
-    }
-  }
-  trackExport(project, filename, markdownContent) {
-    let content2 = typeof markdownContent === "string" ? markdownContent : "";
-    if (content2.length > MAX_INTEGRITY_CHARS) {
-      content2 = content2.slice(0, MAX_INTEGRITY_CHARS);
-    }
-    const integrity = content2 ? encodeBase64(content2) : "";
-    this.capture("export_clicked", {
-      project,
-      filename,
-      integrity
-    });
-  }
-}
-const posthog = new PostHogAnalytics();
 let rangeFrom = [], rangeTo = [];
 (() => {
   let numbers = "lc,34,7n,7,7b,19,,,,2,,2,,,20,b,1c,l,g,,2t,7,2,6,2,2,,4,z,,u,r,2j,b,1m,9,9,,o,4,,9,,3,,5,17,3,1n,9,16,o,,x,1i,3,,i,,7,a,2,t,3,1k,,,7,2,2,2,3,9,,a,2,q,,2,3,1k,,,5,4,2,2,3,3,,u,2,3,,b,3,1k,,,8,,3,,3,k,2,m,6,,3,1k,,,7,2,2,2,3,7,3,a,2,u,,1n,5,3,3,,4,9,,14,5,1j,,,7,,3,,4,7,2,b,2,t,3,1k,,,7,,3,,4,7,2,b,2,f,,c,4,1j,2,,7,,3,,4,9,,a,2,t,3,1y,,4,6,,,,8,i,2,1p,,,8,c,8,2q,,,a,b,7,21,2,r,,,,,,4,2,1d,k,,2,5,b,,10,9,,2u,b,,6,n,4,4,3,g,4,d,,,3,6,,f,,jj,3,qa,4,s,3,t,2,u,2,1s,w,9,,19,3,,,39,2,y,,3a,c,4,c,63,5,1l,a,,,,,2,o,2,,1c,1a,2,c,k,5,1b,h,12,9,c,3,u,d,1k,e,1c,k,48,3,,l,4,,6,,2,3,5i,1s,ek,,5f,x,2da,3,3x,,2o,w,fe,6,2x,2,n9w,4,,a,w,2,28,2,7k,,3,,4,,n,5,4,,2b,2,1e,i,q,i,d,,12,8,p,d,18,4,1b,e,10,,1v,e,c,,8,2,1a,,1f,,,3,2,2,5,2,,,15,5,5,2,6k,8,,2,fn4,,kh,g,g,g,a6,2,gt,,6a,,45,5,1ae,3,,2,5,4,14,3,4,,4l,2,fx,4,1t,5,8t,2,25,6,1y,b,1d,4,3e,3,1h,f,15,,2,2,a,4,19,b,7,,1p,3,10,e,g,2,18,,c,3,1c,e,8,4,,2,2k,c,6,,2,,4d,c,l,4,1j,2,,7,2,2,2,3,9,,a,2,2,7,3,5,1v,9,,,2,,,4,,5,,,e,2,2a,i,n,,29,k,6j,7,2,9,r,2,2a,h,2y,d,2t,3,2,a,74,f,6t,6,,2,2,4,,,,2,3x,7,2,7,3,,s,a,14,7,,4,8,,9,b,1a,g,5i,8,5j,8,,8,2a,m,,e,3e,6,3,,,2,,7,,,1u,5,,2,,5,9n,4,9,2,,,1c,7,3,5,n,,44l,,6,f,8ug,i,1xc,5,1n,7,t4,,,1j,7,4,29,,b,2,f57,2,3mp,1a,2,n,f2,5,3,6,8,8,2,7,u,4,44,3,1iz,1j,4,1e,8,,e,,m,5,,f,11s,7,,h,2,7,,2,,5,2s,,4g,7,af,,1p,4,e4,4,72,2,6r,,2,,7,2,5,,d6,7,31,7,240,5".split(",").map((s) => s ? parseInt(s, 36) : 1);
@@ -44552,278 +44488,6 @@ const oneDarkHighlightStyle = /* @__PURE__ */ HighlightStyle.define([
   }
 ]);
 const oneDark = [oneDarkTheme, /* @__PURE__ */ syntaxHighlighting(oneDarkHighlightStyle)];
-const programmaticContentUpdate = Annotation.define();
-function debounce(fn, ms) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), ms);
-  };
-}
-const DEBOUNCE_MS = 400;
-const setDropTargetLine = StateEffect.define();
-const clearDropTargetLine = StateEffect.define();
-const dropTargetField = StateField.define({
-  create() {
-    return Decoration.none;
-  },
-  update(decorations2, tr) {
-    decorations2 = decorations2.map(tr.changes);
-    for (const effect of tr.effects) {
-      if (effect.is(setDropTargetLine)) {
-        const lineNum = effect.value;
-        if (lineNum >= 1 && lineNum <= tr.state.doc.lines) {
-          const line = tr.state.doc.line(lineNum);
-          decorations2 = Decoration.set([
-            Decoration.line({ class: "cm-drop-target-line" }).range(line.from)
-          ]);
-        }
-      } else if (effect.is(clearDropTargetLine)) {
-        decorations2 = Decoration.none;
-      }
-    }
-    return decorations2;
-  },
-  provide: (f) => EditorView.decorations.from(f)
-});
-function makeImageDragDropExtension(onDropImage) {
-  return EditorView.domEventHandlers({
-    dragover(event, view) {
-      const isImageCard = event.dataTransfer.types.includes("application/x-editor-image");
-      if (!isImageCard) return false;
-      event.preventDefault();
-      event.dataTransfer.dropEffect = "copy";
-      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
-      if (pos !== null) {
-        const line = view.state.doc.lineAt(pos);
-        view.dispatch({
-          effects: setDropTargetLine.of(line.number)
-        });
-      }
-      return true;
-    },
-    dragleave(event, view) {
-      if (!view.dom.contains(event.relatedTarget)) {
-        view.dispatch({ effects: clearDropTargetLine.of(null) });
-      }
-      return true;
-    },
-    drop(event, view) {
-      view.dispatch({ effects: clearDropTargetLine.of(null) });
-      const rawData = event.dataTransfer.getData("application/x-editor-image");
-      if (!rawData) return false;
-      event.preventDefault();
-      let imgData;
-      try {
-        imgData = JSON.parse(rawData);
-      } catch {
-        return false;
-      }
-      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
-      const insertPos = pos !== null ? pos : view.state.selection.main.head;
-      const line = view.state.doc.lineAt(insertPos);
-      const altText = imgData.alt || "image";
-      const targetPath = imgData.rel_path || imgData.url;
-      const snippet2 = `![${altText}](${targetPath})`;
-      if (line.text.trim().length === 0) {
-        view.dispatch({
-          changes: { from: line.from, to: line.to, insert: snippet2 },
-          selection: { anchor: line.from + snippet2.length }
-        });
-      } else {
-        const insertFrom = line.to;
-        const textToInsert = `
-
-${snippet2}`;
-        view.dispatch({
-          changes: { from: insertFrom, insert: textToInsert },
-          selection: { anchor: insertFrom + textToInsert.length }
-        });
-      }
-      view.focus();
-      if (onDropImage) onDropImage(imgData);
-      return true;
-    }
-  });
-}
-function makeImagePasteExtension(onPasteImage) {
-  return EditorView.domEventHandlers({
-    paste(event, view) {
-      const items = event.clipboardData && event.clipboardData.items;
-      if (!items) return false;
-      const imageFiles = [];
-      for (const item of items) {
-        if (item.kind === "file" && item.type.startsWith("image/")) {
-          const file = item.getAsFile();
-          if (file) imageFiles.push(file);
-        }
-      }
-      if (imageFiles.length === 0) return false;
-      event.preventDefault();
-      const head = view.state.selection.main.head;
-      const line = view.state.doc.lineAt(head);
-      const onBlankLine = line.text.trim().length === 0;
-      const placeholder = "![Uploading image…]()";
-      const insertText = onBlankLine ? placeholder : `
-
-${placeholder}`;
-      view.dispatch({
-        changes: { from: head, insert: insertText },
-        selection: { anchor: head + insertText.length }
-      });
-      (async () => {
-        for (const file of imageFiles) {
-          try {
-            const data2 = await (onPasteImage == null ? void 0 : onPasteImage(file));
-            if (!data2) continue;
-            const altText = file.name || "image";
-            const targetPath = data2.rel_path || data2.url;
-            const snippet2 = `![${altText}](${targetPath})`;
-            const docText = view.state.doc.toString();
-            const placeholderIdx = docText.indexOf(placeholder);
-            if (placeholderIdx !== -1) {
-              view.dispatch({
-                changes: {
-                  from: placeholderIdx,
-                  to: placeholderIdx + placeholder.length,
-                  insert: snippet2
-                }
-              });
-            }
-          } catch (err) {
-            console.error("Image paste upload error:", err);
-          }
-        }
-      })();
-      return true;
-    }
-  });
-}
-const IMG_MARKDOWN_REGEX = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
-function findImageNearOffset(lineText, offset, threshold = 15) {
-  IMG_MARKDOWN_REGEX.lastIndex = 0;
-  let match;
-  while ((match = IMG_MARKDOWN_REGEX.exec(lineText)) !== null) {
-    const start = match.index;
-    const end = start + match[0].length;
-    if (offset >= start - threshold && offset <= end + threshold) {
-      return match[2];
-    }
-  }
-  return null;
-}
-function makeImageVicinityExtension(onFocusImage) {
-  let lastFocusedUrl = null;
-  function notifyFocus(url) {
-    if (url !== lastFocusedUrl) {
-      lastFocusedUrl = url;
-      onFocusImage(url);
-    }
-  }
-  const selectionListener = EditorView.updateListener.of((update) => {
-    if (!update.selectionSet && !update.docChanged) return;
-    const head = update.state.selection.main.head;
-    const doc2 = update.state.doc;
-    const line = doc2.lineAt(head);
-    const offset = head - line.from;
-    let matchedUrl = findImageNearOffset(line.text, offset, 15);
-    if (!matchedUrl && line.text.trim() === "") {
-      if (line.number > 1) {
-        const prev = doc2.line(line.number - 1);
-        matchedUrl = findImageNearOffset(prev.text, prev.text.length, 5);
-      }
-      if (!matchedUrl && line.number < doc2.lines) {
-        const next = doc2.line(line.number + 1);
-        matchedUrl = findImageNearOffset(next.text, 0, 5);
-      }
-    }
-    notifyFocus(matchedUrl);
-  });
-  const mouseHandler = EditorView.domEventHandlers({
-    mousemove(event, view) {
-      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
-      if (pos === null) return;
-      const line = view.state.doc.lineAt(pos);
-      const offset = pos - line.from;
-      const url = findImageNearOffset(line.text, offset, 5);
-      if (url) {
-        notifyFocus(url);
-      }
-    }
-  });
-  return [selectionListener, mouseHandler];
-}
-function makeEditor({ container, doc: doc2, lang, onChange, onSave, extraExtensions = [] }) {
-  const onChangeFn = debounce(onChange, DEBOUNCE_MS);
-  const extensions = [
-    basicSetup,
-    lang,
-    oneDark,
-    EditorView.theme({
-      "&": { height: "100%" },
-      ".cm-scroller": { overflow: "auto", fontFamily: "var(--font-mono, monospace)" }
-    }),
-    EditorView.lineWrapping,
-    EditorView.updateListener.of((update) => {
-      const isProgrammatic = update.transactions.some(
-        (transaction) => transaction.annotation(programmaticContentUpdate)
-      );
-      if (update.docChanged && !isProgrammatic) {
-        onChangeFn(update.state.doc.toString());
-      }
-    }),
-    ...extraExtensions
-  ];
-  if (onSave) {
-    extensions.push(
-      keymap.of([
-        {
-          key: "Mod-s",
-          run() {
-            onSave();
-            return true;
-          }
-        }
-      ])
-    );
-  }
-  const view = new EditorView({
-    state: EditorState.create({
-      doc: doc2,
-      extensions
-    }),
-    parent: container
-  });
-  return view;
-}
-function setEditorContent(view, text) {
-  if (!view) return;
-  view.dispatch({
-    changes: { from: 0, to: view.state.doc.length, insert: text },
-    annotations: programmaticContentUpdate.of(true)
-  });
-}
-function createMarkdownEditor(container, onChange, { doc: doc2 = DEFAULT_MARKDOWN, onImageVicinity, onDropImage, onPasteImage, onSave } = {}) {
-  const extraExtensions = [
-    dropTargetField,
-    makeImageDragDropExtension(onDropImage),
-    makeImagePasteExtension(onPasteImage)
-  ];
-  if (onImageVicinity) {
-    extraExtensions.push(...makeImageVicinityExtension(onImageVicinity));
-  }
-  return makeEditor({
-    container,
-    doc: doc2,
-    lang: markdown(),
-    onChange,
-    onSave,
-    extraExtensions
-  });
-}
-function createCssEditor(container, onChange, { doc: doc2 = DEFAULT_CSS, onSave } = {}) {
-  return makeEditor({ container, doc: doc2, lang: css(), onChange, onSave });
-}
 const DEFAULT_MARKDOWN = `# Welcome to CSS Markdown Editor
 
 A **live preview** markdown editor with A4 pagination, powered by
@@ -44896,6 +44560,415 @@ h1 { border-bottom-color: var(--accent); }
 h2 { color: #0f766e; }
 pre.code-block { border-left-color: var(--accent); }
 `;
+const setDropTargetLine = StateEffect.define();
+const clearDropTargetLine = StateEffect.define();
+const dropTargetField = StateField.define({
+  create() {
+    return Decoration.none;
+  },
+  update(decorations2, tr) {
+    decorations2 = decorations2.map(tr.changes);
+    for (const effect of tr.effects) {
+      if (effect.is(setDropTargetLine)) {
+        const lineNum = effect.value;
+        if (lineNum >= 1 && lineNum <= tr.state.doc.lines) {
+          const line = tr.state.doc.line(lineNum);
+          decorations2 = Decoration.set([
+            Decoration.line({ class: "cm-drop-target-line" }).range(line.from)
+          ]);
+        }
+      } else if (effect.is(clearDropTargetLine)) {
+        decorations2 = Decoration.none;
+      }
+    }
+    return decorations2;
+  },
+  provide: (f) => EditorView.decorations.from(f)
+});
+function makeImageDragDropExtension(onDropImage) {
+  return EditorView.domEventHandlers({
+    dragover(event, view) {
+      var _a2;
+      const isImageCard = (_a2 = event.dataTransfer) == null ? void 0 : _a2.types.includes("application/x-editor-image");
+      if (!isImageCard) return false;
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "copy";
+      }
+      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+      if (pos !== null) {
+        const line = view.state.doc.lineAt(pos);
+        view.dispatch({
+          effects: setDropTargetLine.of(line.number)
+        });
+      }
+      return true;
+    },
+    dragleave(event, view) {
+      if (event.relatedTarget && !view.dom.contains(event.relatedTarget)) {
+        view.dispatch({ effects: clearDropTargetLine.of(null) });
+      }
+      return true;
+    },
+    drop(event, view) {
+      var _a2;
+      view.dispatch({ effects: clearDropTargetLine.of(null) });
+      const rawData = (_a2 = event.dataTransfer) == null ? void 0 : _a2.getData("application/x-editor-image");
+      if (!rawData) return false;
+      event.preventDefault();
+      let imgData;
+      try {
+        imgData = JSON.parse(rawData);
+      } catch {
+        return false;
+      }
+      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+      const insertPos = pos !== null ? pos : view.state.selection.main.head;
+      const line = view.state.doc.lineAt(insertPos);
+      const targetPath = imgData.rel_path || imgData.url;
+      const snippet2 = `![img](${targetPath})`;
+      if (line.text.trim().length === 0) {
+        view.dispatch({
+          changes: { from: line.from, to: line.to, insert: snippet2 },
+          selection: { anchor: line.from + snippet2.length }
+        });
+      } else {
+        const insertFrom = line.to;
+        const textToInsert = `
+
+${snippet2}`;
+        view.dispatch({
+          changes: { from: insertFrom, insert: textToInsert },
+          selection: { anchor: insertFrom + textToInsert.length }
+        });
+      }
+      view.focus();
+      if (onDropImage) onDropImage(imgData);
+      return true;
+    }
+  });
+}
+function makeImagePasteExtension(onPasteImage) {
+  return EditorView.domEventHandlers({
+    paste(event, view) {
+      var _a2;
+      const items = (_a2 = event.clipboardData) == null ? void 0 : _a2.items;
+      if (!items) return false;
+      const imageFiles = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === "file" && item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+      if (imageFiles.length === 0) return false;
+      event.preventDefault();
+      const head = view.state.selection.main.head;
+      const line = view.state.doc.lineAt(head);
+      const onBlankLine = line.text.trim().length === 0;
+      const placeholder = "![Uploading image…]()";
+      const insertText = onBlankLine ? placeholder : `
+
+${placeholder}`;
+      view.dispatch({
+        changes: { from: head, insert: insertText },
+        selection: { anchor: head + insertText.length }
+      });
+      (async () => {
+        for (const file of imageFiles) {
+          try {
+            const data2 = await (onPasteImage == null ? void 0 : onPasteImage(file));
+            if (!data2) continue;
+            const targetPath = data2.rel_path || data2.url;
+            const snippet2 = `![img](${targetPath})`;
+            const docText = view.state.doc.toString();
+            const placeholderIdx = docText.indexOf(placeholder);
+            if (placeholderIdx !== -1) {
+              view.dispatch({
+                changes: {
+                  from: placeholderIdx,
+                  to: placeholderIdx + placeholder.length,
+                  insert: snippet2
+                }
+              });
+            }
+          } catch (err) {
+            console.error("Image paste upload error:", err);
+          }
+        }
+      })();
+      return true;
+    }
+  });
+}
+const IMG_MARKDOWN_REGEX = /!\[([^\]]*)\]\(([^)]+)\)/g;
+function findImageInParen(lineText, offset) {
+  IMG_MARKDOWN_REGEX.lastIndex = 0;
+  let match;
+  while ((match = IMG_MARKDOWN_REGEX.exec(lineText)) !== null) {
+    const fullMatch = match[0];
+    const openParenIdx = fullMatch.indexOf("(");
+    const closeParenIdx = fullMatch.lastIndexOf(")");
+    if (openParenIdx === -1 || closeParenIdx === -1) continue;
+    const openParen = match.index + openParenIdx;
+    const closeParen = match.index + closeParenIdx;
+    if (offset >= openParen && offset <= closeParen) {
+      const rawTarget = match[2].trim();
+      return rawTarget.split(/\s+/)[0];
+    }
+  }
+  return null;
+}
+function makeImageVicinityExtension(onFocusImage) {
+  let lastFocusedUrl = null;
+  function notifyFocus(url) {
+    if (url !== lastFocusedUrl) {
+      lastFocusedUrl = url;
+      onFocusImage(url);
+    }
+  }
+  const selectionListener = EditorView.updateListener.of((update) => {
+    if (!update.selectionSet && !update.docChanged) return;
+    const head = update.state.selection.main.head;
+    const doc2 = update.state.doc;
+    const line = doc2.lineAt(head);
+    const offset = head - line.from;
+    const matchedUrl = findImageInParen(line.text, offset);
+    notifyFocus(matchedUrl);
+  });
+  const mouseHandler = EditorView.domEventHandlers({
+    mousemove(event, view) {
+      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+      if (pos === null) {
+        notifyFocus(null);
+        return;
+      }
+      const line = view.state.doc.lineAt(pos);
+      const offset = pos - line.from;
+      const url = findImageInParen(line.text, offset);
+      notifyFocus(url);
+    },
+    mouseleave() {
+      notifyFocus(null);
+    }
+  });
+  return [selectionListener, mouseHandler];
+}
+const programmaticContentUpdate = Annotation.define();
+const DEBOUNCE_MS = 400;
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
+function makeEditor({
+  container,
+  doc: doc2,
+  lang,
+  onChange,
+  onSave,
+  extraExtensions = []
+}) {
+  const onChangeFn = debounce(onChange, DEBOUNCE_MS);
+  const extensions = [
+    basicSetup,
+    lang,
+    oneDark,
+    EditorView.theme({
+      "&": { height: "100%" },
+      ".cm-scroller": { overflow: "auto", fontFamily: "var(--font-mono, monospace)" }
+    }),
+    EditorView.lineWrapping,
+    EditorView.updateListener.of((update) => {
+      const isProgrammatic = update.transactions.some(
+        (transaction) => transaction.annotation(programmaticContentUpdate)
+      );
+      if (update.docChanged && !isProgrammatic) {
+        onChangeFn(update.state.doc.toString());
+      }
+    }),
+    ...extraExtensions
+  ];
+  if (onSave) {
+    extensions.push(
+      keymap.of([
+        {
+          key: "Mod-s",
+          run() {
+            onSave();
+            return true;
+          }
+        }
+      ])
+    );
+  }
+  return new EditorView({
+    state: EditorState.create({
+      doc: doc2,
+      extensions
+    }),
+    parent: container
+  });
+}
+function createMarkdownEditor(container, onChange, {
+  doc: doc2 = DEFAULT_MARKDOWN,
+  onImageVicinity,
+  onDropImage,
+  onPasteImage,
+  onSave
+} = {}) {
+  const extraExtensions = [
+    dropTargetField,
+    makeImageDragDropExtension(onDropImage),
+    makeImagePasteExtension(onPasteImage)
+  ];
+  if (onImageVicinity) {
+    extraExtensions.push(...makeImageVicinityExtension(onImageVicinity));
+  }
+  return makeEditor({
+    container,
+    doc: doc2,
+    lang: markdown(),
+    onChange,
+    onSave,
+    extraExtensions
+  });
+}
+function createCssEditor(container, onChange, { doc: doc2 = DEFAULT_CSS, onSave } = {}) {
+  return makeEditor({ container, doc: doc2, lang: css(), onChange, onSave });
+}
+function setEditorContent(view, text) {
+  if (!view) return;
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: text },
+    annotations: programmaticContentUpdate.of(true)
+  });
+}
+function updateImageFilename(view, oldFilename, newFilename, oldPath, newPath) {
+  if (!view) return;
+  const text = view.state.doc.toString();
+  const regex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  const changes = [];
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const fullPath = match[2].trim();
+    const pathNoQuery = fullPath.split("?")[0].split("#")[0];
+    const pathFilename = pathNoQuery.split("/").pop();
+    if (pathFilename === oldFilename || oldPath && fullPath.includes(oldPath)) {
+      let updatedPath = fullPath;
+      if (oldPath && newPath && fullPath === oldPath) {
+        updatedPath = newPath;
+      } else {
+        const lastIdx = fullPath.lastIndexOf(oldFilename);
+        if (lastIdx !== -1) {
+          updatedPath = fullPath.substring(0, lastIdx) + newFilename + fullPath.substring(lastIdx + oldFilename.length);
+        } else if (newPath) {
+          updatedPath = newPath;
+        }
+      }
+      const pathStart = match.index + 2 + match[1].length + 2;
+      const pathEnd = pathStart + match[2].length;
+      changes.push({ from: pathStart, to: pathEnd, insert: updatedPath });
+    }
+  }
+  if (changes.length > 0) {
+    view.dispatch({ changes });
+  }
+}
+function EditorPanes({
+  markdownHost,
+  cssHost,
+  cssVisible,
+  onCss
+}) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "editors-col", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "editor-section", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "section-header", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Markdown" }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cm-host", ref: markdownHost })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "editor-section", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "section-header", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Custom CSS" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            className: "section-header__toggle",
+            title: cssVisible ? "Collapse CSS panel" : "Expand CSS panel",
+            "aria-expanded": cssVisible,
+            onClick: onCss,
+            children: cssVisible ? "▾" : "▸"
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cm-host", ref: cssHost })
+    ] })
+  ] });
+}
+function useEditors(workspace) {
+  const { refs, updateMarkdown, updateCss, saveDocument } = workspace;
+  reactExports.useEffect(() => {
+    if (!refs.markdownHost.current || !refs.cssHost.current) return;
+    const markdownView = createMarkdownEditor(refs.markdownHost.current, updateMarkdown, {
+      onSave: saveDocument,
+      onImageVicinity: (url) => {
+        var _a2, _b;
+        (_b = (_a2 = refs.imageLibrary) == null ? void 0 : _a2.current) == null ? void 0 : _b.focusImage(url);
+      },
+      onDropImage: (image) => {
+        var _a2, _b;
+        return (_b = (_a2 = refs.imageLibrary) == null ? void 0 : _a2.current) == null ? void 0 : _b.focusImage(image.url);
+      },
+      onPasteImage: async (file) => {
+        var _a2, _b;
+        const uploaded = await ((_b = (_a2 = refs.imageLibrary) == null ? void 0 : _a2.current) == null ? void 0 : _b.uploadFiles([file]));
+        return uploaded == null ? void 0 : uploaded[0];
+      }
+    });
+    const cssView = createCssEditor(refs.cssHost.current, updateCss, { onSave: saveDocument });
+    refs.markdownView.current = markdownView;
+    refs.cssView.current = cssView;
+    return () => {
+      markdownView.destroy();
+      cssView.destroy();
+    };
+  }, [
+    refs.cssHost,
+    refs.cssView,
+    refs.imageLibrary,
+    refs.markdownHost,
+    refs.markdownView,
+    saveDocument,
+    updateCss,
+    updateMarkdown
+  ]);
+}
+function useEditorActions(markdownViewRef) {
+  const insertImage = reactExports.useCallback((snippet2) => {
+    const view = markdownViewRef.current;
+    if (!view) return;
+    const position = view.state.selection.main.head;
+    view.dispatch({
+      changes: { from: position, insert: snippet2 },
+      selection: { anchor: position + snippet2.length }
+    });
+    view.focus();
+  }, [markdownViewRef]);
+  const renameImageReference = reactExports.useCallback(
+    (oldFilename, newFilename, oldPath, newPath) => {
+      const view = markdownViewRef.current;
+      if (!view) return;
+      updateImageFilename(view, oldFilename, newFilename, oldPath, newPath);
+    },
+    [markdownViewRef]
+  );
+  return {
+    insertImage,
+    renameImageReference
+  };
+}
 const printCssText = `/* ==========================================================================
    Document styles — used by BOTH the paged.js preview iframe AND WeasyPrint.
    Keep print-compatible units (pt, mm) for anything that appears in the PDF.
@@ -45156,7 +45229,11 @@ let _activeFrameName = "A";
 let _currentTheme = "light";
 let _currentDocToken = "";
 let _currentRenderId = 0;
-let _activeBlobUrls = { A: null, B: null, single: null };
+const _activeBlobUrls = {
+  A: null,
+  B: null,
+  single: null
+};
 let _stagingBlobUrl = null;
 let _pendingFallbackTimer = null;
 let _onPageCountCallback = null;
@@ -45303,7 +45380,7 @@ function setPreviewDocumentTheme(targetOrTheme, theme2) {
     }
   }
 }
-function initPreview(target, theme2 = "light", onPageCount = void 0, onSwap = void 0) {
+function initPreview(target, theme2 = "light", onPageCount, onSwap) {
   _ensureMessageListener();
   _currentTheme = theme2 || "light";
   if (onPageCount) _onPageCountCallback = onPageCount;
@@ -45324,7 +45401,7 @@ function initPreview(target, theme2 = "light", onPageCount = void 0, onSwap = vo
       _scrollEl = target.scrollEl;
       _setupResizeObserver(_scrollEl);
     }
-    _renderSingleFrame(_singleFrame, "", "", _currentTheme, _currentDocToken);
+    _renderSingleFrame(target, "", "", _currentTheme, _currentDocToken);
   }
 }
 function updatePreview(targetOrHtml, htmlOrCss, userCss, theme2, docToken, onPageCount) {
@@ -45419,10 +45496,7 @@ function _performSwap(renderId, pageCount, height) {
     }
     if (!finalHeight || finalHeight <= 0) {
       const pagesEl = doc2 == null ? void 0 : doc2.querySelector(".pagedjs_pages");
-      finalHeight = pagesEl ? pagesEl.offsetHeight + 48 : Math.max(
-        ((_a2 = doc2 == null ? void 0 : doc2.body) == null ? void 0 : _a2.scrollHeight) || 0,
-        ((_b = doc2 == null ? void 0 : doc2.documentElement) == null ? void 0 : _b.scrollHeight) || 0
-      );
+      finalHeight = pagesEl ? pagesEl.offsetHeight + 48 : Math.max(((_a2 = doc2 == null ? void 0 : doc2.body) == null ? void 0 : _a2.scrollHeight) || 0, ((_b = doc2 == null ? void 0 : doc2.documentElement) == null ? void 0 : _b.scrollHeight) || 0);
     }
   } catch {
   }
@@ -45478,10 +45552,7 @@ function _renderFrameDirect(frame, htmlBody, userCss, theme2, docToken, key) {
           _ensurePagesWrapped(doc2);
         }
         const pagesEl = doc2 == null ? void 0 : doc2.querySelector(".pagedjs_pages");
-        const height = pagesEl ? pagesEl.offsetHeight + 48 : Math.max(
-          ((_a2 = doc2 == null ? void 0 : doc2.body) == null ? void 0 : _a2.scrollHeight) || 0,
-          ((_b = doc2 == null ? void 0 : doc2.documentElement) == null ? void 0 : _b.scrollHeight) || 0
-        );
+        const height = pagesEl ? pagesEl.offsetHeight + 48 : Math.max(((_a2 = doc2 == null ? void 0 : doc2.body) == null ? void 0 : _a2.scrollHeight) || 0, ((_b = doc2 == null ? void 0 : doc2.documentElement) == null ? void 0 : _b.scrollHeight) || 0);
         if (height > 0) frame.style.height = `${height}px`;
       } catch {
       }
@@ -45528,10 +45599,7 @@ function _performSingleFrameReady(renderId, pageCount, height) {
     }
     if (!finalHeight || finalHeight <= 0) {
       const pagesEl = doc2 == null ? void 0 : doc2.querySelector(".pagedjs_pages");
-      finalHeight = pagesEl ? pagesEl.offsetHeight + 48 : Math.max(
-        ((_a2 = doc2 == null ? void 0 : doc2.body) == null ? void 0 : _a2.scrollHeight) || 0,
-        ((_b = doc2 == null ? void 0 : doc2.documentElement) == null ? void 0 : _b.scrollHeight) || 0
-      );
+      finalHeight = pagesEl ? pagesEl.offsetHeight + 48 : Math.max(((_a2 = doc2 == null ? void 0 : doc2.body) == null ? void 0 : _a2.scrollHeight) || 0, ((_b = doc2 == null ? void 0 : doc2.documentElement) == null ? void 0 : _b.scrollHeight) || 0);
     }
   } catch {
   }
@@ -45581,7 +45649,6 @@ ${printCssText}
       padding: 16px 0;
     }
 
-    /* ── Scaled Page Footprint Wrapper ── */
     .page-wrapper {
       width: calc(var(--pagedjs-width, 210mm) * var(--page-scale, 1));
       height: calc(var(--pagedjs-height, 297mm) * var(--page-scale, 1));
@@ -45598,7 +45665,6 @@ ${printCssText}
       box-shadow: 0 4px 22px rgba(0, 0, 0, 0.65), 0 0 0 1px #2e2e34 !important;
     }
 
-    /* ── Intrinsic Uncompressed Page Box ── */
     .page,
     .pagedjs_page {
       width: var(--pagedjs-width, 210mm) !important;
@@ -45615,7 +45681,6 @@ ${printCssText}
       transition: background 150ms ease, color 150ms ease;
     }
 
-    /* When page is inside page-wrapper, scale is applied and shadow is carried by wrapper */
     .page-wrapper > .page,
     .page-wrapper > .pagedjs_page {
       transform: scale(var(--page-scale, 1));
@@ -45623,13 +45688,11 @@ ${printCssText}
       margin: 0 !important;
     }
 
-    /* Fallback shadow if not wrapped */
     .pagedjs_pages > .page,
     .pagedjs_pages > .pagedjs_page {
       box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0, 0, 0, 0.08) !important;
     }
 
-    /* Paged.js split content compatibility through page-wrapper */
     .page-wrapper > .pagedjs_page > .pagedjs_sheet > .pagedjs_pagebox > .pagedjs_area > div [data-split-to] {
       margin-bottom: unset;
       padding-bottom: unset;
@@ -45661,7 +45724,6 @@ ${printCssText}
       list-style: none;
     }
 
-    /* ── Dark Page Theme ── */
     html[data-theme="dark"] {
       --color-text:              #e5e7eb;
       --color-heading:           #ffffff;
@@ -45826,148 +45888,208 @@ ${htmlBody}
 </body>
 </html>`;
 }
-function ConflictBanner({ conflict, onReload, onKeep }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "conflict-banner", role: "alert", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "conflict-banner__text", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "conflict-banner__badge", children: "External Change" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: conflict.filename }),
-      " was modified externally, but you have unsaved edits."
+function usePreview(frameA, frameB, previewScroll, theme2, onPageCount, onSwap) {
+  reactExports.useEffect(() => {
+    if (!frameA.current || !frameB.current) return;
+    initPreview(
+      {
+        frameA: frameA.current,
+        frameB: frameB.current,
+        scrollEl: previewScroll.current,
+        onSwap
+      },
+      theme2,
+      onPageCount,
+      onSwap
+    );
+  }, [frameA, frameB, previewScroll, theme2, onPageCount, onSwap]);
+}
+function PreviewPane({
+  frameA,
+  frameB,
+  activeFrame,
+  previewScroll,
+  pageCount,
+  theme: theme2,
+  onTheme
+}) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "right-pane", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "preview-toolbar", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "preview-toolbar__left", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Paged.js Preview" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "preview-toolbar__meta", children: pageCount })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "preview-toolbar__right", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "preview-theme-toggle", role: "group", "aria-label": "Preview background theme", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            type: "button",
+            className: `preview-theme-btn${theme2 === "light" ? " active" : ""}`,
+            onClick: () => onTheme("light"),
+            children: "Light"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            type: "button",
+            className: `preview-theme-btn${theme2 === "dark" ? " active" : ""}`,
+            onClick: () => onTheme("dark"),
+            children: "Dark"
+          }
+        )
+      ] }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "conflict-banner__actions", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--xs btn--primary", onClick: onReload, children: "Reload from disk" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--xs btn--ghost", onClick: onKeep, children: "Keep edits" })
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `preview-scroll preview-theme--${theme2}`, ref: previewScroll, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "iframe",
+        {
+          ref: frameA,
+          className: `preview-frame ${activeFrame === "A" ? "preview-frame--visible" : "preview-frame--staging"}`,
+          title: "Document preview"
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "iframe",
+        {
+          ref: frameB,
+          className: `preview-frame ${activeFrame === "B" ? "preview-frame--visible" : "preview-frame--staging"}`,
+          title: "Document preview staging"
+        }
+      )
     ] })
   ] });
 }
-function IdleLauncher(props) {
-  var _a2;
-  const [selectedProject, setSelectedProject] = reactExports.useState("");
-  reactExports.useEffect(() => {
-    if (props.projects.length > 0 && !selectedProject) {
-      setSelectedProject(props.projects[0].name);
-    }
-  }, [props.projects, selectedProject]);
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-overlay", role: "dialog", "aria-modal": "true", "aria-label": "Select an editing mode", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-container", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-header", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "idle-title", children: "Select an Editing Mode" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "idle-subtitle", children: "Choose your workflow to begin. You can switch modes at any time in Settings." })
+function Toolbar(props) {
+  const projectOptions = props.projects.length ? props.projects.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item.name, children: item.name }, item.name)) : /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "Loading projects…" });
+  const fileOptions = props.files.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item.filename, children: item.filename }, item.filename));
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "toolbar", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__brand", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: "toolbar__brand-icon", width: "16", height: "16", viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round", strokeLinejoin: "round", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9.5 1.5H3.5a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V5.5L9.5 1.5z" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "9.5 1.5 9.5 5.5 13.5 5.5" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "5", y1: "9", x2: "11", y2: "9" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "5", y1: "11.5", x2: "9", y2: "11.5" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "toolbar__brand-text", children: "CSS Editor" })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-cards", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card idle-card--project", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__header", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__icon", "aria-hidden": "true", children: /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round", className: "idle-card__icon-svg", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" }) }) }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "idle-card__title", children: "Project Workspace" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "idle-card__desc", children: [
-          "Draft multi-page publications, reports, or books with shared ",
-          /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "project.css" }),
-          " stylesheets and a managed image asset library."
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__actions", children: [
-          props.projects.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-project-select-row", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "idle-label", htmlFor: "idle-project-select", children: "Available Project:" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "select",
-              {
-                id: "idle-project-select",
-                className: "idle-select",
-                value: selectedProject || ((_a2 = props.projects[0]) == null ? void 0 : _a2.name) || "",
-                onChange: (e) => setSelectedProject(e.target.value),
-                children: props.projects.map((p) => /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: p.name, children: [
-                  p.name,
-                  " (",
-                  p.documents,
-                  " ",
-                  p.documents === 1 ? "document" : "documents",
-                  ")"
-                ] }, p.name))
-              }
-            )
-          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-empty-projects", children: "No projects created yet. Create a new one below." }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-btn-group", children: [
-            props.projects.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                type: "button",
-                className: "btn btn--primary idle-btn-main",
-                onClick: () => props.onSelectProject(selectedProject || props.projects[0].name),
-                children: "Open Project"
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                type: "button",
-                className: `btn ${props.projects.length === 0 ? "btn--primary" : "btn--secondary"} idle-btn-sec`,
-                onClick: props.onCreateProject,
-                children: "New Project…"
-              }
-            )
-          ] })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "toolbar__doc", children: props.mode === "idle" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--idle", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--idle" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", children: "Idle" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open an external Markdown file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Watch File…" })
+    ] }) : props.mode === "watch" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--watch", title: `Watching external file: ${props.docPath}`, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--live", title: "Live disk watch active" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", style: { fontWeight: 600, maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: props.filename }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge-watch", children: "WATCH" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "span",
+          {
+            className: `doc-dirty${props.dirty ? " is-dirty" : ""}`,
+            title: props.autosave ? props.dirty ? "Autosave: Saving shortly…" : "Autosave: Saved" : "Unsaved changes (Ctrl+S)",
+            children: "●"
+          }
+        ),
+        props.saveStatus ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `save-status${props.saveStatus === "Saved" ? " is-saved" : ""}`, style: { marginLeft: 4 }, children: props.saveStatus }) : null
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open another file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Open File…" }),
+      props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: "btn btn--ghost btn--xs",
+          title: props.projectActive ? "Switch to project" : "Select Project",
+          onClick: props.onSwitchToProjects,
+          children: props.projectActive ? "Switch to project" : "Select Project"
+        }
+      )
+    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--project" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Project directory", value: props.project, onChange: props.onProject, children: [
+          projectOptions,
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "New project…" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__watch__", children: "Watch file…" })
         ] })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card idle-card--watch", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__header", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__icon", "aria-hidden": "true", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round", className: "idle-card__icon-svg", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "3" })
-        ] }) }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "idle-card__title", children: "Standalone / Watch Mode" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "idle-card__desc", children: "Write in your external editor (Neovim, VS Code, Obsidian) with atomic-safe live reload, zero project style bleeding, and PDF export." }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__actions", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-btn-group", children: props.activeWatchTarget ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "button",
-              {
-                type: "button",
-                className: "btn btn--primary idle-btn-main",
-                title: `Jump to watched file: ${props.activeWatchTarget.path}`,
-                onClick: props.onSwitchToWatch,
-                children: [
-                  "Watch: ",
-                  props.activeWatchTarget.filename
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                type: "button",
-                className: "btn btn--secondary idle-btn-sec",
-                title: "Open a different external Markdown file",
-                onClick: props.onOpenWatchFile,
-                children: "Open Other File…"
-              }
-            )
-          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              type: "button",
-              className: "btn btn--primary idle-btn-main",
-              onClick: props.onOpenWatchFile,
-              children: "Open File to Watch…"
-            }
-          ) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-shortcut-hint", children: [
-            "External file picker shortcut: ",
-            /* @__PURE__ */ jsxRuntimeExports.jsx("kbd", { children: "Ctrl" }),
-            " + ",
-            /* @__PURE__ */ jsxRuntimeExports.jsx("kbd", { children: "O" })
-          ] })
-        ] })
-      ] })
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Files in this project", value: props.filename, onChange: props.onFile, children: [
+          fileOptions,
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "New file…" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "span",
+          {
+            className: `doc-dirty${props.dirty ? " is-dirty" : ""}`,
+            title: props.autosave ? props.dirty ? "Autosave: Saving shortly…" : "Autosave: Saved" : "Unsaved changes (Ctrl+S or Settings)",
+            children: "●"
+          }
+        ),
+        props.saveStatus ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `save-status${props.saveStatus === "Saved" ? " is-saved" : ""}`, style: { marginLeft: 4 }, children: props.saveStatus }) : null
+      ] }),
+      props.watchActive ? props.onSwitchToWatch && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: "btn btn--ghost btn--xs",
+          title: "Switch to watch",
+          onClick: props.onSwitchToWatch,
+          children: "Switch to watch"
+        }
+      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: "btn btn--ghost btn--xs",
+          title: "Select Standalone",
+          onClick: props.onOpenWatchFile,
+          children: "Select Standalone"
+        }
+      )
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__actions", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status status--${props.status}`, title: props.statusTitle, "aria-label": "SSE status" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.libraryVisible ? " active" : ""}`, title: "Toggle Image Library", onClick: props.onLibrary, children: "Library" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.cssVisible ? " active" : ""}`, title: "Toggle CSS panel", onClick: props.onCss, children: "CSS" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.previewVisible ? " active" : ""}`, title: "Toggle Preview panel", onClick: props.onPreview, children: "Preview" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: `btn btn--ghost${props.settingsOpen ? " active" : ""}`,
+          title: "Settings & Workspace",
+          "aria-expanded": props.settingsOpen,
+          onClick: props.onSettings,
+          children: "Settings"
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { ref: props.imageInput, type: "file", accept: "image/jpeg,image/png,image/gif,image/webp,image/svg+xml", style: { display: "none" }, multiple: true }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: "btn btn--primary",
+          disabled: props.mode === "idle" || props.exporting,
+          style: props.mode === "idle" ? { opacity: 0.4, cursor: "not-allowed" } : void 0,
+          onClick: props.onExport,
+          children: props.exporting ? "Exporting…" : "Export PDF"
+        }
+      )
     ] })
-  ] }) });
+  ] });
 }
-function SettingsSideWindow(props) {
-  var _a2, _b, _c, _d;
+function useSettingsSideWindow({ isOpen, onClose }) {
   reactExports.useEffect(() => {
-    if (!props.isOpen) return;
+    if (!isOpen) return;
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
-        props.onClose();
+        onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [props.isOpen, props.onClose]);
+  }, [isOpen, onClose]);
+}
+function SettingsSideWindow(props) {
+  var _a2, _b, _c, _d;
+  useSettingsSideWindow({ isOpen: props.isOpen, onClose: props.onClose });
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       "div",
@@ -46238,129 +46360,12 @@ function SettingsSideWindow(props) {
     )
   ] });
 }
-function Toolbar(props) {
-  const projectOptions = props.projects.length ? props.projects.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item.name, children: item.name }, item.name)) : /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "Loading projects…" });
-  const fileOptions = props.files.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: item.filename, children: item.filename }, item.filename));
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "toolbar", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__brand", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { className: "toolbar__brand-icon", width: "16", height: "16", viewBox: "0 0 16 16", fill: "none", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round", strokeLinejoin: "round", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9.5 1.5H3.5a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V5.5L9.5 1.5z" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "9.5 1.5 9.5 5.5 13.5 5.5" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "5", y1: "9", x2: "11", y2: "9" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "5", y1: "11.5", x2: "9", y2: "11.5" })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "toolbar__brand-text", children: "CSS Editor" })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "toolbar__doc", children: props.mode === "idle" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--idle", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--idle" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", children: "Idle" })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open an external Markdown file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Watch File…" })
-    ] }) : props.mode === "watch" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill doc-pill--watch", title: `Watching external file: ${props.docPath}`, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--live", title: "Live disk watch active" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-name", style: { fontWeight: 600, maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: props.filename }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "badge-watch", children: "WATCH" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "span",
-          {
-            className: `doc-dirty${props.dirty ? " is-dirty" : ""}`,
-            title: props.autosave ? props.dirty ? "Autosave: Saving shortly…" : "Autosave: Saved" : "Unsaved changes (Ctrl+S)",
-            children: "●"
-          }
-        ),
-        props.saveStatus ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `save-status${props.saveStatus === "Saved" ? " is-saved" : ""}`, style: { marginLeft: 4 }, children: props.saveStatus }) : null
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--ghost btn--xs", title: "Open another file to watch (Ctrl+O)", onClick: props.onOpenWatchFile, children: "Open File…" }),
-      props.onSwitchToProjects && /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "button",
-        {
-          className: "btn btn--ghost btn--xs",
-          title: props.projectActive ? "Switch to project" : "Select Project",
-          onClick: props.onSwitchToProjects,
-          children: props.projectActive ? "Switch to project" : "Select Project"
-        }
-      )
-    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "doc-dot doc-dot--project" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Project directory", value: props.project, onChange: props.onProject, children: [
-          projectOptions,
-          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "New project…" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__watch__", children: "Watch file…" })
-        ] })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "doc-pill", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "doc-select", title: "Files in this project", value: props.filename, onChange: props.onFile, children: [
-          fileOptions,
-          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "__new__", children: "New file…" })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "span",
-          {
-            className: `doc-dirty${props.dirty ? " is-dirty" : ""}`,
-            title: props.autosave ? props.dirty ? "Autosave: Saving shortly…" : "Autosave: Saved" : "Unsaved changes (Ctrl+S or Settings)",
-            children: "●"
-          }
-        ),
-        props.saveStatus ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `save-status${props.saveStatus === "Saved" ? " is-saved" : ""}`, style: { marginLeft: 4 }, children: props.saveStatus }) : null
-      ] }),
-      props.watchActive ? props.onSwitchToWatch && /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "button",
-        {
-          className: "btn btn--ghost btn--xs",
-          title: "Switch to watch",
-          onClick: props.onSwitchToWatch,
-          children: "Switch to watch"
-        }
-      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "button",
-        {
-          className: "btn btn--ghost btn--xs",
-          title: "Select Standalone",
-          onClick: props.onOpenWatchFile,
-          children: "Select Standalone"
-        }
-      )
-    ] }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "toolbar__actions", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status status--${props.status}`, title: props.statusTitle, "aria-label": "SSE status" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.libraryVisible ? " active" : ""}`, title: "Toggle Image Library", onClick: props.onLibrary, children: "Library" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.cssVisible ? " active" : ""}`, title: "Toggle CSS panel", onClick: props.onCss, children: "CSS" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: `btn btn--ghost${props.previewVisible ? " active" : ""}`, title: "Toggle Preview panel", onClick: props.onPreview, children: "Preview" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "button",
-        {
-          className: `btn btn--ghost${props.settingsOpen ? " active" : ""}`,
-          title: "Settings & Workspace",
-          "aria-expanded": props.settingsOpen,
-          onClick: props.onSettings,
-          children: "Settings"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { ref: props.imageInput, type: "file", accept: "image/jpeg,image/png,image/gif,image/webp,image/svg+xml", style: { display: "none" }, multiple: true }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "button",
-        {
-          className: "btn btn--primary",
-          disabled: props.mode === "idle" || props.exporting,
-          style: props.mode === "idle" ? { opacity: 0.4, cursor: "not-allowed" } : void 0,
-          onClick: props.onExport,
-          children: props.exporting ? "Exporting…" : "Export PDF"
-        }
-      )
-    ] })
-  ] });
-}
-function WelcomeModal({
+function useWelcomeForm({
   config: config2,
   isOpen,
-  onClose,
   onSave,
   onBrowse,
-  saving,
-  browsing,
+  onClose,
   error: initialError
 }) {
   const [projectsDir, setProjectsDir] = reactExports.useState("");
@@ -46374,8 +46379,6 @@ function WelcomeModal({
       setAuthorEmail(config2.author_email || "");
     }
   }, [config2, isOpen]);
-  if (!isOpen) return null;
-  const isFirstRun = Boolean(config2 == null ? void 0 : config2.is_first_run);
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalError(null);
@@ -46404,6 +46407,48 @@ function WelcomeModal({
     }
   };
   const error = localError || initialError;
+  return {
+    projectsDir,
+    setProjectsDir,
+    authorName,
+    setAuthorName,
+    authorEmail,
+    setAuthorEmail,
+    error,
+    handleSubmit,
+    handleBrowse
+  };
+}
+function WelcomeModal({
+  config: config2,
+  isOpen,
+  onClose,
+  onSave,
+  onBrowse,
+  saving,
+  browsing,
+  error: initialError
+}) {
+  const {
+    projectsDir,
+    setProjectsDir,
+    authorName,
+    setAuthorName,
+    authorEmail,
+    setAuthorEmail,
+    error,
+    handleSubmit,
+    handleBrowse
+  } = useWelcomeForm({
+    config: config2,
+    isOpen,
+    onSave,
+    onBrowse,
+    onClose,
+    error: initialError
+  });
+  if (!isOpen) return null;
+  const isFirstRun = Boolean(config2 == null ? void 0 : config2.is_first_run);
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "modal-backdrop", onClick: isFirstRun ? void 0 : onClose, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-dialog", onClick: (e) => e.stopPropagation(), role: "dialog", "aria-modal": "true", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-header", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "modal-title-group", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -46512,1047 +46557,130 @@ function WelcomeModal({
     ] })
   ] }) });
 }
-function WorkspacePanes(props) {
-  const panesClass = `panes${props.previewVisible ? "" : " preview-collapsed"}`;
-  const leftClass = `left-pane${props.libraryVisible ? "" : " library-collapsed"}${props.cssVisible ? "" : " css-collapsed"}`;
-  const libraryClass = `image-library${props.noCrop ? " nocrop-mode" : ""}${props.noWhitespace ? " nowhitespace-mode" : ""}`;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: panesClass, ref: props.panes, children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: leftClass, ref: props.leftPane, children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: libraryClass, ref: props.library.container, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "image-library__header", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "image-library__title", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Library" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "image-library__count", ref: props.library.count, children: "0" })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { ref: props.library.uploadButton, id: "upload-library-btn", className: "btn btn--ghost btn--xs", title: "Upload images", children: "Upload" })
+function useIdleLauncher(projects) {
+  var _a2;
+  const [selectedProject, setSelectedProject] = reactExports.useState("");
+  reactExports.useEffect(() => {
+    if (projects.length > 0 && !selectedProject) {
+      setSelectedProject(projects[0].name);
+    }
+  }, [projects, selectedProject]);
+  const activeProject = selectedProject || ((_a2 = projects[0]) == null ? void 0 : _a2.name) || "";
+  return {
+    selectedProject: activeProject,
+    setSelectedProject
+  };
+}
+function IdleLauncher(props) {
+  const { selectedProject, setSelectedProject } = useIdleLauncher(props.projects);
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-overlay", role: "dialog", "aria-modal": "true", "aria-label": "Select an editing mode", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-container", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-header", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "idle-title", children: "Select an Editing Mode" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "idle-subtitle", children: "Choose your workflow to begin. You can switch modes at any time in Settings." })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-cards", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card idle-card--project", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__header", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__icon", "aria-hidden": "true", children: /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round", className: "idle-card__icon-svg", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" }) }) }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "idle-card__title", children: "Project Workspace" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "idle-card__desc", children: [
+          "Draft multi-page publications, reports, or books with shared ",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "project.css" }),
+          " stylesheets and a managed image asset library."
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "image-library__dropzone", ref: props.library.dropzone, children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dropzone-text", children: "Drop images here" }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "image-library__list", ref: props.library.list })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "editors-col", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "editor-section", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "section-header", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Markdown" }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cm-host", ref: props.refs.markdownHost })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "editor-section", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "section-header", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Custom CSS" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__actions", children: [
+          props.projects.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-project-select-row", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "idle-label", htmlFor: "idle-project-select", children: "Available Project:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "select",
+              {
+                id: "idle-project-select",
+                className: "idle-select",
+                value: selectedProject,
+                onChange: (e) => setSelectedProject(e.target.value),
+                children: props.projects.map((p) => /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: p.name, children: [
+                  p.name,
+                  " (",
+                  p.documents,
+                  " ",
+                  p.documents === 1 ? "document" : "documents",
+                  ")"
+                ] }, p.name))
+              }
+            )
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-empty-projects", children: "No projects created yet. Create a new one below." }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-btn-group", children: [
+            props.projects.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                className: "btn btn--primary idle-btn-main",
+                onClick: () => props.onSelectProject(selectedProject),
+                children: "Open Project"
+              }
+            ),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               "button",
               {
-                className: "section-header__toggle",
-                title: props.cssVisible ? "Collapse CSS panel" : "Expand CSS panel",
-                "aria-expanded": props.cssVisible,
-                onClick: props.onCss,
-                children: props.cssVisible ? "▾" : "▸"
+                type: "button",
+                className: `btn ${props.projects.length === 0 ? "btn--primary" : "btn--secondary"} idle-btn-sec`,
+                onClick: props.onCreateProject,
+                children: "New Project…"
               }
             )
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cm-host", ref: props.refs.cssHost })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card idle-card--watch", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__header", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-card__icon", "aria-hidden": "true", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round", className: "idle-card__icon-svg", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "3" })
+        ] }) }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "idle-card__title", children: "Standalone / Watch Mode" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "idle-card__desc", children: "Write in your external editor (Neovim, VS Code, Obsidian) with atomic-safe live reload, zero project style bleeding, and PDF export." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-card__actions", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "idle-btn-group", children: props.activeWatchTarget ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                type: "button",
+                className: "btn btn--primary idle-btn-main",
+                title: `Jump to watched file: ${props.activeWatchTarget.path}`,
+                onClick: props.onSwitchToWatch,
+                children: [
+                  "Watch: ",
+                  props.activeWatchTarget.filename
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                className: "btn btn--secondary idle-btn-sec",
+                title: "Open a different external Markdown file",
+                onClick: props.onOpenWatchFile,
+                children: "Open Other File…"
+              }
+            )
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              className: "btn btn--primary idle-btn-main",
+              onClick: props.onOpenWatchFile,
+              children: "Open File to Watch…"
+            }
+          ) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "idle-shortcut-hint", children: [
+            "External file picker shortcut: ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("kbd", { children: "Ctrl" }),
+            " + ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("kbd", { children: "O" })
+          ] })
         ] })
       ] })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pane-divider", ref: props.divider, role: "separator", "aria-label": "Resize panes" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "right-pane", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "preview-toolbar", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "preview-toolbar__left", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Paged.js Preview" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "preview-toolbar__meta", children: props.pageCount })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "preview-toolbar__right", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "preview-theme-toggle", role: "group", "aria-label": "Preview background theme", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              type: "button",
-              className: `preview-theme-btn${props.theme === "light" ? " active" : ""}`,
-              onClick: () => props.onTheme("light"),
-              children: "Light"
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              type: "button",
-              className: `preview-theme-btn${props.theme === "dark" ? " active" : ""}`,
-              onClick: () => props.onTheme("dark"),
-              children: "Dark"
-            }
-          )
-        ] }) })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `preview-scroll preview-theme--${props.theme}`, ref: props.previewScroll, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "iframe",
-          {
-            ref: props.frameA,
-            className: `preview-frame ${props.activeFrame === "A" ? "preview-frame--visible" : "preview-frame--staging"}`,
-            title: "Document preview"
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "iframe",
-          {
-            ref: props.frameB,
-            className: `preview-frame ${props.activeFrame === "B" ? "preview-frame--visible" : "preview-frame--staging"}`,
-            title: "Document preview staging"
-          }
-        )
-      ] })
     ] })
-  ] });
-}
-function useAutosave(workspace, enabled, delay = 1e3) {
-  const { dirty, markdown: markdown2, css: css2, target, current, saveDocument } = workspace;
-  const timerRef = reactExports.useRef(null);
-  reactExports.useEffect(() => {
-    if (!enabled || !dirty || target.mode === "idle") {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-      return;
-    }
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      const active = current.current;
-      if (active.dirty && active.target.mode !== "idle") {
-        void saveDocument(void 0, { isAutosave: true });
-      }
-    }, delay);
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [enabled, dirty, markdown2, css2, delay, target.mode, saveDocument, current]);
-  reactExports.useEffect(() => {
-    if (!enabled) return;
-    const flushSave = () => {
-      const active = current.current;
-      if (active.dirty && active.target.mode !== "idle") {
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-          timerRef.current = null;
-        }
-        void saveDocument(void 0, { isAutosave: true });
-      }
-    };
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        flushSave();
-      }
-    };
-    const handleWindowBlur = () => {
-      flushSave();
-    };
-    const handleBeforeUnload = () => {
-      flushSave();
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("blur", handleWindowBlur);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("blur", handleWindowBlur);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [enabled, current, saveDocument]);
-}
-function useConfig(onProjectsDirChanged) {
-  const [config2, setConfig] = reactExports.useState(null);
-  const [modalOpen, setModalOpen] = reactExports.useState(false);
-  const [loading, setLoading] = reactExports.useState(true);
-  const [saving, setSaving] = reactExports.useState(false);
-  const [browsing, setBrowsing] = reactExports.useState(false);
-  const [error, setError] = reactExports.useState(null);
-  const fetchConfig = reactExports.useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/config");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data2 = await res.json();
-      setConfig(data2);
-      if (data2.is_first_run) {
-        setModalOpen(true);
-      }
-      return data2;
-    } catch (err) {
-      console.error("Failed to load user configuration:", err);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-  reactExports.useEffect(() => {
-    void fetchConfig();
-  }, [fetchConfig]);
-  const saveConfig = reactExports.useCallback(async (updates) => {
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates)
-      });
-      if (!res.ok) {
-        const data2 = await res.json().catch(() => ({}));
-        throw new Error(data2.detail || `HTTP ${res.status}`);
-      }
-      const nextData = await res.json();
-      const dirChanged = config2 && config2.projects_dir !== nextData.projects_dir;
-      setConfig(nextData);
-      setModalOpen(false);
-      if (dirChanged && onProjectsDirChanged) {
-        await onProjectsDirChanged();
-      }
-      return nextData;
-    } catch (err) {
-      const msg = err.message;
-      setError(msg);
-      throw err;
-    } finally {
-      setSaving(false);
-    }
-  }, [config2, onProjectsDirChanged]);
-  const browseDirectory = reactExports.useCallback(async (initialDir) => {
-    setBrowsing(true);
-    try {
-      const res = await fetch("/api/system/browse-directory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ initial_dir: initialDir || (config2 == null ? void 0 : config2.projects_dir) })
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data2 = await res.json();
-      return data2.path;
-    } catch (err) {
-      console.error("Directory browse failed:", err);
-      return null;
-    } finally {
-      setBrowsing(false);
-    }
-  }, [config2 == null ? void 0 : config2.projects_dir]);
-  return {
-    config: config2,
-    loading,
-    saving,
-    browsing,
-    error,
-    modalOpen,
-    setModalOpen,
-    fetchConfig,
-    saveConfig,
-    browseDirectory
-  };
-}
-function formatBytes(bytes) {
-  if (!bytes || bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
-function escapeHtml(str) {
-  return String(str || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-const STORAGE_KEY = "css_editor_image_names";
-function getStoredImageNames() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-function saveStoredImageName(filename, name2) {
-  try {
-    const names = getStoredImageNames();
-    names[filename] = name2;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(names));
-  } catch (err) {
-    console.warn("Failed to save image name:", err);
-  }
-}
-function deleteStoredImageName(filename) {
-  try {
-    const names = getStoredImageNames();
-    delete names[filename];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(names));
-  } catch {
-  }
-}
-function initImageLibrary({
-  container,
-  listEl,
-  dropzoneEl,
-  fileInputEl,
-  countEl,
-  uploadBtnEl,
-  onInsert,
-  onNameChange,
-  docPath = ""
-}) {
-  let _images = [];
-  let _docPath = docPath;
-  let _focusedUrl = null;
-  let _selectedImage = null;
-  let _selectedCard = null;
-  let _selectedFilename = null;
-  function getQuery() {
-    return _docPath ? `?doc=${encodeURIComponent(_docPath)}` : "";
-  }
-  let toastEl = container == null ? void 0 : container.querySelector(".image-library__toast");
-  if (container && !toastEl) {
-    toastEl = document.createElement("div");
-    toastEl.className = "image-library__toast";
-    container.appendChild(toastEl);
-  }
-  let toastTimer = null;
-  function showFeedback(message) {
-    if (!toastEl) return;
-    toastEl.textContent = message;
-    toastEl.classList.add("is-visible");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      toastEl.classList.remove("is-visible");
-    }, 2200);
-  }
-  function showCardBadge(card, text) {
-    if (!card) return;
-    const existing = card.querySelector(".image-card__badge-feedback");
-    if (existing) existing.remove();
-    const badge = document.createElement("div");
-    badge.className = "image-card__badge-feedback";
-    badge.textContent = text;
-    card.appendChild(badge);
-    setTimeout(() => badge.remove(), 1200);
-  }
-  function selectCard(card, img) {
-    if (_selectedCard && _selectedCard !== card) {
-      _selectedCard.classList.remove("is-selected");
-    }
-    card.classList.add("is-selected");
-    _selectedCard = card;
-    _selectedImage = img;
-    _selectedFilename = img.filename;
-  }
-  function clearSelection() {
-    if (_selectedCard) {
-      _selectedCard.classList.remove("is-selected");
-    }
-    _selectedCard = null;
-    _selectedImage = null;
-    _selectedFilename = null;
-  }
-  async function copySelectedImage() {
-    if (!_selectedImage || !_selectedCard) return;
-    const altText = _selectedImage.displayName || _selectedImage.alt || _selectedImage.filename;
-    const targetPath = _selectedImage.rel_path || _selectedImage.url;
-    const snippet2 = `![${altText}](${targetPath})`;
-    try {
-      await navigator.clipboard.writeText(snippet2);
-      showFeedback(`Copied markdown for "${altText}"`);
-      showCardBadge(_selectedCard, "Copied");
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = snippet2;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      showFeedback(`Copied markdown for "${altText}"`);
-      showCardBadge(_selectedCard, "Copied");
-    }
-  }
-  async function deleteSelectedImage() {
-    if (!_selectedImage) return;
-    const imgToDelete = _selectedImage;
-    const name2 = imgToDelete.displayName || imgToDelete.filename;
-    try {
-      const query = getQuery();
-      const res = await fetch(`/api/images/${encodeURIComponent(imgToDelete.filename)}${query}`, {
-        method: "DELETE"
-      });
-      if (res.ok) {
-        showFeedback(`Deleted "${name2}" from library`);
-        deleteStoredImageName(imgToDelete.filename);
-        clearSelection();
-        await fetchImages();
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        showFeedback(`Failed to delete "${name2}": ${errData.detail || res.statusText}`);
-      }
-    } catch (err) {
-      showFeedback(`Delete error: ${err.message}`);
-    }
-  }
-  function handleKeyDown(e) {
-    if (!_selectedImage || !_selectedCard) return;
-    const activeEl = document.activeElement;
-    const isEditingName = activeEl && activeEl.classList.contains("image-card__name-input");
-    const isInCodeMirror = activeEl && activeEl.closest(".cm-editor");
-    const isInOtherInput = activeEl && activeEl !== activeEl.closest(".image-card__name-input") && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA");
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
-      if (isInCodeMirror || isInOtherInput) return;
-      if (isEditingName && activeEl.selectionStart !== activeEl.selectionEnd) return;
-      e.preventDefault();
-      copySelectedImage();
-      return;
-    }
-    if (e.key === "Delete" || e.key === "Del") {
-      if (isEditingName || isInCodeMirror || isInOtherInput) return;
-      e.preventDefault();
-      deleteSelectedImage();
-      return;
-    }
-    if (e.key === "Escape") {
-      clearSelection();
-      if (isEditingName) activeEl.blur();
-    }
-  }
-  document.addEventListener("keydown", handleKeyDown);
-  listEl.addEventListener("click", (e) => {
-    if (!e.target.closest(".image-card")) {
-      clearSelection();
-    }
-  });
-  async function fetchImages() {
-    const query = getQuery();
-    if (!query) {
-      _images = [];
-      renderList();
-      return;
-    }
-    try {
-      const res = await fetch(`/api/images${query}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      _images = await res.json();
-      renderList();
-    } catch (err) {
-      console.error("Failed to fetch images:", err);
-    }
-  }
-  async function uploadFiles(files) {
-    if (!files || !files.length) return [];
-    if (dropzoneEl) {
-      dropzoneEl.classList.add("is-uploading");
-      const textSpan = dropzoneEl.querySelector(".dropzone-text");
-      if (textSpan) textSpan.textContent = `Uploading ${files.length} image(s)…`;
-    }
-    const uploaded = [];
-    for (const file of files) {
-      const form = new FormData();
-      form.append("file", file);
-      try {
-        const query = getQuery();
-        const res = await fetch(`/api/images${query}`, { method: "POST", body: form });
-        if (res.ok) {
-          const data2 = await res.json();
-          uploaded.push(data2);
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          console.error(`Upload error for ${file.name}:`, errData.detail || res.statusText);
-        }
-      } catch (err) {
-        console.error(`Upload network error for ${file.name}:`, err);
-      }
-    }
-    if (dropzoneEl) {
-      dropzoneEl.classList.remove("is-uploading");
-      const textSpan = dropzoneEl.querySelector(".dropzone-text");
-      if (textSpan) textSpan.textContent = "Drop images here to upload";
-    }
-    await fetchImages();
-    if (uploaded.length > 0) {
-      focusImage(uploaded[0].url);
-    }
-    return uploaded;
-  }
-  function renderList() {
-    if (countEl) countEl.textContent = _images.length;
-    listEl.innerHTML = "";
-    if (_images.length === 0) {
-      const emptyMsg = document.createElement("div");
-      emptyMsg.className = "image-library__empty";
-      emptyMsg.innerHTML = '<p>No images yet</p><span class="text-muted">Import or drag images above</span>';
-      listEl.appendChild(emptyMsg);
-      clearSelection();
-      return;
-    }
-    const savedNames = getStoredImageNames();
-    for (const img of _images) {
-      img.displayName = savedNames[img.filename] || img.filename;
-      img.alt = img.displayName;
-      const card = createCardElement(img);
-      listEl.appendChild(card);
-      if (_selectedFilename && img.filename === _selectedFilename) {
-        selectCard(card, img);
-      }
-    }
-    if (_focusedUrl) {
-      focusImage(_focusedUrl);
-    }
-  }
-  function createCardElement(img) {
-    const card = document.createElement("div");
-    card.className = "image-card";
-    card.draggable = true;
-    card.setAttribute("data-url", img.url);
-    card.setAttribute("data-filename", img.filename);
-    card.tabIndex = 0;
-    const currentName = img.displayName || img.filename;
-    card.innerHTML = `
-      <div class="image-card__thumb-wrap">
-        <img class="image-card__thumb" src="${img.url}" alt="${escapeHtml(currentName)}" loading="lazy" />
-        <div class="image-card__drag-overlay">
-          <span>⠿ Drag onto line</span>
-        </div>
-      </div>
-      <div class="image-card__body">
-        <div class="image-card__meta">
-          <input
-            type="text"
-            class="image-card__name-input"
-            value="${escapeHtml(currentName)}"
-            title="${escapeHtml(currentName)}"
-            placeholder="Image name…"
-            spellcheck="false"
-          />
-          <span class="image-card__size">${formatBytes(img.size)}</span>
-        </div>
-      </div>
-    `;
-    const nameInput = card.querySelector(".image-card__name-input");
-    const thumbImg = card.querySelector(".image-card__thumb");
-    card.addEventListener("click", (e) => {
-      selectCard(card, img);
-    });
-    card.addEventListener("dblclick", (e) => {
-      if (e.target === nameInput) return;
-      if (onInsert) {
-        const altText = img.displayName || img.filename;
-        const targetPath = img.rel_path || img.url;
-        onInsert(`
-![${altText}](${targetPath})
-`);
-        showFeedback(`＋ Inserted "${altText}" at cursor`);
-      }
-    });
-    let wasAlreadyFocused = false;
-    nameInput.addEventListener("mousedown", (e) => {
-      e.stopPropagation();
-      wasAlreadyFocused = document.activeElement === nameInput;
-      selectCard(card, img);
-    });
-    nameInput.addEventListener("focus", () => {
-      card.draggable = false;
-      selectCard(card, img);
-      if (!wasAlreadyFocused) {
-        requestAnimationFrame(() => {
-          nameInput.select();
-        });
-      }
-    });
-    nameInput.addEventListener("mouseup", (e) => {
-      if (!wasAlreadyFocused) {
-        e.preventDefault();
-        nameInput.select();
-      }
-    });
-    nameInput.addEventListener("blur", () => {
-      card.draggable = true;
-      wasAlreadyFocused = false;
-    });
-    nameInput.addEventListener("input", () => {
-      const newName = nameInput.value;
-      img.displayName = newName;
-      img.alt = newName;
-      thumbImg.alt = newName;
-      nameInput.title = newName;
-      saveStoredImageName(img.filename, newName);
-      if (onNameChange) {
-        onNameChange(img, newName);
-      }
-    });
-    nameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Delete" || e.key === "Backspace") {
-        e.stopPropagation();
-      }
-      if (e.key === "Enter") {
-        nameInput.blur();
-      }
-    });
-    card.addEventListener("dragstart", (e) => {
-      card.classList.add("is-dragging");
-      const altText = img.displayName || img.filename;
-      const targetPath = img.rel_path || img.url;
-      const payload = {
-        url: img.url,
-        alt: altText,
-        filename: img.filename,
-        rel_path: img.rel_path
-      };
-      e.dataTransfer.setData("application/x-editor-image", JSON.stringify(payload));
-      e.dataTransfer.setData("text/plain", `![${altText}](${targetPath})`);
-      e.dataTransfer.effectAllowed = "copy";
-    });
-    card.addEventListener("dragend", () => {
-      card.classList.remove("is-dragging");
-    });
-    return card;
-  }
-  function focusImage(url) {
-    _focusedUrl = url;
-    const cards = listEl.querySelectorAll(".image-card");
-    cards.forEach((c) => c.classList.remove("is-focused"));
-    if (!url) return;
-    const targetFilename = url.split("/").pop().split("?")[0];
-    let matchedCard = null;
-    for (const card of cards) {
-      const cardUrl = card.getAttribute("data-url");
-      const cardFilename = card.getAttribute("data-filename");
-      if (cardUrl === url || cardFilename === targetFilename || cardUrl && cardUrl.endsWith(targetFilename)) {
-        matchedCard = card;
-        break;
-      }
-    }
-    if (matchedCard) {
-      matchedCard.classList.add("is-focused");
-      matchedCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }
-  if (uploadBtnEl && fileInputEl) {
-    uploadBtnEl.addEventListener("click", () => fileInputEl.click());
-  }
-  if (dropzoneEl) {
-    dropzoneEl.addEventListener("click", () => {
-      if (fileInputEl) fileInputEl.click();
-    });
-    dropzoneEl.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropzoneEl.classList.add("drag-over");
-    });
-    dropzoneEl.addEventListener("dragleave", () => {
-      dropzoneEl.classList.remove("drag-over");
-    });
-    dropzoneEl.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropzoneEl.classList.remove("drag-over");
-      const files = [...e.dataTransfer.files || []].filter((f) => f.type.startsWith("image/"));
-      if (files.length) uploadFiles(files);
-    });
-  }
-  if (fileInputEl) {
-    fileInputEl.addEventListener("change", (e) => {
-      const files = [...e.target.files];
-      if (files.length) uploadFiles(files);
-      e.target.value = "";
-    });
-  }
-  fetchImages();
-  return {
-    fetchImages,
-    uploadFiles,
-    focusImage,
-    selectCard,
-    clearSelection,
-    setDoc(docPath2) {
-      _docPath = docPath2 || "";
-      clearSelection();
-      return fetchImages();
-    },
-    toggle(show) {
-      if (container) {
-        container.classList.toggle("is-collapsed", typeof show === "boolean" ? !show : void 0);
-      }
-    }
-  };
-}
-const markdownEditor = createMarkdownEditor;
-const cssEditor = createCssEditor;
-function updateImageAlt(view, url, name2) {
-  if (!view) return;
-  const text = view.state.doc.toString();
-  const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const expression = new RegExp(`!\\[([^\\]]*)\\]\\(${escaped}\\)`, "g");
-  const changes = [];
-  let match;
-  while ((match = expression.exec(text)) !== null) {
-    changes.push({ from: match.index + 2, to: match.index + 2 + match[1].length, insert: name2 });
-  }
-  if (changes.length) view.dispatch({ changes });
-}
-function useEditors(workspace, library) {
-  const { refs, updateMarkdown, updateCss, saveDocument } = workspace;
-  reactExports.useEffect(() => {
-    const markdownView = markdownEditor(refs.markdownHost.current, updateMarkdown, {
-      onSave: saveDocument,
-      onImageVicinity: (url) => {
-        var _a2;
-        return (_a2 = refs.imageLibrary.current) == null ? void 0 : _a2.focusImage(url);
-      },
-      onDropImage: (image) => {
-        var _a2;
-        return (_a2 = refs.imageLibrary.current) == null ? void 0 : _a2.focusImage(image.url);
-      },
-      onPasteImage: async (file) => {
-        var _a2;
-        const uploaded = await ((_a2 = refs.imageLibrary.current) == null ? void 0 : _a2.uploadFiles([file]));
-        return uploaded == null ? void 0 : uploaded[0];
-      }
-    });
-    const cssView = cssEditor(refs.cssHost.current, updateCss, { onSave: saveDocument });
-    refs.markdownView.current = markdownView;
-    refs.cssView.current = cssView;
-    refs.imageLibrary.current = initImageLibrary({
-      container: library.container.current,
-      listEl: library.list.current,
-      dropzoneEl: library.dropzone.current,
-      fileInputEl: refs.imageInput.current,
-      countEl: library.count.current,
-      uploadBtnEl: library.uploadButton.current,
-      docPath: workspace.current.current.docPath,
-      onInsert: (snippet2) => {
-        const position = markdownView.state.selection.main.head;
-        markdownView.dispatch({
-          changes: { from: position, insert: snippet2 },
-          selection: { anchor: position + snippet2.length }
-        });
-        markdownView.focus();
-      },
-      onNameChange: (image, name2) => {
-        if (image.rel_path) updateImageAlt(markdownView, image.rel_path, name2);
-        if (image.url) updateImageAlt(markdownView, image.url, name2);
-      }
-    });
-    return () => {
-      markdownView.destroy();
-      cssView.destroy();
-    };
-  }, [
-    library.container,
-    library.count,
-    library.dropzone,
-    library.list,
-    library.uploadButton,
-    refs.cssHost,
-    refs.cssView,
-    refs.imageInput,
-    refs.imageLibrary,
-    refs.markdownHost,
-    refs.markdownView,
-    saveDocument,
-    updateCss,
-    updateMarkdown,
-    workspace.current
-  ]);
-}
-function useLayout(workspace, panes, divider, leftPane, previewVisible) {
-  const { refs, saveDocument } = workspace;
-  reactExports.useEffect(() => {
-    if (previewVisible && panes.current) {
-      const style2 = panes.current.style.gridTemplateColumns;
-      if (style2 && style2.includes("px")) {
-        const total = panes.current.clientWidth - 4;
-        const left = parseFloat(style2.split(" ")[0]);
-        if (left >= total - 100 || left <= 100) {
-          panes.current.style.gridTemplateColumns = "";
-        } else {
-          panes.current.style.gridTemplateColumns = `${left}px 4px ${total - left}px`;
-        }
-      }
-    }
-  }, [previewVisible, panes]);
-  reactExports.useEffect(() => {
-    const onKeyDown = (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-        event.preventDefault();
-        void saveDocument();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [saveDocument]);
-  reactExports.useEffect(() => {
-    const element = leftPane.current;
-    if (!element) return;
-    const over = (event) => {
-      var _a2;
-      if ((_a2 = event.dataTransfer) == null ? void 0 : _a2.types.includes("application/x-editor-image")) return;
-      event.preventDefault();
-      element.classList.add("drag-over");
-    };
-    const leave = () => element.classList.remove("drag-over");
-    const drop = (event) => {
-      var _a2, _b, _c;
-      if ((_a2 = event.dataTransfer) == null ? void 0 : _a2.types.includes("application/x-editor-image")) return;
-      event.preventDefault();
-      element.classList.remove("drag-over");
-      const files = [...((_b = event.dataTransfer) == null ? void 0 : _b.files) || []].filter((file) => file.type.startsWith("image/"));
-      if (files.length) void ((_c = refs.imageLibrary.current) == null ? void 0 : _c.uploadFiles(files));
-    };
-    element.addEventListener("dragover", over);
-    element.addEventListener("dragleave", leave);
-    element.addEventListener("drop", drop);
-    return () => {
-      element.removeEventListener("dragover", over);
-      element.removeEventListener("dragleave", leave);
-      element.removeEventListener("drop", drop);
-    };
-  }, [leftPane, refs.imageLibrary]);
-  reactExports.useEffect(() => {
-    var _a2;
-    const handleDown = (event) => {
-      if (!panes.current || !divider.current) return;
-      const startX = event.clientX;
-      const startLeft = parseFloat(getComputedStyle(panes.current).gridTemplateColumns.split(" ")[0]);
-      const move = (next) => {
-        const total = panes.current.clientWidth - 4;
-        const left = Math.max(200, Math.min(total - 200, startLeft + next.clientX - startX));
-        panes.current.style.gridTemplateColumns = `${left}px 4px ${total - left}px`;
-      };
-      const up = () => {
-        var _a3, _b;
-        (_a3 = divider.current) == null ? void 0 : _a3.classList.remove("dragging");
-        (_b = panes.current) == null ? void 0 : _b.classList.remove("dragging");
-        document.body.classList.remove("is-resizing");
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-        document.removeEventListener("mousemove", move);
-        document.removeEventListener("mouseup", up);
-      };
-      divider.current.classList.add("dragging");
-      panes.current.classList.add("dragging");
-      document.body.classList.add("is-resizing");
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-      document.addEventListener("mousemove", move);
-      document.addEventListener("mouseup", up);
-    };
-    (_a2 = divider.current) == null ? void 0 : _a2.addEventListener("mousedown", handleDown);
-    return () => {
-      var _a3, _b;
-      (_a3 = divider.current) == null ? void 0 : _a3.removeEventListener("mousedown", handleDown);
-      document.body.classList.remove("is-resizing");
-      (_b = panes.current) == null ? void 0 : _b.classList.remove("dragging");
-    };
-  }, [divider, panes]);
-}
-const SSE_URL = "/api/events";
-const RECONNECT_BASE_MS = 1e3;
-const RECONNECT_MAX_MS = 3e4;
-function connectSSE(target = window) {
-  let es = null;
-  let retryDelay = RECONNECT_BASE_MS;
-  let retryTimer = null;
-  let closed = false;
-  function dispatch(name2, detail = {}) {
-    target.dispatchEvent(new CustomEvent(name2, { detail }));
-  }
-  function connect() {
-    es = new EventSource(SSE_URL);
-    es.addEventListener("connected", () => {
-      retryDelay = RECONNECT_BASE_MS;
-      dispatch("sse:connected");
-    });
-    es.addEventListener("render", (ev) => {
-      const data2 = JSON.parse(ev.data);
-      dispatch("sse:render", {
-        html: data2.html ?? "",
-        css: data2.css ?? "",
-        filename: data2.filename,
-        project: data2.project,
-        project_css: data2.project_css
-      });
-    });
-    es.addEventListener("file:change", (ev) => {
-      const data2 = JSON.parse(ev.data ?? "{}");
-      dispatch("sse:file:change", data2);
-    });
-    es.addEventListener("document:change", (ev) => {
-      const data2 = JSON.parse(ev.data ?? "{}");
-      dispatch("sse:document:change", data2);
-    });
-    es.addEventListener("file:list", (ev) => {
-      const data2 = JSON.parse(ev.data ?? "{}");
-      dispatch("sse:file:list", data2);
-    });
-    es.addEventListener("error", (ev) => {
-      const data2 = JSON.parse(ev.data ?? "{}");
-      dispatch("sse:error", { message: data2.message ?? "Unknown error" });
-    });
-    es.onerror = () => {
-      es.close();
-      if (closed) return;
-      dispatch("sse:offline");
-      retryTimer = setTimeout(() => {
-        retryDelay = Math.min(retryDelay * 2, RECONNECT_MAX_MS);
-        connect();
-      }, retryDelay);
-    };
-  }
-  connect();
-  return { close() {
-    closed = true;
-    clearTimeout(retryTimer);
-    es == null ? void 0 : es.close();
-  } };
-}
-function useLiveSync(workspace, frame, theme2, setStatus, setPageCount) {
-  const {
-    current,
-    refs,
-    setProjectCss,
-    setMarkdown,
-    setCss,
-    setFiles,
-    setDirty,
-    setSaveStatus,
-    setConflict,
-    markClean,
-    effectiveCss,
-    postRender,
-    refreshFiles,
-    isSelfSave
-  } = workspace;
-  reactExports.useEffect(() => {
-    const connection = connectSSE(window);
-    const onConnected = () => {
-      setStatus("connected", "Live");
-      void postRender(current.current.markdown, effectiveCss());
-    };
-    const onRender = (event) => {
-      const data2 = event.detail || {};
-      const active = current.current;
-      if (active.docPath && data2.doc_path && active.docPath !== data2.doc_path) return;
-      if (active.target.mode === "project") {
-        if (data2.project && data2.project !== active.project || data2.filename && data2.filename !== active.filename) {
-          return;
-        }
-      }
-      if (data2.project_css !== void 0) setProjectCss(data2.project_css);
-      const renderedCss = data2.project_css !== void 0 ? `${data2.project_css}
-${data2.css || ""}` : data2.css || effectiveCss();
-      const token = data2.doc_token || active.docToken;
-      updatePreview(frame.current, data2.html || "", renderedCss, theme2, token, setPageCount);
-      setStatus("connected", "Live");
-    };
-    const onDocumentChange = (event) => {
-      const data2 = event.detail || {};
-      const active = current.current;
-      const isSameDoc = active.docPath && data2.doc_path && active.docPath === data2.doc_path || active.target.mode === "project" && data2.mode === "project" && data2.project === active.project && data2.filename === active.filename;
-      if (!isSameDoc) return;
-      if (data2.action === "deleted") {
-        setDirty(true);
-        setSaveStatus("Deleted on disk");
-        return;
-      }
-      const mdChanged = data2.markdown !== void 0 && data2.markdown !== active.markdown;
-      const cssChanged = data2.css !== void 0 && data2.css !== active.css;
-      const sharedChanged = data2.shared_css !== void 0 && data2.shared_css !== active.projectCss;
-      if (!mdChanged && !cssChanged && !sharedChanged) return;
-      if (isSelfSave && isSelfSave(data2.markdown ?? "", data2.css ?? "")) {
-        if (sharedChanged) {
-          setProjectCss(data2.shared_css || "");
-        }
-        if (!active.dirty) {
-          markClean("Saved");
-        }
-        return;
-      }
-      if (active.dirty) {
-        setConflict({
-          filename: data2.filename || active.filename,
-          markdown: data2.markdown,
-          css: data2.css,
-          project_css: data2.shared_css,
-          html: data2.html
-        });
-        return;
-      }
-      if (data2.filename === "project.css") {
-        if (data2.shared_css !== void 0 && active.dirty) {
-          setConflict(data2);
-        } else if (data2.shared_css !== void 0) {
-          setProjectCss(data2.shared_css);
-          void postRender(active.markdown, data2.shared_css ? `${data2.shared_css}
-${active.css}` : active.css);
-          markClean("Synced from disk");
-        }
-        return;
-      }
-      if (active.target.mode === "project" && data2.mode === "project" && data2.project === active.project) {
-        void refreshFiles(active.project);
-      }
-      if (mdChanged) {
-        setMarkdown(data2.markdown);
-        setEditorContent(refs.markdownView.current, data2.markdown);
-      }
-      if (cssChanged) {
-        setCss(data2.css);
-        setEditorContent(refs.cssView.current, data2.css);
-      }
-      if (sharedChanged) {
-        setProjectCss(data2.shared_css || "");
-      }
-      const renderedCss = data2.shared_css ? `${data2.shared_css}
-${data2.css || ""}` : data2.css || active.css;
-      const token = data2.doc_token || active.docToken;
-      if (data2.html) {
-        updatePreview(frame.current, data2.html, renderedCss, theme2, token, setPageCount);
-      }
-      markClean("Synced from disk");
-    };
-    const onFileList = (event) => {
-      var _a2;
-      const files = (_a2 = event.detail) == null ? void 0 : _a2.files;
-      if (Array.isArray(files)) setFiles(files);
-      else void refreshFiles(current.current.project);
-    };
-    const onError = (event) => {
-      var _a2;
-      return setStatus("error", ((_a2 = event.detail) == null ? void 0 : _a2.message) || "Connection error");
-    };
-    const onOffline = () => setStatus("idle", "Reconnecting…");
-    window.addEventListener("sse:connected", onConnected);
-    window.addEventListener("sse:render", onRender);
-    window.addEventListener("sse:document:change", onDocumentChange);
-    window.addEventListener("sse:file:list", onFileList);
-    window.addEventListener("sse:error", onError);
-    window.addEventListener("sse:offline", onOffline);
-    return () => {
-      connection.close();
-      window.removeEventListener("sse:connected", onConnected);
-      window.removeEventListener("sse:render", onRender);
-      window.removeEventListener("sse:document:change", onDocumentChange);
-      window.removeEventListener("sse:file:list", onFileList);
-      window.removeEventListener("sse:error", onError);
-      window.removeEventListener("sse:offline", onOffline);
-    };
-  }, [
-    current,
-    effectiveCss,
-    frame,
-    isSelfSave,
-    markClean,
-    postRender,
-    refreshFiles,
-    refs.cssView,
-    refs.markdownView,
-    setConflict,
-    setCss,
-    setDirty,
-    setFiles,
-    setMarkdown,
-    setProjectCss,
-    setSaveStatus,
-    setStatus,
-    theme2
-  ]);
+  ] }) });
 }
 function stored(key, fallback) {
   try {
@@ -47767,170 +46895,898 @@ function usePreferences(frame, config2) {
     changeAutosaveDelay
   };
 }
-function usePreview(frameA, frameB, previewScroll, theme2, onPageCount, onSwap) {
-  reactExports.useEffect(() => {
-    initPreview(
-      {
-        frameA: frameA.current,
-        frameB: frameB.current,
-        scrollEl: previewScroll.current,
-        onSwap
-      },
-      theme2,
-      onPageCount,
-      onSwap
-    );
-  }, [frameA, frameB, previewScroll, onPageCount, onSwap]);
-}
-function useProjects(workspace) {
-  const {
-    project,
-    filename,
-    dirty,
-    refs,
-    current,
-    refreshProjects,
-    refreshFiles,
-    loadDocument,
-    saveDocument,
-    markDirty,
-    setMarkdown,
-    setCss,
-    urlTarget,
-    session,
-    target
-  } = workspace;
-  const lastLoadedKeyRef = reactExports.useRef(null);
-  const targetKey = target.mode === "idle" ? "idle" : target.mode === "watch" ? `watch:${target.path}:${target.customCss || ""}` : `project:${target.project}:${target.filename}`;
-  const openWatchFile = reactExports.useCallback(async (initialPath) => {
-    var _a2, _b;
-    const active = current.current;
-    if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Open another file anyway?`)) return;
-    let targetPath = null;
+function useConfig(onProjectsDirChanged) {
+  const [config2, setConfig] = reactExports.useState(null);
+  const [modalOpen, setModalOpen] = reactExports.useState(false);
+  const [loading, setLoading] = reactExports.useState(true);
+  const [saving, setSaving] = reactExports.useState(false);
+  const [browsing, setBrowsing] = reactExports.useState(false);
+  const [error, setError] = reactExports.useState(null);
+  const fetchConfig = reactExports.useCallback(async () => {
     try {
-      const res = await fetch("/api/system/browse-file", {
+      setLoading(true);
+      const res = await fetch("/api/config");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data2 = await res.json();
+      setConfig(data2);
+      if (data2.is_first_run) {
+        setModalOpen(true);
+      }
+      return data2;
+    } catch (err) {
+      console.error("Failed to load user configuration:", err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  reactExports.useEffect(() => {
+    void fetchConfig();
+  }, [fetchConfig]);
+  const saveConfig = reactExports.useCallback(async (updates) => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ initial_path: initialPath || active.docPath || "" })
+        body: JSON.stringify(updates)
       });
-      if (res.ok) {
-        const data2 = await res.json();
-        if (data2.path) {
-          targetPath = data2.path;
-        } else if (data2.cancelled && data2.reason && !data2.reason.includes("cancelled")) {
-          targetPath = ((_a2 = window.prompt("Enter path to Markdown file to watch (e.g. /home/user/notes.md):")) == null ? void 0 : _a2.trim()) || null;
+      if (!res.ok) {
+        const data2 = await res.json().catch(() => ({}));
+        throw new Error(data2.detail || `HTTP ${res.status}`);
+      }
+      const nextData = await res.json();
+      const dirChanged = config2 && config2.projects_dir !== nextData.projects_dir;
+      setConfig(nextData);
+      setModalOpen(false);
+      if (dirChanged && onProjectsDirChanged) {
+        await onProjectsDirChanged();
+      }
+      return nextData;
+    } catch (err) {
+      const msg = err.message;
+      setError(msg);
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  }, [config2, onProjectsDirChanged]);
+  const browseDirectory = reactExports.useCallback(async (initialDir) => {
+    setBrowsing(true);
+    try {
+      const res = await fetch("/api/system/browse-directory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initial_dir: initialDir || (config2 == null ? void 0 : config2.projects_dir) })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data2 = await res.json();
+      return data2.path;
+    } catch (err) {
+      console.error("Directory browse failed:", err);
+      return null;
+    } finally {
+      setBrowsing(false);
+    }
+  }, [config2 == null ? void 0 : config2.projects_dir]);
+  return {
+    config: config2,
+    loading,
+    saving,
+    browsing,
+    error,
+    modalOpen,
+    setModalOpen,
+    fetchConfig,
+    saveConfig,
+    browseDirectory
+  };
+}
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+function useImageLibrary({
+  docPath = "",
+  visible = true,
+  noCrop = false,
+  noWhitespace = false,
+  fileInputRef: externalFileInputRef,
+  forwardedRef,
+  onRename
+}) {
+  const [images, setImages] = reactExports.useState([]);
+  const [selectedFilename, setSelectedFilename] = reactExports.useState(null);
+  const [focusedUrl, setFocusedUrl] = reactExports.useState(null);
+  const [toastMessage, setToastMessage] = reactExports.useState(null);
+  const [isUploading, setIsUploading] = reactExports.useState(false);
+  const [uploadCount, setUploadCount] = reactExports.useState(0);
+  const [isCollapsed, setIsCollapsed] = reactExports.useState(!visible);
+  const containerRef = reactExports.useRef(null);
+  const listRef = reactExports.useRef(null);
+  const internalFileInputRef = reactExports.useRef(null);
+  const activeFileInputRef = externalFileInputRef || internalFileInputRef;
+  const toastTimerRef = reactExports.useRef(null);
+  const docPathRef = reactExports.useRef(docPath);
+  docPathRef.current = docPath;
+  reactExports.useEffect(() => {
+    setIsCollapsed(!visible);
+  }, [visible]);
+  const showToast = reactExports.useCallback((msg) => {
+    setToastMessage(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 2200);
+  }, []);
+  const getQuery = reactExports.useCallback(() => {
+    const currentDoc = docPathRef.current;
+    return currentDoc ? `?doc=${encodeURIComponent(currentDoc)}` : "";
+  }, []);
+  const fetchImages = reactExports.useCallback(async () => {
+    const query = getQuery();
+    if (!query) {
+      setImages([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/images${query}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data2 = await res.json();
+      setImages(data2);
+    } catch (err) {
+      console.error("Failed to fetch images:", err);
+    }
+  }, [getQuery]);
+  reactExports.useEffect(() => {
+    void fetchImages();
+  }, [docPath, fetchImages]);
+  const uploadFiles = reactExports.useCallback(
+    async (files) => {
+      if (!files || files.length === 0) return [];
+      setIsUploading(true);
+      setUploadCount(files.length);
+      const uploaded = [];
+      const query = getQuery();
+      for (const file of files) {
+        const form = new FormData();
+        form.append("file", file);
+        try {
+          const res = await fetch(`/api/images${query}`, {
+            method: "POST",
+            body: form
+          });
+          if (res.ok) {
+            const data2 = await res.json();
+            uploaded.push(data2);
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            console.error(`Upload error for ${file.name}:`, errData.detail || res.statusText);
+          }
+        } catch (err) {
+          console.error(`Upload network error for ${file.name}:`, err);
         }
       }
+      setIsUploading(false);
+      setUploadCount(0);
+      await fetchImages();
+      if (uploaded.length > 0) {
+        setFocusedUrl(uploaded[0].url);
+      }
+      return uploaded;
+    },
+    [fetchImages, getQuery]
+  );
+  const deleteImage = reactExports.useCallback(
+    async (img) => {
+      try {
+        const query = getQuery();
+        const res = await fetch(`/api/images/${encodeURIComponent(img.filename)}${query}`, {
+          method: "DELETE"
+        });
+        if (res.ok) {
+          showToast(`Deleted "${img.filename}" from library`);
+          setSelectedFilename((prev) => prev === img.filename ? null : prev);
+          await fetchImages();
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          showToast(`Failed to delete "${img.filename}": ${errData.detail || res.statusText}`);
+        }
+      } catch (err) {
+        showToast(`Delete error: ${err.message}`);
+      }
+    },
+    [fetchImages, getQuery, showToast]
+  );
+  const renameImage = reactExports.useCallback(
+    async (img, newFilename) => {
+      const cleanNew = newFilename.trim();
+      if (!cleanNew || cleanNew === img.filename) return false;
+      try {
+        const query = getQuery();
+        const res = await fetch(`/api/images/${encodeURIComponent(img.filename)}${query}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ new_filename: cleanNew })
+        });
+        if (res.ok) {
+          const data2 = await res.json();
+          const oldFilename = img.filename;
+          const finalNewFilename = data2.filename || cleanNew;
+          const oldRelPath = img.rel_path;
+          const newRelPath = data2.rel_path || img.rel_path;
+          const oldUrl = img.url;
+          const newUrl = data2.url || img.url;
+          showToast(`Renamed to "${finalNewFilename}"`);
+          await fetchImages();
+          onRename == null ? void 0 : onRename(oldFilename, finalNewFilename, oldRelPath || oldUrl, newRelPath || newUrl);
+          return true;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          showToast(`Rename failed: ${errData.detail || res.statusText}`);
+          return false;
+        }
+      } catch (err) {
+        showToast(`Rename error: ${err.message}`);
+        return false;
+      }
+    },
+    [fetchImages, getQuery, onRename, showToast]
+  );
+  const copyImage = reactExports.useCallback(
+    async (img) => {
+      const targetPath = img.rel_path || img.url;
+      const snippet2 = `![img](${targetPath})`;
+      try {
+        await navigator.clipboard.writeText(snippet2);
+        showToast(`Copied markdown for "${img.filename}"`);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = snippet2;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        showToast(`Copied markdown for "${img.filename}"`);
+      }
+    },
+    [showToast]
+  );
+  const focusImage = reactExports.useCallback((url) => {
+    setFocusedUrl(url);
+  }, []);
+  const selectImage = reactExports.useCallback((filename) => {
+    setSelectedFilename(filename);
+  }, []);
+  const clearSelection = reactExports.useCallback(() => {
+    setSelectedFilename(null);
+  }, []);
+  reactExports.useEffect(() => {
+    const handlePointerDown = (e) => {
+      var _a2;
+      if (!((_a2 = containerRef.current) == null ? void 0 : _a2.contains(e.target))) {
+        clearSelection();
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [clearSelection]);
+  reactExports.useImperativeHandle(
+    forwardedRef,
+    () => ({
+      fetchImages,
+      uploadFiles,
+      focusImage,
+      selectImage,
+      clearSelection,
+      async setDoc(newDocPath) {
+        docPathRef.current = newDocPath || "";
+        clearSelection();
+        await fetchImages();
+      },
+      toggle(show) {
+        setIsCollapsed((prev) => typeof show === "boolean" ? !show : !prev);
+      }
+    }),
+    [clearSelection, fetchImages, focusImage, selectImage, uploadFiles]
+  );
+  const handleFileInputChange = (e) => {
+    const files = [...e.target.files || []];
+    if (files.length > 0) {
+      void uploadFiles(files);
+    }
+    e.target.value = "";
+  };
+  const handleBrowseClick = () => {
+    var _a2;
+    (_a2 = activeFileInputRef.current) == null ? void 0 : _a2.click();
+  };
+  const asideClasses = [
+    "image-library",
+    noCrop ? "nocrop-mode" : "",
+    noWhitespace ? "nowhitespace-mode" : "",
+    isCollapsed ? "is-collapsed" : ""
+  ].filter(Boolean).join(" ");
+  return {
+    images,
+    selectedFilename,
+    setSelectedFilename,
+    focusedUrl,
+    toastMessage,
+    isUploading,
+    uploadCount,
+    asideClasses,
+    containerRef,
+    listRef,
+    internalFileInputRef,
+    uploadFiles,
+    deleteImage,
+    renameImage,
+    copyImage,
+    clearSelection,
+    handleFileInputChange,
+    handleBrowseClick
+  };
+}
+function useImageCard({
+  image,
+  isSelected,
+  isVicinityFocused,
+  onSelect,
+  onBlur,
+  onInsert,
+  onRename,
+  onDelete,
+  onCopy,
+  onNavigateNext,
+  onNavigatePrev
+}) {
+  const [editingFilename, setEditingFilename] = reactExports.useState(image.filename);
+  const [badgeText, setBadgeText] = reactExports.useState(null);
+  const [isDragging, setIsDragging] = reactExports.useState(false);
+  const cardRef = reactExports.useRef(null);
+  const focusInputRef = reactExports.useRef(null);
+  const nameInputRef = reactExports.useRef(null);
+  const wasAlreadyFocusedRef = reactExports.useRef(false);
+  reactExports.useEffect(() => {
+    setEditingFilename(image.filename);
+  }, [image.filename]);
+  reactExports.useEffect(() => {
+    if (isVicinityFocused && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [isVicinityFocused]);
+  reactExports.useEffect(() => {
+    var _a2;
+    if (isSelected && focusInputRef.current && document.activeElement !== focusInputRef.current) {
+      if (!((_a2 = cardRef.current) == null ? void 0 : _a2.contains(document.activeElement))) {
+        focusInputRef.current.focus();
+      }
+    }
+  }, [isSelected]);
+  const targetPath = image.rel_path || image.url;
+  const snippet2 = `![img](${targetPath})`;
+  const triggerCopy = () => {
+    onCopy(image);
+    setBadgeText("Copied");
+    setTimeout(() => setBadgeText(null), 1200);
+  };
+  const handleKeyDown = (e) => {
+    var _a2;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
+      const sel = window.getSelection();
+      if (sel && sel.toString().trim().length > 0) return;
+      e.preventDefault();
+      triggerCopy();
+      return;
+    }
+    if (e.key === "Delete" || e.key === "Del") {
+      e.preventDefault();
+      onDelete(image);
+      return;
+    }
+    if (e.key === "Escape") {
+      onBlur();
+      (_a2 = focusInputRef.current) == null ? void 0 : _a2.blur();
+      return;
+    }
+    if (e.key === "Enter") {
+      if (onInsert) {
+        onInsert(`
+${snippet2}
+`);
+      }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      onNavigateNext == null ? void 0 : onNavigateNext();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      onNavigatePrev == null ? void 0 : onNavigatePrev();
+    }
+  };
+  const handleFocusInputBlur = (e) => {
+    var _a2;
+    if (e.relatedTarget && ((_a2 = cardRef.current) == null ? void 0 : _a2.contains(e.relatedTarget))) {
+      return;
+    }
+    onBlur();
+  };
+  const handleCardFocusOut = (e) => {
+    var _a2;
+    if (e.relatedTarget && ((_a2 = cardRef.current) == null ? void 0 : _a2.contains(e.relatedTarget))) {
+      return;
+    }
+    onBlur();
+  };
+  const handleCardClick = (e) => {
+    var _a2;
+    if (e.target === nameInputRef.current) return;
+    (_a2 = focusInputRef.current) == null ? void 0 : _a2.focus();
+    onSelect();
+  };
+  const handleDoubleClick = (e) => {
+    if (e.target === nameInputRef.current) return;
+    if (onInsert) {
+      onInsert(`
+${snippet2}
+`);
+    }
+  };
+  const commitRename = async () => {
+    const trimmed = editingFilename.trim();
+    if (!trimmed || trimmed === image.filename) {
+      setEditingFilename(image.filename);
+      return;
+    }
+    try {
+      await (onRename == null ? void 0 : onRename(image, trimmed));
     } catch {
-      targetPath = ((_b = window.prompt("Enter path to Markdown file to watch (e.g. /home/user/notes.md):")) == null ? void 0 : _b.trim()) || null;
+      setEditingFilename(image.filename);
     }
-    if (!targetPath) return;
-    urlTarget.initWatch(targetPath);
-  }, [current, urlTarget]);
-  const switchToWatch = reactExports.useCallback(async () => {
-    var _a2;
-    const active = current.current;
-    if (active.dirty && !window.confirm(`You have unsaved changes. Switch anyway?`)) return;
-    if (session.watch && session.project) {
-      urlTarget.switchToWatch();
-    } else if ((_a2 = workspace.activeWatchTarget) == null ? void 0 : _a2.path) {
-      urlTarget.initWatch(workspace.activeWatchTarget.path);
-    }
-  }, [current, session, urlTarget, workspace.activeWatchTarget]);
-  const switchProject = reactExports.useCallback(async (nextProject) => {
-    var _a2, _b;
-    const active = current.current;
-    if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Switch project anyway?`)) return;
-    if (nextProject === "__watch__") {
-      await openWatchFile();
-      return;
-    }
-    if (nextProject === "__new__") {
-      const name2 = (_a2 = window.prompt("New project directory name (e.g. dsa-2):")) == null ? void 0 : _a2.trim();
-      if (!name2) return;
-      const response = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name2 })
+  };
+  const handleFilenameMouseDown = (e) => {
+    e.stopPropagation();
+    wasAlreadyFocusedRef.current = document.activeElement === nameInputRef.current;
+    onSelect();
+  };
+  const handleFilenameFocus = () => {
+    onSelect();
+    if (!wasAlreadyFocusedRef.current) {
+      requestAnimationFrame(() => {
+        var _a2;
+        (_a2 = nameInputRef.current) == null ? void 0 : _a2.select();
       });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        window.alert(`Project creation failed: ${error.detail || response.status}`);
-        return;
-      }
-      await refreshProjects();
-      nextProject = name2;
     }
-    const nextFiles = await refreshFiles(nextProject);
-    const nextFile = ((_b = nextFiles[0]) == null ? void 0 : _b.filename) || "README.md";
-    if (session.watch) {
-      urlTarget.switchProject(nextProject, nextFile);
-    } else {
-      urlTarget.initProject(nextProject, nextFile);
-    }
-  }, [current, openWatchFile, refreshFiles, refreshProjects, session, urlTarget]);
-  const switchFile = reactExports.useCallback(async (nextFilename) => {
+  };
+  const handleFilenameMouseUp = (e) => {
     var _a2;
-    if (nextFilename === "__new__") {
-      const name2 = (_a2 = window.prompt("New markdown filename (e.g. notes.md or docs/notes.md):")) == null ? void 0 : _a2.trim();
-      if (!name2) return;
-      const cleanName = name2.endsWith(".md") ? name2 : `${name2}.md`;
-      const nextMarkdown = `# ${cleanName.replace(/\.md$/, "")}
-
-`;
-      setMarkdown(nextMarkdown);
-      setCss("");
-      setEditorContent(refs.markdownView.current, nextMarkdown);
-      setEditorContent(refs.cssView.current, "");
-      markDirty();
-      await saveDocument({ filename: cleanName, markdown: nextMarkdown, css: "" });
-      urlTarget.switchFile(cleanName);
-      return;
+    if (!wasAlreadyFocusedRef.current) {
+      e.preventDefault();
+      (_a2 = nameInputRef.current) == null ? void 0 : _a2.select();
     }
-    const active = current.current;
-    if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Switch anyway?`)) return;
-    urlTarget.switchFile(nextFilename);
-  }, [current, markDirty, refs.cssView, refs.markdownView, saveDocument, setCss, setMarkdown, urlTarget]);
-  const switchToProjects = reactExports.useCallback(async () => {
+  };
+  const handleFilenameBlur = (e) => {
     var _a2;
-    const active = current.current;
-    if (active.dirty && !window.confirm(`You have unsaved changes. Switch to project mode anyway?`)) return;
-    if (session.watch && session.project) {
-      urlTarget.switchToProject();
+    wasAlreadyFocusedRef.current = false;
+    void commitRename();
+    if (e.relatedTarget && ((_a2 = cardRef.current) == null ? void 0 : _a2.contains(e.relatedTarget))) {
       return;
     }
-    const available = await refreshProjects();
-    if (!available.length) return;
-    const nextProject = available.some((item) => item.name === active.project) ? active.project : available[0].name;
-    const nextFiles = await refreshFiles(nextProject);
-    const nextFile = ((_a2 = nextFiles[0]) == null ? void 0 : _a2.filename) || "README.md";
-    urlTarget.initProject(nextProject, nextFile);
-  }, [current, refreshFiles, refreshProjects, session, urlTarget]);
-  const switchToIdle = reactExports.useCallback(() => {
-    const active = current.current;
-    if (active.dirty && !window.confirm(`You have unsaved changes. Return to launcher anyway?`)) return;
-    urlTarget.switchToIdle();
-  }, [current, urlTarget]);
-  reactExports.useEffect(() => {
-    void refreshProjects();
-  }, [refreshProjects]);
-  reactExports.useEffect(() => {
-    if (lastLoadedKeyRef.current === targetKey) {
-      return;
+    onBlur();
+  };
+  const handleFilenameChange = (e) => {
+    setEditingFilename(e.target.value);
+  };
+  const handleFilenameKeyDown = (e) => {
+    var _a2, _b;
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.stopPropagation();
     }
-    lastLoadedKeyRef.current = targetKey;
-    void (async () => {
-      if (target.mode === "idle") {
-        await loadDocument({ mode: "idle" });
-        return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      (_a2 = nameInputRef.current) == null ? void 0 : _a2.blur();
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setEditingFilename(image.filename);
+      (_b = nameInputRef.current) == null ? void 0 : _b.blur();
+    }
+  };
+  const handleDragStart = (e) => {
+    setIsDragging(true);
+    const payload = {
+      url: image.url,
+      alt: "img",
+      filename: image.filename,
+      rel_path: image.rel_path
+    };
+    e.dataTransfer.setData("application/x-editor-image", JSON.stringify(payload));
+    e.dataTransfer.setData("text/plain", snippet2);
+    e.dataTransfer.effectAllowed = "copy";
+  };
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+  const cardClasses = [
+    "image-card",
+    isSelected ? "is-selected" : "",
+    isVicinityFocused ? "is-focused" : "",
+    isDragging ? "is-dragging" : ""
+  ].filter(Boolean).join(" ");
+  return {
+    cardRef,
+    focusInputRef,
+    nameInputRef,
+    isDraggable: !wasAlreadyFocusedRef.current,
+    editingFilename,
+    badgeText,
+    snippet: snippet2,
+    cardClasses,
+    triggerCopy,
+    handleKeyDown,
+    handleFocusInputBlur,
+    handleCardFocusOut,
+    handleCardClick,
+    handleDoubleClick,
+    handleFilenameMouseDown,
+    handleFilenameFocus,
+    handleFilenameMouseUp,
+    handleFilenameBlur,
+    handleFilenameChange,
+    handleFilenameKeyDown,
+    handleDragStart,
+    handleDragEnd
+  };
+}
+function ImageCard(props) {
+  const {
+    cardRef,
+    focusInputRef,
+    nameInputRef,
+    isDraggable,
+    editingFilename,
+    badgeText,
+    snippet: snippet2,
+    cardClasses,
+    triggerCopy,
+    handleKeyDown,
+    handleFocusInputBlur,
+    handleCardFocusOut,
+    handleCardClick,
+    handleDoubleClick,
+    handleFilenameMouseDown,
+    handleFilenameFocus,
+    handleFilenameMouseUp,
+    handleFilenameBlur,
+    handleFilenameChange,
+    handleFilenameKeyDown,
+    handleDragStart,
+    handleDragEnd
+  } = useImageCard(props);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      ref: cardRef,
+      className: cardClasses,
+      draggable: isDraggable,
+      "data-url": props.image.url,
+      "data-filename": props.image.filename,
+      onClick: handleCardClick,
+      onDoubleClick: handleDoubleClick,
+      onBlur: handleCardFocusOut,
+      onDragStart: handleDragStart,
+      onDragEnd: handleDragEnd,
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "input",
+          {
+            ref: focusInputRef,
+            type: "text",
+            className: "image-card__focus-input",
+            "aria-label": `Image: ${props.image.filename}`,
+            value: snippet2,
+            readOnly: true,
+            tabIndex: 0,
+            onFocus: props.onSelect,
+            onBlur: handleFocusInputBlur,
+            onKeyDown: handleKeyDown,
+            onCopy: (e) => {
+              const sel = window.getSelection();
+              if (sel && sel.toString().trim().length > 0) return;
+              e.preventDefault();
+              triggerCopy();
+            }
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "image-card__thumb-wrap", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "img",
+            {
+              className: "image-card__thumb",
+              src: props.image.url,
+              alt: props.image.filename,
+              loading: "lazy"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "image-card__drag-overlay", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "⠿ Drag onto line" }) })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "image-card__body", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "image-card__meta", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "input",
+            {
+              ref: nameInputRef,
+              type: "text",
+              className: "image-card__name-input",
+              value: editingFilename,
+              title: props.image.filename,
+              placeholder: "Filename…",
+              spellCheck: false,
+              onMouseDown: handleFilenameMouseDown,
+              onFocus: handleFilenameFocus,
+              onMouseUp: handleFilenameMouseUp,
+              onBlur: handleFilenameBlur,
+              onChange: handleFilenameChange,
+              onKeyDown: handleFilenameKeyDown
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "image-card__size", children: formatBytes(props.image.size) })
+        ] }) }),
+        badgeText && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "image-card__badge-feedback", children: badgeText })
+      ]
+    }
+  );
+}
+function useImageDropzone({ onDropFiles, onBrowseClick }) {
+  const [isDragOver, setIsDragOver] = reactExports.useState(false);
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+  const handleDrop = (e) => {
+    var _a2;
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = [...((_a2 = e.dataTransfer) == null ? void 0 : _a2.files) || []].filter((f) => f.type.startsWith("image/"));
+    if (files.length > 0) {
+      onDropFiles(files);
+    }
+  };
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onBrowseClick();
+    }
+  };
+  return {
+    isDragOver,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleKeyDown
+  };
+}
+function ImageDropzone({
+  isUploading,
+  uploadCount,
+  onDropFiles,
+  onBrowseClick
+}) {
+  const {
+    isDragOver,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleKeyDown
+  } = useImageDropzone({ onDropFiles, onBrowseClick });
+  const classes = [
+    "image-library__dropzone",
+    isDragOver ? "drag-over" : "",
+    isUploading ? "is-uploading" : ""
+  ].filter(Boolean).join(" ");
+  const text = isUploading ? `Uploading ${uploadCount} image(s)…` : "Drop images here";
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: classes,
+      onClick: onBrowseClick,
+      onDragOver: handleDragOver,
+      onDragLeave: handleDragLeave,
+      onDrop: handleDrop,
+      role: "button",
+      tabIndex: 0,
+      title: "Click or drop images here to upload",
+      onKeyDown: handleKeyDown,
+      children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dropzone-text", children: text })
+    }
+  );
+}
+function ImageToast({ message }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `image-library__toast${message ? " is-visible" : ""}`, role: "status", "aria-live": "polite", children: message || "" });
+}
+const ImageLibrary = reactExports.forwardRef(
+  function ImageLibrary2(props, ref) {
+    const {
+      images,
+      selectedFilename,
+      setSelectedFilename,
+      focusedUrl,
+      toastMessage,
+      isUploading,
+      uploadCount,
+      asideClasses,
+      containerRef,
+      listRef,
+      internalFileInputRef,
+      uploadFiles,
+      deleteImage,
+      renameImage,
+      copyImage,
+      clearSelection,
+      handleFileInputChange,
+      handleBrowseClick
+    } = useImageLibrary({ ...props, forwardedRef: ref });
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: asideClasses, ref: containerRef, children: [
+      !props.fileInputRef && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "input",
+        {
+          ref: internalFileInputRef,
+          type: "file",
+          accept: "image/jpeg,image/png,image/gif,image/webp,image/svg+xml",
+          style: { display: "none" },
+          multiple: true,
+          onChange: handleFileInputChange
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "image-library__header", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "image-library__title", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Library" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "image-library__count", children: images.length })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            id: "upload-library-btn",
+            className: "btn btn--ghost btn--xs",
+            title: "Upload images",
+            onClick: handleBrowseClick,
+            children: "Upload"
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        ImageDropzone,
+        {
+          isUploading,
+          uploadCount,
+          onDropFiles: (files) => void uploadFiles(files),
+          onBrowseClick: handleBrowseClick
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "div",
+        {
+          className: "image-library__list",
+          ref: listRef,
+          onClick: (e) => {
+            if (!e.target.closest(".image-card")) {
+              clearSelection();
+            }
+          },
+          children: images.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "image-library__empty", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "No images yet" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted", children: "Import or drag images above" })
+          ] }) : images.map((img, idx) => {
+            var _a2;
+            const isSelected = selectedFilename === img.filename;
+            const targetFilename = (_a2 = focusedUrl == null ? void 0 : focusedUrl.split("/").pop()) == null ? void 0 : _a2.split("?")[0];
+            const isVicinityFocused = Boolean(
+              focusedUrl && (img.url === focusedUrl || img.filename === targetFilename || img.url.endsWith(targetFilename || ""))
+            );
+            return /* @__PURE__ */ jsxRuntimeExports.jsx(
+              ImageCard,
+              {
+                image: img,
+                isSelected,
+                isVicinityFocused,
+                onSelect: () => setSelectedFilename(img.filename),
+                onBlur: () => {
+                  setSelectedFilename((prev) => prev === img.filename ? null : prev);
+                },
+                onInsert: props.onInsert,
+                onRename: (item, newFilename) => renameImage(item, newFilename),
+                onDelete: () => void deleteImage(img),
+                onCopy: () => void copyImage(img),
+                onNavigateNext: () => {
+                  if (idx < images.length - 1) {
+                    setSelectedFilename(images[idx + 1].filename);
+                  }
+                },
+                onNavigatePrev: () => {
+                  if (idx > 0) {
+                    setSelectedFilename(images[idx - 1].filename);
+                  }
+                }
+              },
+              img.filename
+            );
+          })
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(ImageToast, { message: toastMessage })
+    ] });
+  }
+);
+function WorkspacePanes(props) {
+  var _a2, _b, _c, _d;
+  const panesClass = `panes${props.previewVisible ? "" : " preview-collapsed"}`;
+  const leftClass = `left-pane${props.libraryVisible ? "" : " library-collapsed"}${props.cssVisible ? "" : " css-collapsed"}`;
+  const markdownHost = props.markdownHost || ((_a2 = props.refs) == null ? void 0 : _a2.markdownHost);
+  const cssHost = props.cssHost || ((_b = props.refs) == null ? void 0 : _b.cssHost);
+  const imageLibraryRef = props.imageLibraryRef || ((_c = props.refs) == null ? void 0 : _c.imageLibrary);
+  const fileInputRef = props.fileInputRef || ((_d = props.refs) == null ? void 0 : _d.imageInput);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: panesClass, ref: props.panes, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: leftClass, ref: props.leftPane, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        ImageLibrary,
+        {
+          ref: imageLibraryRef,
+          docPath: props.docPath,
+          visible: props.libraryVisible,
+          noCrop: props.noCrop,
+          noWhitespace: props.noWhitespace,
+          fileInputRef,
+          onInsert: props.onInsertImage,
+          onRename: props.onRenameImage
+        }
+      ),
+      markdownHost && cssHost && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        EditorPanes,
+        {
+          markdownHost,
+          cssHost,
+          cssVisible: props.cssVisible,
+          onCss: props.onCss
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "pane-divider", ref: props.divider, role: "separator", "aria-label": "Resize panes" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      PreviewPane,
+      {
+        frameA: props.frameA,
+        frameB: props.frameB,
+        activeFrame: props.activeFrame,
+        previewScroll: props.previewScroll,
+        pageCount: props.pageCount,
+        theme: props.theme,
+        onTheme: props.onTheme
       }
-      if (target.mode === "project") {
-        await refreshFiles(target.project);
-      }
-      await loadDocument(target);
-    })();
-  }, [loadDocument, refreshFiles, target, targetKey]);
-  return { project, filename, switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle };
+    )
+  ] });
+}
+function ConflictBanner({ conflict, onReload, onKeep }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "conflict-banner", role: "alert", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "conflict-banner__text", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "conflict-banner__badge", children: "External Change" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: conflict.filename }),
+      " was modified externally, but you have unsaved edits."
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "conflict-banner__actions", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--xs btn--primary", onClick: onReload, children: "Reload from disk" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn--xs btn--ghost", onClick: onKeep, children: "Keep edits" })
+    ] })
+  ] });
 }
 let cachedSearch = null;
 let cachedResult = {
@@ -48451,54 +48307,161 @@ ${value}` : value);
     urlTarget
   };
 }
-function App() {
-  const workspace = useWorkspace();
-  const frameA = reactExports.useRef(null);
-  const frameB = reactExports.useRef(null);
-  const previewScroll = reactExports.useRef(null);
-  const panes = reactExports.useRef(null);
-  const divider = reactExports.useRef(null);
-  const leftPane = reactExports.useRef(null);
-  const library = {
-    container: reactExports.useRef(null),
-    list: reactExports.useRef(null),
-    dropzone: reactExports.useRef(null),
-    count: reactExports.useRef(null),
-    uploadButton: reactExports.useRef(null)
-  };
-  const [status, setStatus] = reactExports.useState("idle");
-  const [statusTitle, setStatusTitle] = reactExports.useState("Connecting…");
-  const [pageCount, setPageCount] = reactExports.useState("");
-  const [activeFrame, setActiveFrame] = reactExports.useState("A");
-  const [exporting, setExporting] = reactExports.useState(false);
-  const { switchProject, switchFile, switchToProjects, openWatchFile, switchToWatch, switchToIdle } = useProjects(workspace);
-  reactExports.useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "o") {
-        e.preventDefault();
-        void openWatchFile();
+function useProjects(workspace) {
+  const {
+    project,
+    filename,
+    dirty,
+    refs,
+    current,
+    refreshProjects,
+    refreshFiles,
+    loadDocument,
+    saveDocument,
+    markDirty,
+    setMarkdown,
+    setCss,
+    urlTarget,
+    session,
+    target
+  } = workspace;
+  const lastLoadedKeyRef = reactExports.useRef(null);
+  const targetKey = target.mode === "idle" ? "idle" : target.mode === "watch" ? `watch:${target.path}:${target.customCss || ""}` : `project:${target.project}:${target.filename}`;
+  const openWatchFile = reactExports.useCallback(async (initialPath) => {
+    var _a2, _b;
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Open another file anyway?`)) return;
+    let targetPath = null;
+    try {
+      const res = await fetch("/api/system/browse-file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initial_path: initialPath || active.docPath || "" })
+      });
+      if (res.ok) {
+        const data2 = await res.json();
+        if (data2.path) {
+          targetPath = data2.path;
+        } else if (data2.cancelled && data2.reason && !data2.reason.includes("cancelled")) {
+          targetPath = ((_a2 = window.prompt("Enter path to Markdown file to watch (e.g. /home/user/notes.md):")) == null ? void 0 : _a2.trim()) || null;
+        }
       }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [openWatchFile]);
-  const onDirectoryChanged = reactExports.useCallback(async () => {
-    var _a2;
-    const available = await workspace.refreshProjects();
-    if (available.length && workspace.target.mode !== "idle") {
-      const nextProject = available[0].name;
-      const nextFiles = await workspace.refreshFiles(nextProject);
-      const nextFile = ((_a2 = nextFiles[0]) == null ? void 0 : _a2.filename) || "README.md";
-      workspace.urlTarget.switchProject(nextProject, nextFile);
+    } catch {
+      targetPath = ((_b = window.prompt("Enter path to Markdown file to watch (e.g. /home/user/notes.md):")) == null ? void 0 : _b.trim()) || null;
     }
-  }, [workspace]);
-  const handleSelectProject = reactExports.useCallback(async (projectName) => {
+    if (!targetPath) return;
+    urlTarget.initWatch(targetPath);
+  }, [current, urlTarget]);
+  const switchToWatch = reactExports.useCallback(async () => {
     var _a2;
-    const nextFiles = await workspace.refreshFiles(projectName);
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes. Switch anyway?`)) return;
+    if (session.watch && session.project) {
+      urlTarget.switchToWatch();
+    } else if ((_a2 = workspace.activeWatchTarget) == null ? void 0 : _a2.path) {
+      urlTarget.initWatch(workspace.activeWatchTarget.path);
+    }
+  }, [current, session, urlTarget, workspace.activeWatchTarget]);
+  const switchProject = reactExports.useCallback(async (nextProject) => {
+    var _a2, _b;
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Switch project anyway?`)) return;
+    if (nextProject === "__watch__") {
+      await openWatchFile();
+      return;
+    }
+    if (nextProject === "__new__") {
+      const name2 = (_a2 = window.prompt("New project directory name (e.g. dsa-2):")) == null ? void 0 : _a2.trim();
+      if (!name2) return;
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name2 })
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        window.alert(`Project creation failed: ${error.detail || response.status}`);
+        return;
+      }
+      await refreshProjects();
+      nextProject = name2;
+    }
+    const nextFiles = await refreshFiles(nextProject);
+    const nextFile = ((_b = nextFiles[0]) == null ? void 0 : _b.filename) || "README.md";
+    if (session.watch) {
+      urlTarget.switchProject(nextProject, nextFile);
+    } else {
+      urlTarget.initProject(nextProject, nextFile);
+    }
+  }, [current, openWatchFile, refreshFiles, refreshProjects, session, urlTarget]);
+  const switchFile = reactExports.useCallback(async (nextFilename) => {
+    var _a2;
+    if (nextFilename === "__new__") {
+      const name2 = (_a2 = window.prompt("New markdown filename (e.g. notes.md or docs/notes.md):")) == null ? void 0 : _a2.trim();
+      if (!name2) return;
+      const cleanName = name2.endsWith(".md") ? name2 : `${name2}.md`;
+      const nextMarkdown = `# ${cleanName.replace(/\.md$/, "")}
+
+`;
+      setMarkdown(nextMarkdown);
+      setCss("");
+      setEditorContent(refs.markdownView.current, nextMarkdown);
+      setEditorContent(refs.cssView.current, "");
+      markDirty();
+      await saveDocument({ filename: cleanName, markdown: nextMarkdown, css: "" });
+      urlTarget.switchFile(cleanName);
+      return;
+    }
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes in ${active.filename}. Switch anyway?`)) return;
+    urlTarget.switchFile(nextFilename);
+  }, [current, markDirty, refs.cssView, refs.markdownView, saveDocument, setCss, setMarkdown, urlTarget]);
+  const switchToProjects = reactExports.useCallback(async () => {
+    var _a2;
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes. Switch to project mode anyway?`)) return;
+    if (session.watch && session.project) {
+      urlTarget.switchToProject();
+      return;
+    }
+    const available = await refreshProjects();
+    if (!available.length) return;
+    const nextProject = available.some((item) => item.name === active.project) ? active.project : available[0].name;
+    const nextFiles = await refreshFiles(nextProject);
     const nextFile = ((_a2 = nextFiles[0]) == null ? void 0 : _a2.filename) || "README.md";
-    workspace.urlTarget.initProject(projectName, nextFile);
-  }, [workspace]);
-  const handleCreateProject = reactExports.useCallback(async () => {
+    urlTarget.initProject(nextProject, nextFile);
+  }, [current, refreshFiles, refreshProjects, session, urlTarget]);
+  const switchToIdle = reactExports.useCallback(() => {
+    const active = current.current;
+    if (active.dirty && !window.confirm(`You have unsaved changes. Return to launcher anyway?`)) return;
+    urlTarget.switchToIdle();
+  }, [current, urlTarget]);
+  reactExports.useEffect(() => {
+    void refreshProjects();
+  }, [refreshProjects]);
+  reactExports.useEffect(() => {
+    if (lastLoadedKeyRef.current === targetKey) {
+      return;
+    }
+    lastLoadedKeyRef.current = targetKey;
+    void (async () => {
+      if (target.mode === "idle") {
+        await loadDocument({ mode: "idle" });
+        return;
+      }
+      if (target.mode === "project") {
+        await refreshFiles(target.project);
+      }
+      await loadDocument(target);
+    })();
+  }, [loadDocument, refreshFiles, target, targetKey]);
+  const selectProject = reactExports.useCallback(async (projectName) => {
+    var _a2;
+    const nextFiles = await refreshFiles(projectName);
+    const nextFile = ((_a2 = nextFiles[0]) == null ? void 0 : _a2.filename) || "README.md";
+    urlTarget.initProject(projectName, nextFile);
+  }, [refreshFiles, urlTarget]);
+  const createProject = reactExports.useCallback(async () => {
     var _a2;
     const name2 = (_a2 = window.prompt("New project directory name (e.g. dsa-2):")) == null ? void 0 : _a2.trim();
     if (!name2) return;
@@ -48512,34 +48475,468 @@ function App() {
       window.alert(`Project creation failed: ${err.detail || response.status}`);
       return;
     }
-    await workspace.refreshProjects();
-    await handleSelectProject(name2);
-  }, [handleSelectProject, workspace]);
+    await refreshProjects();
+    await selectProject(name2);
+  }, [refreshProjects, selectProject]);
+  const onDirectoryChanged = reactExports.useCallback(async () => {
+    var _a2;
+    const available = await refreshProjects();
+    if (available.length && target.mode !== "idle") {
+      const nextProject = available[0].name;
+      const nextFiles = await refreshFiles(nextProject);
+      const nextFile = ((_a2 = nextFiles[0]) == null ? void 0 : _a2.filename) || "README.md";
+      urlTarget.switchProject(nextProject, nextFile);
+    }
+  }, [refreshFiles, refreshProjects, target.mode, urlTarget]);
+  return {
+    project,
+    filename,
+    switchProject,
+    switchFile,
+    switchToProjects,
+    openWatchFile,
+    switchToWatch,
+    switchToIdle,
+    selectProject,
+    createProject,
+    onDirectoryChanged
+  };
+}
+const SSE_URL = "/api/events";
+const RECONNECT_BASE_MS = 1e3;
+const RECONNECT_MAX_MS = 3e4;
+function connectSSE(target = window) {
+  let es = null;
+  let retryDelay = RECONNECT_BASE_MS;
+  let retryTimer = null;
+  let closed = false;
+  function dispatch(name2, detail = {}) {
+    target.dispatchEvent(new CustomEvent(name2, { detail }));
+  }
+  function connect() {
+    es = new EventSource(SSE_URL);
+    es.addEventListener("connected", () => {
+      retryDelay = RECONNECT_BASE_MS;
+      dispatch("sse:connected");
+    });
+    es.addEventListener("render", (ev) => {
+      const data2 = JSON.parse(ev.data || "{}");
+      dispatch("sse:render", {
+        html: data2.html ?? "",
+        css: data2.css ?? "",
+        filename: data2.filename,
+        project: data2.project,
+        project_css: data2.project_css,
+        doc_token: data2.doc_token,
+        doc_path: data2.doc_path,
+        ...data2
+      });
+    });
+    es.addEventListener("file:change", (ev) => {
+      const data2 = JSON.parse(ev.data ?? "{}");
+      dispatch("sse:file:change", data2);
+    });
+    es.addEventListener("document:change", (ev) => {
+      const data2 = JSON.parse(ev.data ?? "{}");
+      dispatch("sse:document:change", data2);
+    });
+    es.addEventListener("file:list", (ev) => {
+      const data2 = JSON.parse(ev.data ?? "{}");
+      dispatch("sse:file:list", data2);
+    });
+    es.addEventListener("error", (ev) => {
+      const data2 = JSON.parse(ev.data ?? "{}");
+      dispatch("sse:error", { message: data2.message ?? "Unknown error" });
+    });
+    es.onerror = () => {
+      es == null ? void 0 : es.close();
+      if (closed) return;
+      dispatch("sse:offline");
+      retryTimer = setTimeout(() => {
+        retryDelay = Math.min(retryDelay * 2, RECONNECT_MAX_MS);
+        connect();
+      }, retryDelay);
+    };
+  }
+  connect();
+  return {
+    close() {
+      closed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      es == null ? void 0 : es.close();
+    }
+  };
+}
+function useLiveSync(workspace, frame, theme2, setStatus, setPageCount) {
   const {
-    config: config2,
-    modalOpen,
-    setModalOpen,
-    saveConfig,
-    browseDirectory,
-    saving,
-    browsing,
-    error
-  } = useConfig(onDirectoryChanged);
-  const preferences = usePreferences(frameA, config2);
-  const setAppStatus = reactExports.useCallback((next, title = "") => {
-    setStatus(next);
-    setStatusTitle(title || next);
-  }, []);
-  useEditors(workspace, library);
-  usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount, setActiveFrame);
-  useLiveSync(workspace, frameA, preferences.theme, setAppStatus, setPageCount);
-  useAutosave(workspace, preferences.autosave, preferences.autosaveDelay);
-  useLayout(workspace, panes, divider, leftPane, preferences.previewVisible);
+    current,
+    refs,
+    setProjectCss,
+    setMarkdown,
+    setCss,
+    setFiles,
+    setDirty,
+    setSaveStatus,
+    setConflict,
+    markClean,
+    effectiveCss,
+    postRender,
+    refreshFiles,
+    isSelfSave
+  } = workspace;
   reactExports.useEffect(() => {
-    const closeSettings = () => preferences.setSettingsOpen(false);
-    document.addEventListener("click", closeSettings);
-    return () => document.removeEventListener("click", closeSettings);
-  }, [preferences]);
+    const connection = connectSSE(window);
+    const onConnected = () => {
+      setStatus("connected", "Live");
+      void postRender(current.current.markdown, effectiveCss());
+    };
+    const onRender = (event) => {
+      const data2 = event.detail || {};
+      const active = current.current;
+      if (active.docPath && data2.doc_path && active.docPath !== data2.doc_path) return;
+      if (active.target.mode === "project") {
+        if (data2.project && data2.project !== active.project || data2.filename && data2.filename !== active.filename) {
+          return;
+        }
+      }
+      if (data2.project_css !== void 0) setProjectCss(data2.project_css);
+      const renderedCss = data2.project_css !== void 0 ? `${data2.project_css}
+${data2.css || ""}` : data2.css || effectiveCss();
+      const token = data2.doc_token || active.docToken;
+      updatePreview(frame.current, data2.html || "", renderedCss, theme2, token, setPageCount);
+      setStatus("connected", "Live");
+    };
+    const onDocumentChange = (event) => {
+      const data2 = event.detail || {};
+      const active = current.current;
+      const isSameDoc = active.docPath && data2.doc_path && active.docPath === data2.doc_path || active.target.mode === "project" && data2.mode === "project" && data2.project === active.project && data2.filename === active.filename;
+      if (!isSameDoc) return;
+      if (data2.action === "deleted") {
+        setDirty(true);
+        setSaveStatus("Deleted on disk");
+        return;
+      }
+      const mdChanged = data2.markdown !== void 0 && data2.markdown !== active.markdown;
+      const cssChanged = data2.css !== void 0 && data2.css !== active.css;
+      const sharedChanged = data2.shared_css !== void 0 && data2.shared_css !== active.projectCss;
+      if (!mdChanged && !cssChanged && !sharedChanged) return;
+      if (isSelfSave && isSelfSave(data2.markdown ?? "", data2.css ?? "")) {
+        if (sharedChanged) {
+          setProjectCss(data2.shared_css || "");
+        }
+        if (!active.dirty) {
+          markClean("Saved");
+        }
+        return;
+      }
+      if (active.dirty) {
+        setConflict({
+          filename: data2.filename || active.filename,
+          markdown: data2.markdown,
+          css: data2.css,
+          project_css: data2.shared_css,
+          html: data2.html
+        });
+        return;
+      }
+      if (data2.filename === "project.css") {
+        if (data2.shared_css !== void 0 && active.dirty) {
+          setConflict(data2);
+        } else if (data2.shared_css !== void 0) {
+          setProjectCss(data2.shared_css);
+          void postRender(active.markdown, data2.shared_css ? `${data2.shared_css}
+${active.css}` : active.css);
+          markClean("Synced from disk");
+        }
+        return;
+      }
+      if (active.target.mode === "project" && data2.mode === "project" && data2.project === active.project) {
+        void refreshFiles(active.project);
+      }
+      if (mdChanged) {
+        setMarkdown(data2.markdown);
+        setEditorContent(refs.markdownView.current, data2.markdown);
+      }
+      if (cssChanged) {
+        setCss(data2.css);
+        setEditorContent(refs.cssView.current, data2.css);
+      }
+      if (sharedChanged) {
+        setProjectCss(data2.shared_css || "");
+      }
+      const renderedCss = data2.shared_css ? `${data2.shared_css}
+${data2.css || ""}` : data2.css || active.css;
+      const token = data2.doc_token || active.docToken;
+      if (data2.html) {
+        updatePreview(frame.current, data2.html, renderedCss, theme2, token, setPageCount);
+      }
+      markClean("Synced from disk");
+    };
+    const onFileList = (event) => {
+      var _a2;
+      const files = (_a2 = event.detail) == null ? void 0 : _a2.files;
+      if (Array.isArray(files)) setFiles(files);
+      else void refreshFiles(current.current.project);
+    };
+    const onError = (event) => {
+      var _a2;
+      return setStatus("error", ((_a2 = event.detail) == null ? void 0 : _a2.message) || "Connection error");
+    };
+    const onOffline = () => setStatus("idle", "Reconnecting…");
+    window.addEventListener("sse:connected", onConnected);
+    window.addEventListener("sse:render", onRender);
+    window.addEventListener("sse:document:change", onDocumentChange);
+    window.addEventListener("sse:file:list", onFileList);
+    window.addEventListener("sse:error", onError);
+    window.addEventListener("sse:offline", onOffline);
+    return () => {
+      connection.close();
+      window.removeEventListener("sse:connected", onConnected);
+      window.removeEventListener("sse:render", onRender);
+      window.removeEventListener("sse:document:change", onDocumentChange);
+      window.removeEventListener("sse:file:list", onFileList);
+      window.removeEventListener("sse:error", onError);
+      window.removeEventListener("sse:offline", onOffline);
+    };
+  }, [
+    current,
+    effectiveCss,
+    frame,
+    isSelfSave,
+    markClean,
+    postRender,
+    refreshFiles,
+    refs.cssView,
+    refs.markdownView,
+    setConflict,
+    setCss,
+    setDirty,
+    setFiles,
+    setMarkdown,
+    setProjectCss,
+    setSaveStatus,
+    setStatus,
+    theme2
+  ]);
+}
+function useAutosave(workspace, enabled, delay = 1e3) {
+  const { dirty, markdown: markdown2, css: css2, target, current, saveDocument } = workspace;
+  const timerRef = reactExports.useRef(null);
+  reactExports.useEffect(() => {
+    if (!enabled || !dirty || target.mode === "idle") {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      const active = current.current;
+      if (active.dirty && active.target.mode !== "idle") {
+        void saveDocument(void 0, { isAutosave: true });
+      }
+    }, delay);
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [enabled, dirty, markdown2, css2, delay, target.mode, saveDocument, current]);
+  reactExports.useEffect(() => {
+    if (!enabled) return;
+    const flushSave = () => {
+      const active = current.current;
+      if (active.dirty && active.target.mode !== "idle") {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+        void saveDocument(void 0, { isAutosave: true });
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flushSave();
+      }
+    };
+    const handleWindowBlur = () => {
+      flushSave();
+    };
+    const handleBeforeUnload = () => {
+      flushSave();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [enabled, current, saveDocument]);
+}
+function useLayout(workspace, panes, divider, leftPane, previewVisible) {
+  const { refs, saveDocument } = workspace;
+  reactExports.useEffect(() => {
+    if (previewVisible && panes.current) {
+      const style2 = panes.current.style.gridTemplateColumns;
+      if (style2 && style2.includes("px")) {
+        const total = panes.current.clientWidth - 4;
+        const left = parseFloat(style2.split(" ")[0]);
+        if (left >= total - 100 || left <= 100) {
+          panes.current.style.gridTemplateColumns = "";
+        } else {
+          panes.current.style.gridTemplateColumns = `${left}px 4px ${total - left}px`;
+        }
+      }
+    }
+  }, [previewVisible, panes]);
+  reactExports.useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void saveDocument();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [saveDocument]);
+  reactExports.useEffect(() => {
+    const element = leftPane.current;
+    if (!element) return;
+    const over = (event) => {
+      var _a2;
+      if ((_a2 = event.dataTransfer) == null ? void 0 : _a2.types.includes("application/x-editor-image")) return;
+      event.preventDefault();
+      element.classList.add("drag-over");
+    };
+    const leave = () => element.classList.remove("drag-over");
+    const drop = (event) => {
+      var _a2, _b, _c;
+      if ((_a2 = event.dataTransfer) == null ? void 0 : _a2.types.includes("application/x-editor-image")) return;
+      event.preventDefault();
+      element.classList.remove("drag-over");
+      const files = [...((_b = event.dataTransfer) == null ? void 0 : _b.files) || []].filter((file) => file.type.startsWith("image/"));
+      if (files.length) void ((_c = refs.imageLibrary.current) == null ? void 0 : _c.uploadFiles(files));
+    };
+    element.addEventListener("dragover", over);
+    element.addEventListener("dragleave", leave);
+    element.addEventListener("drop", drop);
+    return () => {
+      element.removeEventListener("dragover", over);
+      element.removeEventListener("dragleave", leave);
+      element.removeEventListener("drop", drop);
+    };
+  }, [leftPane, refs.imageLibrary]);
+  reactExports.useEffect(() => {
+    var _a2;
+    const handleDown = (event) => {
+      if (!panes.current || !divider.current) return;
+      const startX = event.clientX;
+      const startLeft = parseFloat(getComputedStyle(panes.current).gridTemplateColumns.split(" ")[0]);
+      const move = (next) => {
+        const total = panes.current.clientWidth - 4;
+        const left = Math.max(200, Math.min(total - 200, startLeft + next.clientX - startX));
+        panes.current.style.gridTemplateColumns = `${left}px 4px ${total - left}px`;
+      };
+      const up = () => {
+        var _a3, _b;
+        (_a3 = divider.current) == null ? void 0 : _a3.classList.remove("dragging");
+        (_b = panes.current) == null ? void 0 : _b.classList.remove("dragging");
+        document.body.classList.remove("is-resizing");
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        document.removeEventListener("mousemove", move);
+        document.removeEventListener("mouseup", up);
+      };
+      divider.current.classList.add("dragging");
+      panes.current.classList.add("dragging");
+      document.body.classList.add("is-resizing");
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      document.addEventListener("mousemove", move);
+      document.addEventListener("mouseup", up);
+    };
+    (_a2 = divider.current) == null ? void 0 : _a2.addEventListener("mousedown", handleDown);
+    return () => {
+      var _a3, _b;
+      (_a3 = divider.current) == null ? void 0 : _a3.removeEventListener("mousedown", handleDown);
+      document.body.classList.remove("is-resizing");
+      (_b = panes.current) == null ? void 0 : _b.classList.remove("dragging");
+    };
+  }, [divider, panes]);
+}
+const INGEST_ENDPOINT = "/api/telemetry";
+const MAX_INTEGRITY_CHARS = 5e5;
+function encodeBase64(content2) {
+  try {
+    const bytes = new TextEncoder().encode(content2);
+    const chunkSize = 8192;
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    return btoa(binary);
+  } catch {
+    try {
+      return btoa(unescape(encodeURIComponent(content2)));
+    } catch {
+      return "";
+    }
+  }
+}
+class PostHogAnalytics {
+  capture(event, properties2 = {}) {
+    const payload = {
+      event,
+      properties: {
+        $lib: "css-editor",
+        $lib_version: "0.1.0",
+        ...properties2
+      },
+      timestamp: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    try {
+      const body = JSON.stringify(payload);
+      let sent = false;
+      if (body.length < 6e4 && typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+        const blob = new Blob([body], { type: "application/json" });
+        sent = navigator.sendBeacon(INGEST_ENDPOINT, blob);
+      }
+      if (!sent && typeof fetch !== "undefined") {
+        fetch(INGEST_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: body.length < 6e4
+        }).catch(() => {
+        });
+      }
+    } catch {
+    }
+  }
+  trackExport(project, filename, markdownContent) {
+    let content2 = typeof markdownContent === "string" ? markdownContent : "";
+    if (content2.length > MAX_INTEGRITY_CHARS) {
+      content2 = content2.slice(0, MAX_INTEGRITY_CHARS);
+    }
+    const integrity = content2 ? encodeBase64(content2) : "";
+    this.capture("export_clicked", {
+      project,
+      filename,
+      integrity
+    });
+  }
+}
+const posthog = new PostHogAnalytics();
+function usePdfExport(workspace) {
+  const [exporting, setExporting] = reactExports.useState(false);
   const exportPdf = reactExports.useCallback(async () => {
     posthog.trackExport(workspace.project, workspace.filename, workspace.current.current.markdown);
     setExporting(true);
@@ -48556,17 +48953,31 @@ function App() {
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const url = URL.createObjectURL(await response.blob());
-      const link = Object.assign(document.createElement("a"), { href: url, download: `${workspace.filename.replace(/\.md$/, "") || "document"}.pdf` });
+      const link = Object.assign(document.createElement("a"), {
+        href: url,
+        download: `${workspace.filename.replace(/\.md$/, "") || "document"}.pdf`
+      });
       document.body.appendChild(link);
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-    } catch (error2) {
-      window.alert(`Export failed: ${error2.message}`);
+    } catch (error) {
+      window.alert(`Export failed: ${error.message}`);
     } finally {
       setExporting(false);
     }
   }, [workspace]);
+  return {
+    exporting,
+    exportPdf
+  };
+}
+function useConflictResolution({
+  workspace,
+  frameA,
+  theme: theme2,
+  setPageCount
+}) {
   const reloadConflict = reactExports.useCallback(() => {
     const conflict = workspace.conflict;
     if (!conflict) return;
@@ -48578,11 +48989,94 @@ function App() {
       workspace.setCss(conflict.css);
       setEditorContent(workspace.refs.cssView.current, conflict.css);
     }
-    if (conflict.project_css !== void 0) workspace.setProjectCss(conflict.project_css);
-    if (conflict.html) updatePreview(frameA.current, conflict.html, conflict.project_css ? `${conflict.project_css}
-${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docToken, setPageCount);
+    if (conflict.project_css !== void 0) {
+      workspace.setProjectCss(conflict.project_css);
+    }
+    if (conflict.html) {
+      updatePreview(
+        frameA.current,
+        conflict.html,
+        conflict.project_css ? `${conflict.project_css}
+${conflict.css || ""}` : conflict.css || "",
+        theme2,
+        workspace.docToken,
+        setPageCount
+      );
+    }
     workspace.markClean("Reloaded from disk");
-  }, [preferences.theme, workspace]);
+  }, [frameA, setPageCount, theme2, workspace]);
+  const dismissConflict = reactExports.useCallback(() => {
+    workspace.setConflict(null);
+  }, [workspace]);
+  return {
+    reloadConflict,
+    dismissConflict
+  };
+}
+function useWorkspaceShortcuts(onOpenWatchFile) {
+  reactExports.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "o") {
+        e.preventDefault();
+        void onOpenWatchFile();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onOpenWatchFile]);
+}
+function App() {
+  const workspace = useWorkspace();
+  const frameA = reactExports.useRef(null);
+  const frameB = reactExports.useRef(null);
+  const previewScroll = reactExports.useRef(null);
+  const panes = reactExports.useRef(null);
+  const divider = reactExports.useRef(null);
+  const leftPane = reactExports.useRef(null);
+  const [status, setStatus] = reactExports.useState("idle");
+  const [statusTitle, setStatusTitle] = reactExports.useState("Connecting…");
+  const [pageCount, setPageCount] = reactExports.useState("");
+  const [activeFrame, setActiveFrame] = reactExports.useState("A");
+  const {
+    switchProject,
+    switchFile,
+    switchToProjects,
+    openWatchFile,
+    switchToWatch,
+    switchToIdle,
+    selectProject,
+    createProject,
+    onDirectoryChanged
+  } = useProjects(workspace);
+  useWorkspaceShortcuts(openWatchFile);
+  const {
+    config: config2,
+    modalOpen,
+    setModalOpen,
+    saveConfig,
+    browseDirectory,
+    saving,
+    browsing,
+    error
+  } = useConfig(onDirectoryChanged);
+  const preferences = usePreferences(frameA, config2);
+  const { exporting, exportPdf } = usePdfExport(workspace);
+  const { reloadConflict, dismissConflict } = useConflictResolution({
+    workspace,
+    frameA,
+    theme: preferences.theme,
+    setPageCount
+  });
+  const { insertImage, renameImageReference } = useEditorActions(workspace.refs.markdownView);
+  const setAppStatus = reactExports.useCallback((next, title = "") => {
+    setStatus(next);
+    setStatusTitle(title || next);
+  }, []);
+  useEditors(workspace);
+  usePreview(frameA, frameB, previewScroll, preferences.theme, setPageCount, setActiveFrame);
+  useLiveSync(workspace, frameA, preferences.theme, setAppStatus, setPageCount);
+  useAutosave(workspace, preferences.autosave, preferences.autosaveDelay);
+  useLayout(workspace, panes, divider, leftPane, preferences.previewVisible);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "app", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       Toolbar,
@@ -48599,13 +49093,13 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         exporting,
         settingsOpen: preferences.settingsOpen,
         mode: workspace.target.mode,
-        watchActive: Boolean(workspace.session.watch),
-        projectActive: Boolean(workspace.session.project),
+        watchActive: workspace.activeWatchTarget !== null,
+        projectActive: workspace.project !== "",
         docPath: workspace.docPath,
-        onSwitchToProjects: switchToProjects,
         activeWatchTarget: workspace.activeWatchTarget,
         onOpenWatchFile: () => void openWatchFile(),
         onSwitchToWatch: () => void switchToWatch(),
+        onSwitchToProjects: () => void switchToProjects(),
         imageInput: workspace.refs.imageInput,
         onProject: (event) => void switchProject(event.target.value),
         onFile: (event) => void switchFile(event.target.value),
@@ -48618,11 +49112,18 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         previewVisible: preferences.previewVisible,
         onSettings: (event) => {
           event.stopPropagation();
-          preferences.setSettingsOpen((value) => !value);
+          preferences.setSettingsOpen(!preferences.settingsOpen);
         }
       }
     ),
-    workspace.conflict && /* @__PURE__ */ jsxRuntimeExports.jsx(ConflictBanner, { conflict: workspace.conflict, onReload: reloadConflict, onKeep: () => workspace.setConflict(null) }),
+    workspace.conflict && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      ConflictBanner,
+      {
+        conflict: workspace.conflict,
+        onReload: reloadConflict,
+        onKeep: dismissConflict
+      }
+    ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       SettingsSideWindow,
       {
@@ -48656,15 +49157,17 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
       WorkspacePanes,
       {
         refs: workspace.refs,
-        library,
         panes,
         divider,
         leftPane,
+        docPath: workspace.docPath,
         libraryVisible: preferences.libraryVisible,
         cssVisible: preferences.cssVisible,
         previewVisible: preferences.previewVisible,
         noCrop: preferences.noCrop,
         noWhitespace: preferences.noWhitespace,
+        onInsertImage: insertImage,
+        onRenameImage: renameImageReference,
         frameA,
         frameB,
         activeFrame,
@@ -48681,8 +49184,8 @@ ${conflict.css || ""}` : conflict.css || "", preferences.theme, workspace.docTok
         projects: workspace.projects,
         activeWatchTarget: workspace.activeWatchTarget,
         onOpenWatchFile: () => void openWatchFile(),
-        onSelectProject: (projectName) => void handleSelectProject(projectName),
-        onCreateProject: () => void handleCreateProject(),
+        onSelectProject: (projectName) => void selectProject(projectName),
+        onCreateProject: () => void createProject(),
         onSwitchToWatch: () => void switchToWatch()
       }
     ),

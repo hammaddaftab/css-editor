@@ -1,0 +1,284 @@
+import { useCallback, useRef, useState } from 'react';
+import type { Project, ProjectFile, Conflict, TargetSpec, WorkspaceProject } from '../../../entities';
+import type { WorkspaceRefs } from '../types';
+import { setEditorContent } from '../../editor';
+import { useUrlTarget } from './useUrlTarget';
+
+function getContentSignature(markdown: string = '', css: string = ''): string {
+  return `${markdown.length}:${css.length}:${markdown.slice(0, 40)}:${markdown.slice(-40)}:${css}`;
+}
+
+export function useWorkspace() {
+  const urlTarget = useUrlTarget();
+  const { session, mode, target } = urlTarget;
+
+  const project = session.project ? session.projectName : '';
+  const filename = session.project
+    ? session.file
+    : (session.watch ? (session.path.split(/[/\\]/).pop() || '') : '');
+
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [workspaceProjects, setWorkspaceProjects] = useState<WorkspaceProject[]>([]);
+  const [files, setFiles] = useState<ProjectFile[]>([]);
+  const [activeWatchTarget, setActiveWatchTarget] = useState<{ path: string; filename: string } | null>(() => {
+    if (session.watch) {
+      return { path: session.path, filename: session.path.split(/[/\\]/).pop() || '' };
+    }
+    return null;
+  });
+  const [docToken, setDocToken] = useState('');
+  const [docPath, setDocPath] = useState('');
+  const [markdown, setMarkdown] = useState('');
+  const [css, setCss] = useState('');
+  const [projectCss, setProjectCss] = useState('');
+  const [dirty, setDirty] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
+  const [conflict, setConflict] = useState<Conflict | null>(null);
+  const recentSaves = useRef<Set<string>>(new Set());
+
+  const recordSelfSave = useCallback((md: string = '', customCss: string = '') => {
+    const sig = getContentSignature(md, customCss);
+    recentSaves.current.add(sig);
+    window.setTimeout(() => {
+      recentSaves.current.delete(sig);
+    }, 6000);
+  }, []);
+
+  const isSelfSave = useCallback((md: string = '', customCss: string = '') => {
+    const sig = getContentSignature(md, customCss);
+    return recentSaves.current.has(sig);
+  }, []);
+
+  const refs: WorkspaceRefs = {
+    markdownHost: useRef<HTMLDivElement>(null),
+    cssHost: useRef<HTMLDivElement>(null),
+    markdownView: useRef(null),
+    cssView: useRef(null),
+    imageInput: useRef<HTMLInputElement>(null),
+    imageLibrary: useRef(null),
+  };
+
+  const current = useRef({
+    project,
+    filename,
+    markdown,
+    css,
+    projectCss,
+    dirty,
+    target,
+    docToken,
+    docPath,
+  });
+  current.current = {
+    project,
+    filename,
+    markdown,
+    css,
+    projectCss,
+    dirty,
+    target,
+    docToken,
+    docPath,
+  };
+
+  const markDirty = useCallback(() => { setDirty(true); setSaveStatus('Unsaved'); }, []);
+  const markClean = useCallback((message = 'Saved') => {
+    setDirty(false); setConflict(null); setSaveStatus(message);
+    window.setTimeout(() => setSaveStatus((value) => value === message ? '' : value), 3000);
+  }, []);
+
+  const effectiveCss = useCallback(() => {
+    const value = current.current;
+    return value.projectCss ? `${value.projectCss}\n${value.css}` : value.css;
+  }, []);
+
+  const postRender = useCallback(async (
+    nextMarkdown: string,
+    nextCss: string,
+    context: { project?: string; filename?: string; docPath?: string; docToken?: string } = {},
+  ) => {
+    const value = current.current;
+    try {
+      await fetch('/api/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          markdown: nextMarkdown,
+          css: nextCss,
+          project: context.project ?? value.project,
+          filename: context.filename ?? value.filename,
+          doc_path: context.docPath ?? value.docPath,
+          doc_token: context.docToken ?? value.docToken,
+        }),
+      });
+    } catch (error) { console.error('Render failed:', error); }
+  }, []);
+
+  const refreshProjects = useCallback(async (): Promise<WorkspaceProject[]> => {
+    try {
+      const response = await fetch('/api/workspace');
+      if (!response.ok) return [];
+      const data = await response.json();
+      if (data.active_watch_target) {
+        setActiveWatchTarget(data.active_watch_target);
+      }
+      const nextProjects: WorkspaceProject[] = data.projects || [];
+      setWorkspaceProjects(nextProjects);
+      setProjects(nextProjects.map((p) => ({ name: p.name, documents: p.documents.length })));
+      return nextProjects;
+    } catch (error) { console.error('Failed to fetch project list:', error); return []; }
+  }, []);
+
+  const refreshFiles = useCallback(async (nextProject = current.current.project): Promise<ProjectFile[]> => {
+    if (!nextProject) return [];
+    try {
+      const response = await fetch('/api/workspace');
+      if (!response.ok) return [];
+      const data = await response.json();
+      const proj = (data.projects || []).find((p: WorkspaceProject) => p.name === nextProject);
+      const nextFiles = proj ? proj.documents : [];
+      setFiles(nextFiles);
+      return nextFiles;
+    } catch (error) { console.error('Failed to fetch file list:', error); return []; }
+  }, []);
+
+  const loadDocument = useCallback(async (spec: TargetSpec) => {
+    if (spec.mode === 'idle') {
+      setMarkdown('');
+      setCss('');
+      setProjectCss('');
+      setDocToken('');
+      setDocPath('');
+      setEditorContent(refs.markdownView.current, '');
+      setEditorContent(refs.cssView.current, '');
+      return;
+    }
+
+    try {
+      let query = `mode=${spec.mode}`;
+      if (spec.mode === 'watch') {
+        query += `&path=${encodeURIComponent(spec.path)}`;
+        if (spec.customCss) query += `&custom_css=${encodeURIComponent(spec.customCss)}`;
+      } else {
+        query += `&project=${encodeURIComponent(spec.project)}&file=${encodeURIComponent(spec.filename)}`;
+      }
+
+      const response = await fetch(`/api/document?${query}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const nextMarkdown = data.markdown || '';
+      const nextCss = data.css || '';
+      const sharedCss = data.shared_css || '';
+
+      setDocToken(data.doc_token || '');
+      setDocPath(data.doc_path || '');
+      setMarkdown(nextMarkdown);
+      setCss(nextCss);
+      setProjectCss(sharedCss);
+
+      if (spec.mode === 'watch') {
+        const nextPath = data.doc_path || spec.path;
+        setActiveWatchTarget((prev) => (prev && prev.path === nextPath && prev.filename === data.filename ? prev : { path: nextPath, filename: data.filename }));
+      }
+
+      setEditorContent(refs.markdownView.current, nextMarkdown);
+      setEditorContent(refs.cssView.current, nextCss);
+      await refs.imageLibrary.current?.setDoc(data.doc_path);
+      recordSelfSave(nextMarkdown, nextCss);
+      markClean('Loaded');
+
+      const renderedCss = sharedCss ? `${sharedCss}\n${nextCss}` : nextCss;
+      void postRender(nextMarkdown, renderedCss, {
+        project: spec.mode === 'project' ? spec.project : '',
+        filename: data.filename,
+        docPath: data.doc_path,
+        docToken: data.doc_token,
+      });
+    } catch (error) {
+      console.error('Failed to load document:', error);
+    }
+  }, [markClean, postRender, recordSelfSave, refs.cssView, refs.imageLibrary, refs.markdownView]);
+
+  const saveDocument = useCallback(async (
+    override?: { filename?: string; markdown?: string; css?: string },
+    options?: { isAutosave?: boolean },
+  ) => {
+    const value = current.current;
+    const activeTarget = value.target;
+    if (activeTarget.mode === 'idle') {
+      return;
+    }
+    const mdToSave = override?.markdown ?? value.markdown;
+    const cssToSave = override?.css ?? value.css;
+
+    setSaveStatus('Saving…');
+    recordSelfSave(mdToSave, cssToSave);
+
+    try {
+      const payload: Record<string, any> = {
+        mode: activeTarget.mode,
+        markdown: mdToSave,
+        css: cssToSave,
+      };
+
+      if (activeTarget.mode === 'watch') {
+        payload.path = activeTarget.path;
+        payload.custom_css = activeTarget.customCss;
+      } else {
+        payload.project = activeTarget.project;
+        payload.filename = override?.filename ?? activeTarget.filename;
+      }
+
+      const response = await fetch('/api/document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || response.status);
+      }
+
+      if (current.current.markdown === mdToSave && current.current.css === cssToSave) {
+        markClean('Saved');
+      } else {
+        setSaveStatus('');
+      }
+
+      if (activeTarget.mode === 'project') {
+        await refreshFiles(activeTarget.project);
+      }
+    } catch (error) {
+      setSaveStatus('Save failed');
+      if (!options?.isAutosave) {
+        window.alert(`Save failed: ${(error as Error).message}`);
+      } else {
+        console.warn('Autosave failed:', error);
+      }
+    }
+  }, [markClean, recordSelfSave, refreshFiles]);
+
+  const updateMarkdown = useCallback((value: string) => {
+    setMarkdown(value); markDirty(); void postRender(value, effectiveCss());
+  }, [effectiveCss, markDirty, postRender]);
+
+  const updateCss = useCallback((value: string) => {
+    setCss(value); markDirty(); const base = current.current;
+    void postRender(base.markdown, base.projectCss ? `${base.projectCss}\n${value}` : value);
+  }, [markDirty, postRender]);
+
+  return {
+    projects, workspaceProjects, project, files, filename, target, session, mode, docToken, docPath,
+    activeWatchTarget, setActiveWatchTarget,
+    markdown, css, projectCss, dirty, saveStatus, conflict,
+    setDocToken, setDocPath, setMarkdown, setCss,
+    setProjectCss, setFiles, setDirty, setSaveStatus, setConflict,
+    refs, current, effectiveCss, postRender, refreshProjects, refreshFiles,
+    loadDocument, saveDocument, updateMarkdown, updateCss, markDirty, markClean,
+    recordSelfSave, isSelfSave,
+    urlTarget,
+  };
+}
+
+export type WorkspaceState = ReturnType<typeof useWorkspace>;
+

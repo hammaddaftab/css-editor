@@ -205,6 +205,25 @@ class TestPhase2Routes(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.content, b"\x89PNG\r\n\x1a\nPhotoBytes")
 
+    def test_rename_image(self):
+        proj_dir = self.projects_dir / "my-rename-proj"
+        proj_dir.mkdir()
+        img_dir = proj_dir / "images"
+        img_dir.mkdir()
+        img_path = img_dir / "old-pic.png"
+        img_path.write_bytes(b"\x89PNG\r\n\x1a\nPhotoBytes")
+
+        # Rename via PATCH
+        res = self.client.patch(
+            "/api/images/old-pic.png?project=my-rename-proj",
+            json={"new_filename": "new-pic.png"},
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["filename"], "new-pic.png")
+        self.assertFalse(img_path.exists())
+        self.assertTrue((img_dir / "new-pic.png").exists())
+
     # ── 4. Workspace Discovery & PDF Export ─────────────────────────────────────
 
     def test_get_workspace(self):
