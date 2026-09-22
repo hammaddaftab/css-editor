@@ -64,7 +64,7 @@ Pre-compiled standalone executables are available for every release on the [GitH
    sudo mv css-editor /usr/local/bin/
    ```
 
-> **PDF Engine Requirements:** Run `brew install pango cairo gdk-pixbuf libffi` if not already installed.
+> **PDF Engine Requirements:** Run `brew install pango cairo gdk-pixbuf libffi glib fontconfig harfbuzz` if not already installed.
 
 ---
 

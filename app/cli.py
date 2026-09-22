@@ -18,7 +18,23 @@ import time
 import webbrowser
 from pathlib import Path
 
-__version__ = "1.0.1"
+from app.core.macos_compat import setup_macos_library_paths
+
+setup_macos_library_paths()
+
+# Reconfigure stdout/stderr to avoid Windows charmap encoding crashes (cp1252/cp437)
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+__version__ = "1.0.2"
 
 
 def find_available_port(host: str = "127.0.0.1", preferred_port: int = 8000) -> int:
@@ -48,7 +64,7 @@ def open_browser_delayed(url: str, delay: float = 0.8) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="css-editor",
-        description="CSS Markdown Editor — Live markdown editor with CSS customisation and PDF export.",
+        description="CSS Markdown Editor - Live markdown editor with CSS customisation and PDF export.",
     )
     parser.add_argument(
         "--host",
@@ -106,7 +122,7 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"Error: Templates path missing: {settings.templates_path}", file=sys.stderr)
                 sys.exit(1)
 
-            print("✓ Integrity self-check passed: All modules and assets loaded successfully.")
+            print("[OK] Integrity self-check passed: All modules and assets loaded successfully.")
             return
         except Exception as err:
             print(f"Self-check failed: {err}", file=sys.stderr)
@@ -144,10 +160,10 @@ def main(argv: list[str] | None = None) -> None:
         browser_thread.start()
 
     print("=" * 60)
-    print(f"  🚀 CSS Markdown Editor v{__version__}")
-    print(f"  🌐 URL:      {url}")
-    print(f"  📁 Projects: {get_projects_root()}")
-    print("  ⌨️  Press Ctrl+C to stop the server.")
+    print(f"  * CSS Markdown Editor v{__version__}")
+    print(f"  * URL:      {url}")
+    print(f"  * Projects: {get_projects_root()}")
+    print("  * Press Ctrl+C to stop the server.")
     print("=" * 60)
 
     try:

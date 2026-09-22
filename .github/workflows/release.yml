@@ -114,7 +114,8 @@ jobs:
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install pango cairo gdk-pixbuf libffi
+          brew install pango cairo gdk-pixbuf libffi glib fontconfig harfbuzz
+          echo "DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib:/usr/local/lib:$DYLD_FALLBACK_LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Install system dependencies (Windows)
         if: runner.os == 'Windows'
@@ -136,6 +137,8 @@ jobs:
 
       - name: Verify executable runs
         shell: bash
+        env:
+          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib:/usr/local/lib
         run: |
           if [ "${{ matrix.is_windows }}" = "true" ]; then
             ./dist/css-editor.exe --version
