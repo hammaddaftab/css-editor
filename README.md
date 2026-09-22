@@ -148,6 +148,7 @@ usage: css-editor [-h] [--host HOST] [--port PORT] [--no-browser] [--watch WATCH
 | `-w`, `--watch FILE` | `None` | Path to a local `.md` file on disk. Live syncs changes directly into the preview. |
 | `--no-browser` | `false` | Disables automatically opening the default web browser on startup. |
 | `-v`, `--version` | — | Prints application version and exits. |
+| `--check` | `false` | Verifies runtime dependencies, templates, and routes integrity, then exits. |
 | `-h`, `--help` | — | Displays the command-line help message. |
 
 ### Examples
@@ -216,6 +217,7 @@ python -m PyInstaller --clean css-editor.spec
 
 # Test the compiled binary
 ./dist/css-editor --version
+./dist/css-editor --check
 ```
 
 ---

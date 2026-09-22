@@ -67,6 +67,9 @@ hiddenimports = [
 
     # Pydantic settings
     'pydantic_settings',
+
+    # HTTP client & Telemetry
+    'httpx',
 ]
 
 a = Analysis(

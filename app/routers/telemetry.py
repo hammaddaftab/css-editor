@@ -61,7 +61,7 @@ def track_backend_event(event: str, properties: Dict[str, Any] | None = None) ->
         "event": event,
         "properties": {
             "$lib": "css-editor-backend",
-            "$lib_version": "0.1.0",
+            "$lib_version": "1.0.1",
             "platform": sys.platform,
             **(properties or {}),
         },

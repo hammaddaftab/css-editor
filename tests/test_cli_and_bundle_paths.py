@@ -136,6 +136,11 @@ class TestCliAndBundlePaths(unittest.TestCase):
         self.assertEqual(res2.headers.get("etag"), etag)
         self.assertEqual(res2.headers.get("last-modified"), last_mod)
 
+    def test_cli_check_flag(self):
+        from app.cli import main
+        # main(["--check"]) completes cleanly and returns None
+        self.assertIsNone(main(["--check"]))
+
 
 if __name__ == "__main__":
     unittest.main()

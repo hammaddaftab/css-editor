@@ -18,7 +18,7 @@ import time
 import webbrowser
 from pathlib import Path
 
-__version__ = "0.1.0"
+__version__ = "1.0.1"
 
 
 def find_available_port(host: str = "127.0.0.1", preferred_port: int = 8000) -> int:
@@ -78,12 +78,39 @@ def build_parser() -> argparse.ArgumentParser:
         action="version",
         version=f"%(prog)s {__version__}",
     )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Validate configuration, dependencies, and bundled assets, then exit.",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.check:
+        try:
+            print("Checking application dependencies, templates, and static assets...")
+            from app.core.config import settings
+            from app.main import app
+            from app.services.config_manager import get_projects_root
+            import httpx
+            import weasyprint
+
+            if not settings.static_path.exists():
+                print(f"Error: Static path missing: {settings.static_path}", file=sys.stderr)
+                sys.exit(1)
+            if not settings.templates_path.exists():
+                print(f"Error: Templates path missing: {settings.templates_path}", file=sys.stderr)
+                sys.exit(1)
+
+            print("✓ Integrity self-check passed: All modules and assets loaded successfully.")
+            return
+        except Exception as err:
+            print(f"Self-check failed: {err}", file=sys.stderr)
+            sys.exit(1)
 
     watch_path: Path | None = None
     if args.watch:

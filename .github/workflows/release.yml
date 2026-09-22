@@ -139,9 +139,11 @@ jobs:
         run: |
           if [ "${{ matrix.is_windows }}" = "true" ]; then
             ./dist/css-editor.exe --version
+            ./dist/css-editor.exe --check
           else
             chmod +x ./dist/css-editor
             ./dist/css-editor --version
+            ./dist/css-editor --check
           fi
 
       - name: Package archive (Unix)

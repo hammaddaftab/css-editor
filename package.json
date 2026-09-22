@@ -1,6 +1,6 @@
 {
   "name": "css-editor",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "build": "python -m PyInstaller --clean css-editor.spec && mkdir -p $HOME/.local/bin && mv dist/css-editor $HOME/.local/bin/",

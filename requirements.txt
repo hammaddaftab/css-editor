@@ -7,3 +7,4 @@ mdit-py-plugins>=0.4.0
 weasyprint>=62.0
 watchfiles>=0.21.0
 pydantic-settings>=2.0.0
+httpx>=0.24.0
